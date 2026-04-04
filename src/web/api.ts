@@ -332,6 +332,59 @@ apiRouter.get("/outreach", async (req, res) => {
   res.json({ items: rows, total: Number(total.count) });
 });
 
+// --- Outreach Timeline (past + future) ---
+apiRouter.get("/outreach/timeline", async (req, res) => {
+  const campaignId = req.query.campaign as string;
+  const account = req.query.account as string;
+
+  // Past: all outreach_queue entries
+  const past = await sql`
+    SELECT oq.id, oq.status, oq.message_text, oq.scheduled_at, oq.sent_at,
+           l.name as lead_name, l.headline as lead_headline, l.location as lead_location,
+           l.linkedin_id, l.tags as lead_tags,
+           oc.name as campaign_name, oc.account_id
+    FROM outreach_queue oq
+    LEFT JOIN leads l ON oq.lead_id = l.id
+    LEFT JOIN outreach_campaigns oc ON oq.campaign_id = oc.id
+    WHERE 1=1
+    ${campaignId ? sql`AND oq.campaign_id = ${parseInt(campaignId)}` : sql``}
+    ${account ? sql`AND oc.account_id = ${resolveAccountId(account)}` : sql``}
+    ORDER BY COALESCE(oq.sent_at, oq.scheduled_at) DESC
+  `;
+
+  // Future: campaign-tagged leads NOT yet in outreach_queue and NOT in conversations
+  const accountId = account ? resolveAccountId(account) : null;
+  const future = accountId ? await sql`
+    SELECT l.id as lead_id, l.name as lead_name, l.headline as lead_headline,
+           l.location as lead_location, l.linkedin_id, l.tags as lead_tags
+    FROM leads l
+    WHERE l.account_id = ${accountId}
+      AND l.tags LIKE '%campaign-%'
+      AND l.id NOT IN (SELECT oq.lead_id FROM outreach_queue oq WHERE oq.lead_id IS NOT NULL AND oq.status = 'sent')
+      AND l.linkedin_id NOT IN (
+        SELECT c.attendee_provider_id FROM conversations c
+        WHERE c.account_id = ${accountId} AND c.attendee_provider_id != ''
+      )
+    ORDER BY l.imported_at DESC
+  ` : [];
+
+  // Stats
+  const [stats] = await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'sent') as sent,
+      COUNT(*) FILTER (WHERE status = 'failed') as failed,
+      COUNT(*) FILTER (WHERE status = 'pending') as pending
+    FROM outreach_queue
+    ${campaignId ? sql`WHERE campaign_id = ${parseInt(campaignId)}` : sql``}
+  `;
+
+  res.json({
+    past: past,
+    future: future,
+    stats: { sent: Number(stats.sent), failed: Number(stats.failed), pending: Number(stats.pending), upcoming: (future as any[]).length },
+  });
+});
+
 // --- Campaigns CRUD ---
 apiRouter.get("/campaigns", async (_req, res) => {
   const rows = await sql`
