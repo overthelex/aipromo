@@ -1,6 +1,8 @@
 import express from "express";
+import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { WebSocketServer, WebSocket } from "ws";
 import { sql, initDatabase } from "./storage/store.js";
 import { logger } from "./utils/logger.js";
 import { apiRouter } from "./web/api.js";
@@ -8,6 +10,30 @@ import { apiRouter } from "./web/api.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+const server = createServer(app);
+
+// --- WebSocket ---
+const wss = new WebSocketServer({ server, path: "/ws" });
+const clients = new Set<WebSocket>();
+
+wss.on("connection", (ws) => {
+  clients.add(ws);
+  ws.on("close", () => clients.delete(ws));
+  ws.on("error", () => clients.delete(ws));
+});
+
+function broadcast(event: string, payload?: Record<string, unknown>) {
+  const msg = JSON.stringify({ event, ...payload });
+  for (const ws of clients) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(msg);
+    }
+  }
+}
+
+// Export for use in api.ts
+export { broadcast };
+
 app.use(express.json());
 
 // API routes
@@ -21,7 +47,7 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// SPA fallback — all non-API/webhook routes serve index.html
+// SPA fallback
 const PAGES = ["dashboard", "leads", "conversations", "messages", "outreach", "campaigns", "posts", "search", "sync", "activity"];
 for (const p of PAGES) {
   app.get(`/${p}`, (_req, res) => {
@@ -40,21 +66,19 @@ app.post("/webhook/message", async (req, res) => {
     const messageId = data.message_id ?? data.provider_message_id ?? `wh-${Date.now()}`;
     const senderId = data.sender?.provider_id ?? data.sender?.id ?? "";
     const text = (data.message ?? "").replace(/\0/g, "");
-    const isSender = data.is_sender ?? false;
+    const isSender = Boolean(data.is_sender);
     const messageType = data.message_type ?? "WEBHOOK";
     const timestamp = data.timestamp ?? new Date().toISOString();
     const senderName = data.sender?.name ?? "";
     const chatContentType = data.chat_content_type ?? "";
     const folder = Array.isArray(data.folder) ? data.folder.join(",") : (data.folder ?? "");
 
-    // Store message
     await sql`
       INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
       VALUES (0, ${messageId}, ${chatId}, ${senderId}, ${text}, ${isSender}, ${messageType}, ${timestamp}, false)
       ON CONFLICT (message_id) DO NOTHING
     `;
 
-    // Upsert conversation
     if (chatId) {
       await sql`
         INSERT INTO conversations (account_id, chat_id, attendee_name, attendee_provider_id, content_type, folder, unread_count, last_message_at, status, synced_at)
@@ -67,6 +91,9 @@ app.post("/webhook/message", async (req, res) => {
           synced_at = NOW()
       `;
     }
+
+    // Broadcast to all connected clients
+    broadcast("message", { chatId, accountId, senderId, senderName, text: text.slice(0, 100), isSender, messageType, timestamp });
 
     res.json({ ok: true });
   } catch (err: any) {
@@ -95,6 +122,8 @@ app.post("/webhook/relation", async (req, res) => {
       `;
     }
 
+    broadcast("relation", { accountId, linkedinId, name });
+
     res.json({ ok: true });
   } catch (err: any) {
     logger.error({ error: err.message }, "Webhook relation processing failed");
@@ -107,8 +136,8 @@ const PORT = parseInt(process.env.PORT ?? "8080", 10);
 
 async function start() {
   await initDatabase();
-  app.listen(PORT, () => {
-    logger.info({ port: PORT }, "aipromo webhook server started");
+  server.listen(PORT, () => {
+    logger.info({ port: PORT }, "aipromo server started (HTTP + WS)");
     console.log(`Server running on port ${PORT}`);
   });
 }

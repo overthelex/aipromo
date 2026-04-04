@@ -300,7 +300,49 @@
 const A='/api';
 const PAGES=['dashboard','leads','conversations','messages','outreach','campaigns','posts','search','sync','activity'];
 function pageFromPath(){const p=window.location.pathname.replace(/^\//,'');return PAGES.includes(p)?p:'dashboard';}
-let page=pageFromPath(), pollId=null;
+let page=pageFromPath();
+
+/* ── WebSocket ── */
+let ws=null;
+function connectWS(){
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  ws=new WebSocket(`${proto}//${location.host}/ws`);
+  ws.onopen=()=>console.log('WS connected');
+  ws.onclose=()=>{console.log('WS disconnected, reconnecting...');setTimeout(connectWS,3000);};
+  ws.onerror=()=>ws.close();
+  ws.onmessage=(e)=>{
+    try{
+      const msg=JSON.parse(e.data);
+      handleWSEvent(msg);
+    }catch{}
+  };
+}
+function handleWSEvent(msg){
+  const ev=msg.event;
+  // Update badge
+  if(ev==='message'&&!msg.isSender){
+    const dot=$('nav-conv');
+    if(dot&&!dot.querySelector('.dot'))dot.insertAdjacentHTML('beforeend','<span class="dot"></span>');
+    toast(`New message${msg.senderName?' from '+msg.senderName:''}`,true);
+  }
+  // Refresh current page data
+  if(ev==='message'){
+    if(page==='conversations')loadConv(false,true);
+    if(page==='messages')loadMsgs(window._lastMsgFilter||'');
+    if(page==='dashboard')pgDash(vp());
+    // Refresh open thread if same chat
+    if(window._activeChat===msg.chatId)openThread(msg.chatId,'');
+  }
+  if(ev==='relation'){
+    if(page==='leads')loadLeads();
+    if(page==='dashboard')pgDash(vp());
+  }
+  if(ev==='sync'){
+    if(page==='dashboard')pgDash(vp());
+    toast(`Sync complete: ${ev}`,true);
+  }
+}
+connectWS();
 
 /* ── HELPERS ── */
 async function api(p,o){
@@ -338,7 +380,7 @@ function navigate(p, pushState=true){
   document.querySelectorAll('.rail a').forEach(x=>x.classList.remove('active'));
   document.querySelector(`.rail a[data-p="${p}"]`)?.classList.add('active');
   $('crumb').innerHTML='<b>'+p.charAt(0).toUpperCase()+p.slice(1)+'</b>';
-  if(pollId){clearInterval(pollId);pollId=null;}
+
   render();
 }
 window.addEventListener('popstate',()=>navigate(pageFromPath(),false));
@@ -381,7 +423,6 @@ async function pgDash(el){
       ${s.accounts.map(a=>`<tr><td><span class="tag amber">${a.alias}</span></td><td>${a.name}</td><td class="mono dim">${a.id}</td></tr>`).join('')}
       </tbody></table>
     </div></div>`;
-  pollId=setInterval(()=>{if(page==='dashboard')pgDash(vp());},15000);
 }
 
 /* ═══════════════ LEADS ═══════════════ */
@@ -443,7 +484,6 @@ async function pgConv(el){
       </div>
     </div>`;
   await loadConv(false);
-  pollId=setInterval(()=>{if(page==='conversations')loadConv(false,true);},5000);
 }
 async function loadConv(unread,silent){
   const d=await api('/conversations?limit=200'+(unread?'&unread=true':''));
@@ -517,7 +557,6 @@ async function pgMsgs(el){
     </div>
     <div id="msgs-tbl"></div>`;
   await loadMsgs('');
-  pollId=setInterval(()=>{if(page==='messages')loadMsgs(window._lastMsgFilter||'');},5000);
 }
 async function loadMsgs(filter){
   window._lastMsgFilter=filter;

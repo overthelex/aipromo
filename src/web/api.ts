@@ -9,6 +9,7 @@ import { syncPosts, syncCompanyPosts } from "../core/posts.js";
 import { searchLeads } from "../core/search.js";
 import { runCampaignDay } from "../campaigns/engine.js";
 import { CAMPAIGN_NAME, DAILY_SEARCH_QUERIES } from "../campaigns/registry-access-2w.js";
+import { broadcast } from "../server.js";
 
 export const apiRouter = Router();
 
@@ -137,6 +138,7 @@ apiRouter.post("/conversations/:chatId/reply", async (req, res) => {
       ON CONFLICT (message_id) DO NOTHING
     `;
 
+    broadcast("message", { chatId: req.params.chatId, isSender: true, text: text.slice(0, 100) });
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -268,6 +270,7 @@ apiRouter.post("/sync", async (req, res) => {
         });
         break;
     }
+    broadcast("sync", { type, ...result });
     res.json({ ok: true, ...result });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
