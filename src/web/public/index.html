@@ -84,6 +84,8 @@
     .kpi.teal .num { color: var(--teal); }
     .kpi.red .num { color: var(--red); }
     .kpi.blue .num { color: var(--blue); }
+    .kpi { transition: transform 0.1s, border-color 0.1s; }
+    .kpi[style*="cursor"]:hover { transform: translateY(-2px); border-color: var(--border2); }
     .kpi::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
     }
@@ -362,16 +364,16 @@ async function pgDash(el){
   el.innerHTML=`
     <div class="page-title">Dashboard</div>
     <div class="kpi-row">
-      <div class="kpi amber"><div class="num">${s.leads}</div><div class="lbl">Leads</div></div>
-      <div class="kpi teal"><div class="num">${s.conversations}</div><div class="lbl">Conversations</div></div>
-      <div class="kpi blue"><div class="num">${s.messages}</div><div class="lbl">Messages</div></div>
-      <div class="kpi"><div class="num">${s.posts}</div><div class="lbl">Posts</div></div>
+      <div class="kpi amber" style="cursor:pointer" onclick="navigate('leads')"><div class="num">${s.leads}</div><div class="lbl">Leads</div></div>
+      <div class="kpi teal" style="cursor:pointer" onclick="navigate('conversations')"><div class="num">${s.conversations}</div><div class="lbl">Conversations</div></div>
+      <div class="kpi blue" style="cursor:pointer" onclick="navigate('messages')"><div class="num">${s.messages}</div><div class="lbl">Messages</div></div>
+      <div class="kpi" style="cursor:pointer" onclick="navigate('posts')"><div class="num">${s.posts}</div><div class="lbl">Posts</div></div>
     </div>
     <div class="kpi-row">
-      <div class="kpi teal"><div class="num">${s.sentToday}</div><div class="lbl">Sent Today</div></div>
-      <div class="kpi amber"><div class="num">${s.campaignLeads}</div><div class="lbl">Campaign Leads</div></div>
-      <div class="kpi blue"><div class="num">${s.sentMessages}</div><div class="lbl">Outreach Sent</div></div>
-      <div class="kpi ${conv?'red':''}""><div class="num">${conv}</div><div class="lbl">Unread</div></div>
+      <div class="kpi teal" style="cursor:pointer" onclick="navigate('messages');setTimeout(()=>loadMsgs('sent=true'),100)"><div class="num">${s.sentToday}</div><div class="lbl">Sent Today</div></div>
+      <div class="kpi amber" style="cursor:pointer" onclick="navigate('leads');setTimeout(()=>{$('l-tag').value='campaign';loadLeads()},100)"><div class="num">${s.campaignLeads}</div><div class="lbl">Campaign Leads</div></div>
+      <div class="kpi blue" style="cursor:pointer" onclick="navigate('outreach')"><div class="num">${s.sentMessages}</div><div class="lbl">Outreach Sent</div></div>
+      <div class="kpi ${conv?'red':''}" style="cursor:pointer" onclick="navigate('conversations');setTimeout(()=>loadConv(true),100)"><div class="num">${conv}</div><div class="lbl">Unread</div></div>
     </div>
     <div class="section-label">Accounts</div>
     <div class="card"><div class="card-body flush">
