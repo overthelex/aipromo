@@ -34,6 +34,13 @@ export async function searchLeads(opts: SearchFilters): Promise<SearchResult[]> 
   const accountId = unipile.accountId;
   const results: SearchResult[] = [];
   let cursor: string | undefined;
+  let skipped = 0;
+
+  // Load existing lead IDs for dedup
+  const existingRows = await sql`
+    SELECT linkedin_id FROM leads WHERE account_id = ${accountId}
+  `;
+  const existingIds = new Set(existingRows.map((r: any) => r.linkedin_id));
 
   while (results.length < opts.limit) {
     const body: Record<string, unknown> = {
@@ -47,7 +54,7 @@ export async function searchLeads(opts: SearchFilters): Promise<SearchResult[]> 
     if (opts.industry?.length) body.industry = opts.industry;
     if (opts.title) body.title = opts.title;
     if (opts.company?.length) body.company = opts.company;
-    body.limit = Math.min(opts.limit - results.length, 25);
+    body.limit = Math.min(opts.limit - results.length + 10, 25); // fetch extra to compensate for skips
     if (cursor) body.cursor = cursor;
 
     const data = await unipile.searchPeople(body);
@@ -56,6 +63,14 @@ export async function searchLeads(opts: SearchFilters): Promise<SearchResult[]> 
 
     for (const item of data.items) {
       if (results.length >= opts.limit) break;
+
+      // Skip leads that already exist in DB
+      if (existingIds.has(item.id)) {
+        skipped++;
+        continue;
+      }
+
+      existingIds.add(item.id); // prevent duplicates within same search
 
       results.push({
         id: item.id,
@@ -71,8 +86,12 @@ export async function searchLeads(opts: SearchFilters): Promise<SearchResult[]> 
     if (!cursor) break;
 
     if (results.length % 25 === 0) {
-      process.stdout.write(chalk.dim(`  Found ${results.length} leads...\r`));
+      process.stdout.write(chalk.dim(`  Found ${results.length} new leads (skipped ${skipped} existing)...\r`));
     }
+  }
+
+  if (skipped > 0) {
+    logger.info({ skipped, accountId }, "Skipped existing leads during search");
   }
 
   // Save to DB if requested

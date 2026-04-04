@@ -142,15 +142,21 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   // --- Phase 2: Send outreach to unsent leads ---
   console.log(chalk.bold("Phase 2: Sending outreach messages...\n"));
 
-  // Get leads tagged for this campaign that haven't been messaged yet
+  // Get leads tagged for this campaign that:
+  // 1. Haven't been messaged in ANY campaign
+  // 2. Don't have an existing conversation (already talked to)
   const leadsToMessage = await sql`
     SELECT l.* FROM leads l
     WHERE l.account_id = ${accountId}
       AND l.tags LIKE ${'%campaign-' + CAMPAIGN_NAME + '%'}
       AND l.id NOT IN (
         SELECT oq.lead_id FROM outreach_queue oq
-        WHERE oq.status IN ('sent', 'pending')
-        AND oq.lead_id IS NOT NULL
+        WHERE oq.lead_id IS NOT NULL
+      )
+      AND l.linkedin_id NOT IN (
+        SELECT c.attendee_provider_id FROM conversations c
+        WHERE c.account_id = ${accountId}
+          AND c.attendee_provider_id != ''
       )
     ORDER BY l.imported_at DESC
     LIMIT ${opts.maxMessages}
