@@ -232,6 +232,14 @@
     }
     .tabs .tab:hover { color: var(--text); }
     .tabs .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+    /* Conversation list items */
+    .conv-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+    .conv-item:hover { background: var(--surface2); }
+    .conv-item.conv-unread { background: var(--amber-dim); }
+    .conv-item.conv-unread:hover { background: rgba(240,168,48,0.18); }
+    .conv-item.conv-active { background: var(--surface2); border-left: 3px solid var(--amber); }
+    .conv-item.conv-active.conv-unread { background: var(--surface2); }
   </style>
 </head>
 <body>
@@ -447,19 +455,24 @@ async function loadConv(unread,silent){
     else if(ur===0)navConv.querySelector('.dot')?.remove();
   }
   $('conv-list').innerHTML=d.items.map(c=>{
-    // Resolve display name: attendee_name > lead_name > subject > chat name
     const displayName=esc(c.attendee_name||c.lead_name||c.subject||'Chat');
     const unr=c.unread_count>0;
-    // Show last message preview
     const lastMsg=c.last_message_text||'';
     const preview=lastMsg.slice(0,80).replace(/\n/g,' ');
-    const previewPrefix=c.last_message_is_sender?'You: ':'';
-    return `<div onclick="openThread('${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;${unr?'background:var(--amber-dim)':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${unr?'var(--amber-dim)':''}'"">
+    const isActive=window._activeChat===c.chat_id;
+    return `<div class="conv-item${isActive?' conv-active':''}${unr?' conv-unread':''}" data-chat="${c.chat_id}" onclick="selectConv('${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}')">
       <div class="flex-between"><strong style="font-size:12px">${displayName}</strong><span class="mono dim" style="font-size:10px">${ago(c.last_message_at)}</span></div>
       <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.last_message_is_sender?'<span style="color:var(--amber)">You:</span> ':''}${esc(preview)}</div>
       ${c.content_type?`<span class="tag" style="margin-top:4px;font-size:9px">${c.content_type}</span>`:''} ${unr?`<span class="tag red" style="margin-top:4px">${c.unread_count} new</span>`:''}
     </div>`;
   }).join('');
+}
+function selectConv(chatId,name){
+  window._activeChat=chatId;
+  document.querySelectorAll('.conv-item').forEach(el=>{
+    el.classList.toggle('conv-active',el.dataset.chat===chatId);
+  });
+  openThread(chatId,name);
 }
 async function openThread(chatId,name){
   const d=await api(`/conversations/${chatId}/messages`);
