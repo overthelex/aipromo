@@ -99,7 +99,10 @@ apiRouter.get("/conversations", async (req, res) => {
   const unreadOnly = req.query.unread === "true";
 
   const rows = await sql`
-    SELECT c.*, l.name as lead_name, l.headline as lead_headline
+    SELECT c.*, l.name as lead_name, l.headline as lead_headline,
+      (SELECT m.text FROM messages m WHERE m.chat_id = c.chat_id ORDER BY m.timestamp DESC LIMIT 1) as last_message_text,
+      (SELECT m.is_sender FROM messages m WHERE m.chat_id = c.chat_id ORDER BY m.timestamp DESC LIMIT 1) as last_message_is_sender,
+      (SELECT m.sender_id FROM messages m WHERE m.chat_id = c.chat_id AND m.is_sender = false ORDER BY m.timestamp DESC LIMIT 1) as last_sender_id
     FROM conversations c
     LEFT JOIN leads l ON c.lead_id = l.id
     WHERE 1=1

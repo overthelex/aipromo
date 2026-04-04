@@ -443,12 +443,17 @@ async function loadConv(unread,silent){
     else if(ur===0)navConv.querySelector('.dot')?.remove();
   }
   $('conv-list').innerHTML=d.items.map(c=>{
-    const name=esc(c.attendee_name||c.lead_name||'Unknown');
+    // Resolve display name: attendee_name > lead_name > subject > chat name
+    const displayName=esc(c.attendee_name||c.lead_name||c.subject||'Chat');
     const unr=c.unread_count>0;
-    return `<div onclick="openThread('${c.chat_id}','${esc(c.attendee_name||c.lead_name||'')}')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;${unr?'background:var(--amber-dim)':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${unr?'var(--amber-dim)':''}'"">
-      <div class="flex-between"><strong style="font-size:12px">${name}</strong><span class="mono dim" style="font-size:10px">${ago(c.last_message_at)}</span></div>
-      <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.subject)}</div>
-      ${unr?`<span class="tag red" style="margin-top:4px">${c.unread_count} new</span>`:''}
+    // Show last message preview
+    const lastMsg=c.last_message_text||'';
+    const preview=lastMsg.slice(0,80).replace(/\n/g,' ');
+    const previewPrefix=c.last_message_is_sender?'You: ':'';
+    return `<div onclick="openThread('${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;${unr?'background:var(--amber-dim)':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${unr?'var(--amber-dim)':''}'"">
+      <div class="flex-between"><strong style="font-size:12px">${displayName}</strong><span class="mono dim" style="font-size:10px">${ago(c.last_message_at)}</span></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.last_message_is_sender?'<span style="color:var(--amber)">You:</span> ':''}${esc(preview)}</div>
+      ${c.content_type?`<span class="tag" style="margin-top:4px;font-size:9px">${c.content_type}</span>`:''} ${unr?`<span class="tag red" style="margin-top:4px">${c.unread_count} new</span>`:''}
     </div>`;
   }).join('');
 }
