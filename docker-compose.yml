@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aipromo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aipromo
+      POSTGRES_USER: aipromo
+      POSTGRES_PASSWORD: aipromo_secret
+    ports:
+      - "5433:5432"
+    volumes:
+      - aipromo_pgdata:/var/lib/postgresql/data
+
+volumes:
+  aipromo_pgdata:
