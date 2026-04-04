@@ -30,7 +30,9 @@ export class UnipileService {
     path: string,
     body?: unknown
   ): Promise<T> {
-    await sleepWithJitter();
+    if (method !== "GET") {
+      await sleepWithJitter();
+    }
 
     return withRetry(async () => {
       const url = `${this.baseUrl}${path}`;
@@ -66,10 +68,12 @@ export class UnipileService {
   async getRelations(
     cursor?: string
   ): Promise<UnipilePaginatedResponse<UnipileRelation>> {
-    const query = cursor ? `?cursor=${cursor}` : "";
+    const params = new URLSearchParams();
+    params.set("account_id", appConfig.unipileAccountId);
+    if (cursor) params.set("cursor", cursor);
     return this.request<UnipilePaginatedResponse<UnipileRelation>>(
       "GET",
-      `/users/relations${query}`
+      `/users/relations?${params.toString()}`
     );
   }
 

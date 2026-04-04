@@ -5,31 +5,33 @@ import { sql } from "../storage/store.js";
 import { logger } from "../utils/logger.js";
 import type { Lead } from "../types/lead.types.js";
 
+function sanitize(s: string): string {
+  return s.replace(/\0/g, "");
+}
+
 export async function syncLeads(): Promise<number> {
   const unipile = new UnipileService();
   const relations = await unipile.getAllRelations();
   let count = 0;
 
   for (const r of relations) {
+    const name = sanitize([r.first_name, r.last_name].filter(Boolean).join(" "));
+    const headline = sanitize(r.headline ?? "");
+    const profileUrl = sanitize(r.public_profile_url ?? "");
+
     await sql`
-      INSERT INTO leads (linkedin_id, name, headline, company, title, location, profile_url, source)
+      INSERT INTO leads (linkedin_id, name, headline, profile_url, source)
       VALUES (
-        ${r.provider_id},
-        ${[r.first_name, r.last_name].filter(Boolean).join(" ")},
-        ${r.headline ?? ""},
-        ${r.company ?? ""},
-        ${r.title ?? ""},
-        ${r.location ?? ""},
-        ${r.profile_url ?? ""},
+        ${r.member_id},
+        ${name},
+        ${headline},
+        ${profileUrl},
         'connection'
       )
       ON CONFLICT (linkedin_id)
       DO UPDATE SET
         name = EXCLUDED.name,
         headline = EXCLUDED.headline,
-        company = EXCLUDED.company,
-        title = EXCLUDED.title,
-        location = EXCLUDED.location,
         profile_url = EXCLUDED.profile_url
     `;
     count++;

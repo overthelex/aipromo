@@ -10,16 +10,17 @@ export interface UnipileAccountsResponse {
 }
 
 export interface UnipileRelation {
-  id: string;
-  provider_id: string;
+  object: string;
+  connection_urn: string;
+  member_id: string;
+  member_urn: string;
   first_name: string;
   last_name: string;
   headline?: string;
-  company?: string;
-  title?: string;
-  location?: string;
-  profile_url?: string;
   public_identifier?: string;
+  public_profile_url?: string;
+  profile_picture_url?: string;
+  created_at: number;
 }
 
 export interface UnipilePaginatedResponse<T> {
