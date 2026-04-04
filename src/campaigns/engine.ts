@@ -5,7 +5,9 @@ import { sql } from "../storage/store.js";
 import { searchLeads } from "../core/search.js";
 import {
   checkDailyLimit,
+  checkAndIncrementDaily,
   incrementDailyCount,
+  checkPerMinuteLimit,
   sleep,
 } from "../utils/rate-limiter.js";
 import { appConfig } from "../config.js";
@@ -180,10 +182,16 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   for (let i = 0; i < leadsToMessage.length; i++) {
     const lead = leadsToMessage[i];
 
-    const canSend = await checkDailyLimit(accountId, "message", appConfig.maxMessagesPerDay);
+    const canSend = await checkAndIncrementDaily(accountId, "message", appConfig.maxMessagesPerDay);
     if (!canSend) {
       console.log(chalk.yellow(`  Daily limit reached (${appConfig.maxMessagesPerDay}). Stopping outreach.`));
       break;
+    }
+
+    // Per-minute throttle (max 5 messages/minute to avoid LinkedIn detection)
+    if (!checkPerMinuteLimit(`msg:${accountId}`, 5)) {
+      console.log(chalk.dim("  Throttling (5/min limit)... waiting 30s"));
+      await sleep(30000);
     }
 
     const profile: LeadProfile = {
@@ -217,16 +225,18 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       console.log(`  ${chalk.bold(profile.name)} [${chalk.cyan(angle)}]:`);
       console.log(`  ${chalk.green(message)}\n`);
     } else {
+      // Reserve slot in outreach_queue BEFORE sending (idempotency)
+      const [queued] = await sql`
+        INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status)
+        VALUES (${campaign.id}, ${lead.id}, ${message}, 'pending')
+        RETURNING id
+      `;
       try {
         // Try direct message first
         const chatId = await unipile.startChat(lead.linkedin_id, message);
-        await incrementDailyCount(accountId, "message");
         sentCount++;
 
-        await sql`
-          INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, sent_at)
-          VALUES (${campaign.id}, ${lead.id}, ${message}, 'sent', NOW())
-        `;
+        await sql`UPDATE outreach_queue SET status = 'sent', sent_at = NOW() WHERE id = ${queued.id}`;
 
         await sql`
           INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
@@ -240,30 +250,19 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         // If direct message fails (unreachable), try connection request with note
         if (err.message?.includes('unreachable') || err.message?.includes('422')) {
           try {
-            const note = message.slice(0, 290); // LinkedIn limits connection notes to 300 chars
+            const note = message.slice(0, 290);
             await unipile.sendInvitation(lead.linkedin_id, note);
             await incrementDailyCount(accountId, "invitation");
             sentCount++;
-
-            await sql`
-              INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, sent_at)
-              VALUES (${campaign.id}, ${lead.id}, ${note}, 'sent', NOW())
-            `;
-
+            await sql`UPDATE outreach_queue SET status = 'sent', message_text = ${note}, sent_at = NOW() WHERE id = ${queued.id}`;
             console.log(chalk.yellow(`  → ${profile.name} [invitation + note]`));
             await sleep(randomDelay(10, 25));
           } catch (invErr: any) {
-            await sql`
-              INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status)
-              VALUES (${campaign.id}, ${lead.id}, ${message}, 'failed')
-            `;
+            await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${queued.id}`;
             console.log(chalk.red(`  ✗ ${profile.name}: ${invErr.message}`));
           }
         } else {
-          await sql`
-            INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status)
-            VALUES (${campaign.id}, ${lead.id}, ${message}, 'failed')
-          `;
+          await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${queued.id}`;
           console.log(chalk.red(`  ✗ ${profile.name}: ${err.message}`));
         }
       }

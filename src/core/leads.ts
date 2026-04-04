@@ -155,13 +155,11 @@ export async function tagLead(
     throw new Error(`Lead not found: ${linkedinId}`);
   }
 
-  const currentTags = rows[0].tags ? rows[0].tags.split(",") : [];
-  if (!currentTags.includes(tag)) {
-    currentTags.push(tag);
-  }
+  const { addTag } = await import("../utils/tags.js");
+  const newTags = addTag(rows[0].tags, tag);
 
   await sql`
-    UPDATE leads SET tags = ${currentTags.join(",")}
+    UPDATE leads SET tags = ${newTags}
     WHERE linkedin_id = ${linkedinId}
   `;
 }

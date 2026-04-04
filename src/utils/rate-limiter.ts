@@ -65,3 +65,16 @@ export function isBusinessHours(): boolean {
   const hour = new Date(kyivTime).getHours();
   return hour >= appConfig.businessHoursStart && hour < appConfig.businessHoursEnd;
 }
+
+// Per-minute rate limiting (in-memory sliding window)
+const minuteWindows = new Map<string, number[]>();
+
+export function checkPerMinuteLimit(key: string, maxPerMinute: number): boolean {
+  const now = Date.now();
+  const window = minuteWindows.get(key) || [];
+  const recent = window.filter(t => now - t < 60_000);
+  minuteWindows.set(key, recent);
+  if (recent.length >= maxPerMinute) return false;
+  recent.push(now);
+  return true;
+}
