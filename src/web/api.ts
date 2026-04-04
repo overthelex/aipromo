@@ -282,9 +282,11 @@ apiRouter.get("/messages", async (req, res) => {
   const sentOnly = req.query.sent === "true";
 
   const rows = await sql`
-    SELECT m.*, c.attendee_name, c.subject as conv_subject
+    SELECT m.*,
+      COALESCE(NULLIF(c.attendee_name,''), c.subject, l.name) as contact_name
     FROM messages m
     LEFT JOIN conversations c ON m.chat_id = c.chat_id
+    LEFT JOIN leads l ON c.lead_id = l.id
     WHERE 1=1
     ${type ? sql`AND m.message_type = ${type}` : sql``}
     ${sentOnly ? sql`AND m.is_sender = true` : sql``}

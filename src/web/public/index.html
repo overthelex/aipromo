@@ -520,11 +520,11 @@ async function loadMsgs(filter){
   $('msgs-tbl').innerHTML=`
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${d.items.length} shown / ${d.total} total</div>
     <div class="card"><div class="card-body flush" style="max-height:70vh;overflow:auto">
-      <table class="tbl"><thead><tr><th>Dir</th><th>Contact</th><th>Message</th><th>Type</th><th>Time</th></tr></thead><tbody>
+      <table class="tbl" style="table-layout:fixed"><thead><tr><th style="width:50px">Dir</th><th style="width:160px">Contact</th><th>Message</th><th style="width:110px">Type</th><th style="width:150px">Time</th></tr></thead><tbody>
       ${d.items.map(m=>`<tr>
         <td>${m.is_sender?'<span class="tag amber">OUT</span>':'<span class="tag teal">IN</span>'}</td>
-        <td class="nowrap">${esc(m.attendee_name||m.sender_id?.slice(0,12)||'')}</td>
-        <td class="msg-preview" style="max-width:500px">${esc(m.text?.slice(0,200))}</td>
+        <td class="trunc" style="font-weight:500">${esc(m.contact_name||'—')}</td>
+        <td class="trunc" style="color:var(--text2)">${esc(m.text?.slice(0,200))}</td>
         <td><span class="tag">${m.message_type||''}</span></td>
         <td class="mono dim nowrap">${fmtFull(m.timestamp)}</td>
       </tr>`).join('')}
