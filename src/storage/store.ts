@@ -18,11 +18,13 @@ function createSql() {
         database: match[3],
         username: match[1],
         password: match[2],
+        max: 5,
+        idle_timeout: 20,
       });
     }
   }
 
-  return postgres(url);
+  return postgres(url, { max: 10, idle_timeout: 20 });
 }
 
 export const sql = createSql();

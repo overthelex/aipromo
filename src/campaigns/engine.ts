@@ -151,7 +151,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       AND l.tags LIKE ${'%campaign-' + CAMPAIGN_NAME + '%'}
       AND l.id NOT IN (
         SELECT oq.lead_id FROM outreach_queue oq
-        WHERE oq.lead_id IS NOT NULL
+        WHERE oq.lead_id IS NOT NULL AND oq.status = 'sent'
       )
       AND l.linkedin_id NOT IN (
         SELECT c.attendee_provider_id FROM conversations c
@@ -218,6 +218,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       console.log(`  ${chalk.green(message)}\n`);
     } else {
       try {
+        // Try direct message first
         const chatId = await unipile.startChat(lead.linkedin_id, message);
         await incrementDailyCount(accountId, "message");
         sentCount++;
@@ -227,7 +228,6 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
           VALUES (${campaign.id}, ${lead.id}, ${message}, 'sent', NOW())
         `;
 
-        // Store sent message in messages table
         await sql`
           INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
           VALUES (0, ${'outreach-' + lead.id + '-' + Date.now()}, ${chatId}, ${accountId}, ${message}, true, 'OUTREACH', NOW(), true)
@@ -235,13 +235,37 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         `;
 
         console.log(chalk.green(`  ✓ ${profile.name} [${angle}]`));
-        await sleep(randomDelay(10, 25)); // Human-like delay
+        await sleep(randomDelay(10, 25));
       } catch (err: any) {
-        await sql`
-          INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status)
-          VALUES (${campaign.id}, ${lead.id}, ${message}, 'failed')
-        `;
-        console.log(chalk.red(`  ✗ ${profile.name}: ${err.message}`));
+        // If direct message fails (unreachable), try connection request with note
+        if (err.message?.includes('unreachable') || err.message?.includes('422')) {
+          try {
+            const note = message.slice(0, 290); // LinkedIn limits connection notes to 300 chars
+            await unipile.sendInvitation(lead.linkedin_id, note);
+            await incrementDailyCount(accountId, "invitation");
+            sentCount++;
+
+            await sql`
+              INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, sent_at)
+              VALUES (${campaign.id}, ${lead.id}, ${note}, 'sent', NOW())
+            `;
+
+            console.log(chalk.yellow(`  → ${profile.name} [invitation + note]`));
+            await sleep(randomDelay(10, 25));
+          } catch (invErr: any) {
+            await sql`
+              INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status)
+              VALUES (${campaign.id}, ${lead.id}, ${message}, 'failed')
+            `;
+            console.log(chalk.red(`  ✗ ${profile.name}: ${invErr.message}`));
+          }
+        } else {
+          await sql`
+            INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status)
+            VALUES (${campaign.id}, ${lead.id}, ${message}, 'failed')
+          `;
+          console.log(chalk.red(`  ✗ ${profile.name}: ${err.message}`));
+        }
       }
     }
   }

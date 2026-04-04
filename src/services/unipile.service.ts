@@ -146,7 +146,7 @@ export class UnipileService {
     providerProfileId: string,
     message?: string
   ): Promise<void> {
-    await this.request("POST", "/users/invitations", {
+    await this.request("POST", "/users/invite", {
       account_id: this.accountId,
       provider_id: providerProfileId,
       message,
