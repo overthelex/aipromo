@@ -3,438 +3,767 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>aipromo — LinkedIn Lead Automation</title>
+  <title>aipromo — ops</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a;
-      --text: #e4e4e7; --muted: #71717a; --accent: #6366f1;
-      --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #3b82f6;
+      --bg: #101014; --bg2: #18181c; --surface: #1e1e24; --surface2: #26262e;
+      --border: #2e2e38; --border2: #3a3a48;
+      --text: #dcdce0; --text2: #a0a0ae; --text3: #68687a;
+      --amber: #f0a830; --amber2: #d49020; --amber-dim: rgba(240,168,48,0.12);
+      --teal: #2dd4a8; --teal-dim: rgba(45,212,168,0.10);
+      --red: #f05050; --red-dim: rgba(240,80,80,0.12);
+      --blue: #5090f0; --blue-dim: rgba(80,144,240,0.10);
+      --green: #40c060;
+      --font: 'DM Sans', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
-    a { color: var(--accent); text-decoration: none; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { font-size: 13px; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; }
+    ::selection { background: var(--amber); color: var(--bg); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
-    /* Layout */
-    .app { display: flex; min-height: 100vh; }
-    .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px 0; flex-shrink: 0; }
-    .sidebar h1 { font-size: 18px; padding: 0 20px 20px; color: var(--accent); }
-    .sidebar a { display: block; padding: 10px 20px; color: var(--muted); font-size: 14px; transition: all 0.15s; }
-    .sidebar a:hover, .sidebar a.active { color: var(--text); background: var(--border); }
-    .sidebar a .badge { background: var(--red); color: white; font-size: 11px; padding: 1px 6px; border-radius: 10px; margin-left: 6px; }
-    .main { flex: 1; padding: 24px 32px; overflow-y: auto; max-height: 100vh; }
-    .main h2 { font-size: 22px; margin-bottom: 20px; }
+    /* ── LAYOUT ── */
+    .shell { display: grid; grid-template-columns: 56px 1fr; grid-template-rows: 44px 1fr; height: 100vh; }
+    .topbar {
+      grid-column: 1 / -1; background: var(--bg2); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 16px; z-index: 10;
+    }
+    .topbar .logo { font-family: var(--mono); font-weight: 700; font-size: 14px; color: var(--amber); letter-spacing: -0.5px; }
+    .topbar .sep { width: 1px; height: 20px; background: var(--border); }
+    .topbar .crumb { font-size: 12px; color: var(--text3); font-weight: 500; }
+    .topbar .crumb b { color: var(--text); }
+    .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .topbar .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 6px var(--teal); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .topbar .clock { font-family: var(--mono); font-size: 11px; color: var(--text3); }
 
-    /* Cards */
-    .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
-    .stat .value { font-size: 28px; font-weight: 700; }
-    .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .rail {
+      background: var(--bg2); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 2px;
+      overflow-y: auto;
+    }
+    .rail a {
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; color: var(--text3); text-decoration: none; position: relative;
+      transition: all 0.15s;
+    }
+    .rail a:hover { color: var(--text); background: var(--surface); }
+    .rail a.active { color: var(--amber); background: var(--amber-dim); }
+    .rail a .dot {
+      position: absolute; top: 6px; right: 6px; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--red);
+    }
+    .rail a svg { width: 20px; height: 20px; }
+    .rail .spacer { flex: 1; }
 
-    /* Table */
-    table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 10px; overflow: hidden; }
-    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
-    th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-    tr:hover td { background: rgba(99,102,241,0.05); }
-    .tag { background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
-    .tag.green { background: var(--green); }
-    .badge-new { background: var(--red); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
-    .badge-read { color: var(--muted); font-size: 11px; }
+    .viewport { overflow-y: auto; padding: 20px 24px 40px; }
 
-    /* Buttons */
-    .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; transition: opacity 0.15s; }
-    .btn:hover { opacity: 0.85; }
-    .btn-primary { background: var(--accent); color: white; }
-    .btn-green { background: var(--green); color: white; }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-sm { padding: 4px 10px; font-size: 12px; }
-    .btn-red { background: var(--red); color: white; }
+    /* ── TYPOGRAPHY ── */
+    .page-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .page-title .counter { font-family: var(--mono); font-size: 13px; color: var(--text3); font-weight: 400; }
+    .section-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--text3); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-    /* Forms */
-    input, select, textarea { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-    .form-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
-    .form-row label { font-size: 12px; color: var(--muted); min-width: 60px; }
-    textarea { width: 100%; min-height: 60px; resize: vertical; }
+    /* ── STAT GRID ── */
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 24px; }
+    .kpi {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; position: relative; overflow: hidden;
+    }
+    .kpi .num { font-family: var(--mono); font-size: 26px; font-weight: 700; line-height: 1; }
+    .kpi .lbl { font-size: 11px; color: var(--text3); margin-top: 4px; font-weight: 500; }
+    .kpi.amber .num { color: var(--amber); }
+    .kpi.teal .num { color: var(--teal); }
+    .kpi.red .num { color: var(--red); }
+    .kpi.blue .num { color: var(--blue); }
+    .kpi::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .kpi.amber::before { background: var(--amber); }
+    .kpi.teal::before { background: var(--teal); }
+    .kpi.red::before { background: var(--red); }
+    .kpi.blue::before { background: var(--blue); }
 
-    /* Messages */
-    .messages { max-height: 400px; overflow-y: auto; padding: 12px; background: var(--bg); border-radius: 8px; margin-bottom: 12px; }
-    .msg { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 13px; line-height: 1.5; }
-    .msg.sent { background: var(--accent); color: white; margin-left: auto; }
-    .msg.received { background: var(--surface); border: 1px solid var(--border); }
-    .msg .meta { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; }
-    .msg.received .meta { color: var(--muted); }
+    /* ── CARD ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .card-head {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 13px;
+    }
+    .card-head .badge {
+      font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 4px;
+      font-weight: 500;
+    }
+    .card-body { padding: 16px; }
+    .card-body.flush { padding: 0; }
 
-    /* Sections */
-    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-    .section h3 { font-size: 15px; margin-bottom: 12px; }
-    .hidden { display: none; }
-    .loading { color: var(--muted); font-style: italic; }
-    .truncate { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .flex { display: flex; gap: 10px; align-items: center; }
-    .ml-auto { margin-left: auto; }
-    .mb { margin-bottom: 16px; }
+    /* ── TABLE ── */
+    .tbl { width: 100%; border-collapse: collapse; }
+    .tbl th {
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--text3); padding: 8px 12px; text-align: left;
+      background: var(--surface2); border-bottom: 1px solid var(--border); position: sticky; top: 0;
+    }
+    .tbl td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px;
+      vertical-align: top; max-width: 0;
+    }
+    .tbl tr:last-child td { border-bottom: none; }
+    .tbl tr:hover td { background: rgba(240,168,48,0.03); }
+    .tbl .mono { font-family: var(--mono); font-size: 11px; }
+    .tbl .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tbl .dim { color: var(--text3); }
+    .tbl .msg-preview { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); }
+
+    /* ── TAGS & BADGES ── */
+    .tag {
+      display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 500;
+      padding: 2px 7px; border-radius: 3px; background: var(--surface2); color: var(--text2);
+      border: 1px solid var(--border);
+    }
+    .tag.amber { background: var(--amber-dim); color: var(--amber); border-color: transparent; }
+    .tag.teal { background: var(--teal-dim); color: var(--teal); border-color: transparent; }
+    .tag.red { background: var(--red-dim); color: var(--red); border-color: transparent; }
+    .tag.blue { background: var(--blue-dim); color: var(--blue); border-color: transparent; }
+    .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+    .status-dot.green { background: var(--green); }
+    .status-dot.red { background: var(--red); }
+    .status-dot.amber { background: var(--amber); }
+    .status-dot.gray { background: var(--text3); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      font-family: var(--font); font-size: 12px; font-weight: 500; padding: 6px 14px;
+      border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+      background: var(--surface2); color: var(--text); transition: all 0.12s;
+    }
+    .btn:hover { background: var(--border); border-color: var(--border2); }
+    .btn.primary { background: var(--amber); color: var(--bg); border-color: var(--amber); }
+    .btn.primary:hover { background: var(--amber2); }
+    .btn.teal { background: var(--teal); color: var(--bg); border-color: var(--teal); }
+    .btn.danger { background: var(--red-dim); color: var(--red); border-color: transparent; }
+    .btn.sm { padding: 3px 9px; font-size: 11px; }
+    .btn.ghost { background: transparent; border-color: transparent; color: var(--text3); }
+    .btn.ghost:hover { color: var(--text); background: var(--surface2); }
+    .btn-group { display: flex; gap: 6px; }
+
+    /* ── FORMS ── */
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); margin-bottom: 5px; }
+    input[type=text], input[type=number], input[type=search], select, textarea {
+      width: 100%; font-family: var(--font); font-size: 12px; padding: 7px 10px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text); outline: none; transition: border-color 0.12s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--amber); }
+    textarea { min-height: 60px; resize: vertical; font-family: var(--font); }
+    .input-row { display: flex; gap: 8px; align-items: end; }
+    .input-row .field { margin-bottom: 0; flex: 1; }
+    .check-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; }
+    .check-label input { width: auto; }
+
+    /* ── MESSAGES ── */
+    .thread { max-height: 420px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .bubble {
+      max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 12px; line-height: 1.55;
+      word-wrap: break-word; white-space: pre-wrap;
+    }
+    .bubble.out { align-self: flex-end; background: var(--amber-dim); color: var(--text); border-bottom-right-radius: 4px; }
+    .bubble.in { align-self: flex-start; background: var(--surface2); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+    .bubble .ts { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-top: 4px; }
+    .bubble .tp { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.15s;
+    }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      width: 560px; max-width: 90vw; max-height: 85vh; overflow-y: auto;
+      animation: slideUp 0.2s;
+    }
+    .modal-head { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; align-items: center; }
+    .modal-head .close { margin-left: auto; cursor: pointer; color: var(--text3); font-size: 18px; background: none; border: none; }
+    .modal-head .close:hover { color: var(--text); }
+    .modal-body { padding: 20px; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* ── TOAST ── */
+    .toast-area { position: fixed; bottom: 16px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 6px; }
+    .toast {
+      font-size: 12px; padding: 10px 16px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); animation: slideUp 0.2s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast.ok { border-left: 3px solid var(--teal); }
+    .toast.err { border-left: 3px solid var(--red); }
+
+    /* ── UTILITY ── */
+    .flex { display: flex; align-items: center; gap: 8px; }
+    .flex-between { display: flex; align-items: center; justify-content: space-between; }
+    .gap-16 { gap: 16px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-8 { margin-bottom: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .hidden { display: none !important; }
+    .grow { flex: 1; }
+    .text-right { text-align: right; }
+    .nowrap { white-space: nowrap; }
+
+    /* ── PAGE TABS ── */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .tabs .tab {
+      padding: 8px 16px; font-size: 12px; font-weight: 500; color: var(--text3); cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all 0.12s;
+    }
+    .tabs .tab:hover { color: var(--text); }
+    .tabs .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
   </style>
 </head>
 <body>
-  <div class="app">
-    <nav class="sidebar">
-      <h1>aipromo</h1>
-      <a href="#" data-page="dashboard" class="active">Dashboard</a>
-      <a href="#" data-page="leads">Leads</a>
-      <a href="#" data-page="conversations">Conversations <span class="badge" id="unread-badge"></span></a>
-      <a href="#" data-page="campaign">Campaign</a>
-      <a href="#" data-page="search">Search</a>
-      <a href="#" data-page="posts">Posts</a>
-      <a href="#" data-page="sync">Sync</a>
-    </nav>
-    <main class="main" id="content">
-      <div class="loading">Loading...</div>
-    </main>
-  </div>
 
-  <script>
-    const API = '/api';
-    let currentPage = 'dashboard';
+<div class="shell">
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <span class="logo">aipromo</span>
+    <span class="sep"></span>
+    <span class="crumb" id="crumb">Dashboard</span>
+    <div class="right">
+      <span class="pulse"></span>
+      <span class="clock" id="clock"></span>
+    </div>
+  </header>
 
-    // --- Fetch helper ---
-    async function api(path, opts) {
-      const r = await fetch(API + path, {
-        headers: { 'Content-Type': 'application/json' },
-        ...opts,
-        body: opts?.body ? JSON.stringify(opts.body) : undefined,
-      });
-      return r.json();
-    }
+  <!-- ICON RAIL -->
+  <nav class="rail" id="rail">
+    <a href="#" data-p="dashboard" title="Dashboard" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </a>
+    <a href="#" data-p="leads" title="Leads">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    </a>
+    <a href="#" data-p="conversations" title="Conversations" id="nav-conv">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    </a>
+    <a href="#" data-p="messages" title="All Messages">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </a>
+    <a href="#" data-p="outreach" title="Outreach Queue">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+    </a>
+    <a href="#" data-p="campaigns" title="Campaigns">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    </a>
+    <a href="#" data-p="posts" title="Posts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    </a>
+    <a href="#" data-p="search" title="Search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </a>
+    <span class="spacer"></span>
+    <a href="#" data-p="sync" title="Sync">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+    </a>
+    <a href="#" data-p="activity" title="Activity Log">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </a>
+  </nav>
 
-    // --- Navigation ---
-    document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
-      a.addEventListener('click', e => {
-        e.preventDefault();
-        document.querySelectorAll('.sidebar a').forEach(x => x.classList.remove('active'));
-        a.classList.add('active');
-        currentPage = a.dataset.page;
-        render();
-      });
-    });
+  <!-- MAIN VIEWPORT -->
+  <main class="viewport" id="vp"></main>
+</div>
 
-    const $ = id => document.getElementById(id);
-    const content = () => $('content');
+<div class="toast-area" id="toasts"></div>
 
-    // --- Render pages ---
-    async function render() {
-      const el = content();
-      el.innerHTML = '<div class="loading">Loading...</div>';
-      try {
-        switch (currentPage) {
-          case 'dashboard': return renderDashboard(el);
-          case 'leads': return renderLeads(el);
-          case 'conversations': return renderConversations(el);
-          case 'campaign': return renderCampaign(el);
-          case 'search': return renderSearch(el);
-          case 'posts': return renderPosts(el);
-          case 'sync': return renderSync(el);
-        }
-      } catch (e) { el.innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`; }
-    }
+<script>
+const A='/api';
+let page='dashboard', pollId=null;
 
-    // --- Dashboard ---
-    async function renderDashboard(el) {
-      const s = await api('/stats');
-      $('unread-badge').textContent = s.unreadConversations || '';
-      el.innerHTML = `
-        <h2>Dashboard</h2>
-        <div class="stats">
-          <div class="stat"><div class="value">${s.leads}</div><div class="label">Total Leads</div></div>
-          <div class="stat"><div class="value">${s.conversations}</div><div class="label">Conversations</div></div>
-          <div class="stat"><div class="value">${s.messages}</div><div class="label">Messages</div></div>
-          <div class="stat"><div class="value">${s.posts}</div><div class="label">Posts</div></div>
-          <div class="stat"><div class="value" style="color:var(--green)">${s.sentToday}</div><div class="label">Sent Today</div></div>
-          <div class="stat"><div class="value" style="color:var(--accent)">${s.campaignLeads}</div><div class="label">Campaign Leads</div></div>
-          <div class="stat"><div class="value" style="color:var(--blue)">${s.sentMessages}</div><div class="label">Total Sent</div></div>
-          <div class="stat"><div class="value" style="color:${s.unreadConversations ? 'var(--red)' : 'var(--muted)'}">${s.unreadConversations}</div><div class="label">Unread</div></div>
+/* ── HELPERS ── */
+async function api(p,o){
+  const r=await fetch(A+p,{headers:{'Content-Type':'application/json'},...o,body:o?.body?JSON.stringify(o.body):undefined});
+  return r.json();
+}
+const $=id=>document.getElementById(id);
+const vp=()=>$('vp');
+function esc(s){if(!s)return '';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function fmtDate(d){if(!d)return '—';return new Date(d).toLocaleDateString('uk-UA',{day:'2-digit',month:'short',year:'numeric'});}
+function fmtTime(d){if(!d)return '';return new Date(d).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});}
+function fmtFull(d){if(!d)return '—';return fmtDate(d)+' '+fmtTime(d);}
+function ago(d){if(!d)return '';const s=Math.floor((Date.now()-new Date(d))/1000);if(s<60)return s+'s';if(s<3600)return Math.floor(s/60)+'m';if(s<86400)return Math.floor(s/3600)+'h';return Math.floor(s/86400)+'d';}
+function toast(msg,ok=true){
+  const t=document.createElement('div');t.className='toast '+(ok?'ok':'err');t.textContent=msg;
+  $('toasts').appendChild(t);setTimeout(()=>t.remove(),4000);
+}
+function modal(title,html){
+  const o=document.createElement('div');o.className='modal-overlay';
+  o.innerHTML=`<div class="modal"><div class="modal-head">${title}<button class="close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div><div class="modal-body">${html}</div></div>`;
+  o.addEventListener('click',e=>{if(e.target===o)o.remove();});
+  document.body.appendChild(o);return o;
+}
+
+/* ── CLOCK ── */
+setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+
+/* ── NAV ── */
+document.querySelectorAll('.rail a[data-p]').forEach(a=>{
+  a.addEventListener('click',e=>{e.preventDefault();navigate(a.dataset.p);});
+});
+function navigate(p){
+  page=p;
+  document.querySelectorAll('.rail a').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`.rail a[data-p="${p}"]`)?.classList.add('active');
+  $('crumb').innerHTML='<b>'+p.charAt(0).toUpperCase()+p.slice(1)+'</b>';
+  if(pollId){clearInterval(pollId);pollId=null;}
+  render();
+}
+
+/* ── RENDER ROUTER ── */
+async function render(){
+  const el=vp();
+  el.innerHTML='<div style="color:var(--text3);padding:40px;font-family:var(--mono)">Loading...</div>';
+  try{
+    const fn={dashboard:pgDash,leads:pgLeads,conversations:pgConv,messages:pgMsgs,outreach:pgOutreach,campaigns:pgCamp,posts:pgPosts,search:pgSearch,sync:pgSync,activity:pgActivity}[page];
+    if(fn)await fn(el);
+  }catch(e){el.innerHTML=`<div style="color:var(--red);padding:40px">${e.message}</div>`;}
+}
+
+/* ═══════════════ DASHBOARD ═══════════════ */
+async function pgDash(el){
+  const s=await api('/stats');
+  const conv=s.unreadConversations;
+  const navConv=$('nav-conv');
+  if(conv>0&&!navConv.querySelector('.dot'))navConv.insertAdjacentHTML('beforeend','<span class="dot"></span>');
+  else if(conv===0)navConv.querySelector('.dot')?.remove();
+
+  el.innerHTML=`
+    <div class="page-title">Dashboard</div>
+    <div class="kpi-row">
+      <div class="kpi amber"><div class="num">${s.leads}</div><div class="lbl">Leads</div></div>
+      <div class="kpi teal"><div class="num">${s.conversations}</div><div class="lbl">Conversations</div></div>
+      <div class="kpi blue"><div class="num">${s.messages}</div><div class="lbl">Messages</div></div>
+      <div class="kpi"><div class="num">${s.posts}</div><div class="lbl">Posts</div></div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi teal"><div class="num">${s.sentToday}</div><div class="lbl">Sent Today</div></div>
+      <div class="kpi amber"><div class="num">${s.campaignLeads}</div><div class="lbl">Campaign Leads</div></div>
+      <div class="kpi blue"><div class="num">${s.sentMessages}</div><div class="lbl">Outreach Sent</div></div>
+      <div class="kpi ${conv?'red':''}""><div class="num">${conv}</div><div class="lbl">Unread</div></div>
+    </div>
+    <div class="section-label">Accounts</div>
+    <div class="card"><div class="card-body flush">
+      <table class="tbl"><thead><tr><th>Alias</th><th>Name</th><th>ID</th></tr></thead><tbody>
+      ${s.accounts.map(a=>`<tr><td><span class="tag amber">${a.alias}</span></td><td>${a.name}</td><td class="mono dim">${a.id}</td></tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+  pollId=setInterval(()=>{if(page==='dashboard')pgDash(vp());},15000);
+}
+
+/* ═══════════════ LEADS ═══════════════ */
+async function pgLeads(el){
+  el.innerHTML=`
+    <div class="flex-between mb-16">
+      <div class="page-title" style="margin:0">Leads</div>
+      <div class="btn-group"><button class="btn sm" onclick="navigate('search')">+ Search LinkedIn</button></div>
+    </div>
+    <div class="input-row mb-16">
+      <div class="field"><label>Search</label><input type="search" id="l-q" placeholder="Name, headline, company..."></div>
+      <div class="field" style="max-width:140px"><label>Tag</label><input type="text" id="l-tag" placeholder="Filter tag"></div>
+      <div class="field" style="max-width:100px"><label>Limit</label><input type="number" id="l-lim" value="100"></div>
+      <div class="field" style="max-width:140px"><label>Account</label>
+        <select id="l-acc"><option value="">All</option><option value="ihor">Ihor</option><option value="vladimir">Vladimir</option></select>
+      </div>
+      <div class="field"><label>&nbsp;</label><button class="btn primary" onclick="loadLeads()">Load</button></div>
+    </div>
+    <div id="leads-tbl"></div>`;
+  await loadLeads();
+}
+async function loadLeads(){
+  const p=new URLSearchParams({limit:$('l-lim').value});
+  if($('l-q').value)p.set('search',$('l-q').value);
+  if($('l-tag').value)p.set('tag',$('l-tag').value);
+  if($('l-acc').value)p.set('account',$('l-acc').value);
+  const d=await api('/leads?'+p);
+  $('leads-tbl').innerHTML=`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${d.items.length} shown / ${d.total} total</div>
+    <div class="card"><div class="card-body flush" style="max-height:65vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Name</th><th>Headline</th><th>Company</th><th>Location</th><th>Tags</th><th>Source</th><th>Added</th></tr></thead><tbody>
+      ${d.items.map(l=>`<tr>
+        <td><strong>${esc(l.name)}</strong></td>
+        <td class="trunc msg-preview">${esc(l.headline)}</td>
+        <td class="nowrap">${esc(l.company)}</td>
+        <td class="nowrap dim">${esc(l.location)}</td>
+        <td>${l.tags?l.tags.split(',').map(t=>`<span class="tag">${t}</span> `).join(''):''}</td>
+        <td><span class="tag ${l.source==='search'?'blue':l.source==='webhook'?'teal':''}">${l.source}</span></td>
+        <td class="mono dim nowrap">${ago(l.imported_at)}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+
+/* ═══════════════ CONVERSATIONS ═══════════════ */
+async function pgConv(el){
+  el.innerHTML=`
+    <div class="flex-between mb-16">
+      <div class="page-title" style="margin:0">Conversations</div>
+      <div class="btn-group">
+        <button class="btn sm" id="conv-all" onclick="loadConv(false)">All</button>
+        <button class="btn sm danger" id="conv-unr" onclick="loadConv(true)">Unread</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:380px 1fr;gap:16px;height:calc(100vh - 120px);">
+      <div id="conv-list" style="overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)"></div>
+      <div id="conv-thread" style="display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px">Select a conversation</div>
+      </div>
+    </div>`;
+  await loadConv(false);
+  pollId=setInterval(()=>{if(page==='conversations')loadConv(false,true);},5000);
+}
+async function loadConv(unread,silent){
+  const d=await api('/conversations?limit=200'+(unread?'&unread=true':''));
+  if(!silent){
+    const navConv=$('nav-conv');
+    const ur=d.items.filter(c=>c.unread_count>0).length;
+    if(ur>0&&!navConv.querySelector('.dot'))navConv.insertAdjacentHTML('beforeend','<span class="dot"></span>');
+    else if(ur===0)navConv.querySelector('.dot')?.remove();
+  }
+  $('conv-list').innerHTML=d.items.map(c=>{
+    const name=esc(c.attendee_name||c.lead_name||'Unknown');
+    const unr=c.unread_count>0;
+    return `<div onclick="openThread('${c.chat_id}','${esc(c.attendee_name||c.lead_name||'')}')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;${unr?'background:var(--amber-dim)':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${unr?'var(--amber-dim)':''}'"">
+      <div class="flex-between"><strong style="font-size:12px">${name}</strong><span class="mono dim" style="font-size:10px">${ago(c.last_message_at)}</span></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.subject)}</div>
+      ${unr?`<span class="tag red" style="margin-top:4px">${c.unread_count} new</span>`:''}
+    </div>`;
+  }).join('');
+}
+async function openThread(chatId,name){
+  const d=await api(`/conversations/${chatId}/messages`);
+  $('conv-thread').innerHTML=`
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px">${name||'Conversation'}</div>
+    <div class="thread" id="thread-msgs" style="flex:1">
+      ${d.items.map(m=>`
+        <div class="bubble ${m.is_sender?'out':'in'}">
+          ${esc(m.text)}
+          <div class="ts">${fmtFull(m.timestamp)} ${m.message_type?`<span class="tp">${m.message_type}</span>`:''}</div>
         </div>
-        <div class="section">
-          <h3>Accounts</h3>
-          <table><tr><th>Alias</th><th>Name</th><th>ID</th></tr>
-          ${s.accounts.map(a => `<tr><td><span class="tag">${a.alias}</span></td><td>${a.name}</td><td style="color:var(--muted);font-size:11px">${a.id}</td></tr>`).join('')}
-          </table>
-        </div>`;
-    }
+      `).join('')}
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border)">
+      <div class="flex mb-8"><button class="btn sm" onclick="aiDraft('${chatId}')">AI Draft</button></div>
+      <textarea id="reply-box" placeholder="Type reply..." rows="2"></textarea>
+      <div class="flex mt-16"><button class="btn teal" onclick="sendReply('${chatId}','${esc(name)}')">Send</button></div>
+    </div>`;
+  const t=$('thread-msgs');t.scrollTop=t.scrollHeight;
+}
+async function aiDraft(chatId){$('reply-box').value='Generating...';const r=await api(`/conversations/${chatId}/ai-reply`,{method:'POST',body:{}});$('reply-box').value=r.draft||r.error||'';}
+async function sendReply(chatId,name){
+  const t=$('reply-box').value;if(!t)return;
+  const r=await api(`/conversations/${chatId}/reply`,{method:'POST',body:{text:t}});
+  if(r.ok){toast('Sent');openThread(chatId,name);}else toast(r.error,false);
+}
 
-    // --- Leads ---
-    async function renderLeads(el, searchQ = '', tag = '') {
-      const params = new URLSearchParams({ limit: '100' });
-      if (searchQ) params.set('search', searchQ);
-      if (tag) params.set('tag', tag);
-      const data = await api('/leads?' + params);
-      el.innerHTML = `
-        <h2>Leads <span style="color:var(--muted);font-size:14px">(${data.total} total)</span></h2>
-        <div class="form-row">
-          <input id="lead-search" placeholder="Search by name, headline, company..." value="${searchQ}" style="flex:1">
-          <input id="lead-tag-filter" placeholder="Filter by tag" value="${tag}" style="width:150px">
-          <button class="btn btn-primary" onclick="renderLeads(content(), $('lead-search').value, $('lead-tag-filter').value)">Filter</button>
+/* ═══════════════ ALL MESSAGES ═══════════════ */
+async function pgMsgs(el){
+  el.innerHTML=`
+    <div class="flex-between mb-16">
+      <div class="page-title" style="margin:0">Messages</div>
+      <div class="btn-group">
+        <button class="btn sm" onclick="loadMsgs('')">All</button>
+        <button class="btn sm" onclick="loadMsgs('sent=true')">Sent Only</button>
+        <button class="btn sm" onclick="loadMsgs('type=OUTREACH')">Outreach</button>
+        <button class="btn sm" onclick="loadMsgs('type=CAMPAIGN_REPLY')">Campaign Replies</button>
+        <button class="btn sm" onclick="loadMsgs('type=WEB_REPLY')">Web Replies</button>
+      </div>
+    </div>
+    <div id="msgs-tbl"></div>`;
+  await loadMsgs('');
+  pollId=setInterval(()=>{if(page==='messages')loadMsgs(window._lastMsgFilter||'');},5000);
+}
+async function loadMsgs(filter){
+  window._lastMsgFilter=filter;
+  const d=await api('/messages?limit=200&'+filter);
+  $('msgs-tbl').innerHTML=`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${d.items.length} shown / ${d.total} total</div>
+    <div class="card"><div class="card-body flush" style="max-height:70vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Dir</th><th>Contact</th><th>Message</th><th>Type</th><th>Time</th></tr></thead><tbody>
+      ${d.items.map(m=>`<tr>
+        <td>${m.is_sender?'<span class="tag amber">OUT</span>':'<span class="tag teal">IN</span>'}</td>
+        <td class="nowrap">${esc(m.attendee_name||m.sender_id?.slice(0,12)||'')}</td>
+        <td class="msg-preview" style="max-width:500px">${esc(m.text?.slice(0,200))}</td>
+        <td><span class="tag">${m.message_type||''}</span></td>
+        <td class="mono dim nowrap">${fmtFull(m.timestamp)}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+
+/* ═══════════════ OUTREACH QUEUE ═══════════════ */
+async function pgOutreach(el){
+  el.innerHTML=`
+    <div class="flex-between mb-16">
+      <div class="page-title" style="margin:0">Outreach Queue</div>
+      <div class="btn-group">
+        <button class="btn sm" onclick="loadOutreach('')">All</button>
+        <button class="btn sm" onclick="loadOutreach('status=sent')">Sent</button>
+        <button class="btn sm" onclick="loadOutreach('status=failed')">Failed</button>
+        <button class="btn sm" onclick="loadOutreach('status=pending')">Pending</button>
+      </div>
+    </div>
+    <div id="outreach-tbl"></div>`;
+  await loadOutreach('');
+}
+async function loadOutreach(filter){
+  const d=await api('/outreach?limit=200&'+filter);
+  $('outreach-tbl').innerHTML=`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${d.items.length} shown / ${d.total} total</div>
+    <div class="card"><div class="card-body flush" style="max-height:70vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Status</th><th>Lead</th><th>Campaign</th><th>Message</th><th>Sent</th></tr></thead><tbody>
+      ${d.items.map(o=>`<tr>
+        <td><span class="status-dot ${o.status==='sent'?'green':o.status==='failed'?'red':'amber'}"></span>${o.status}</td>
+        <td><strong>${esc(o.lead_name||'')}</strong><br><span class="dim" style="font-size:10px">${esc(o.lead_headline||'')}</span></td>
+        <td class="dim">${esc(o.campaign_name||'')}</td>
+        <td class="msg-preview" style="max-width:400px;cursor:pointer" onclick="modal('Message',\`<pre style='white-space:pre-wrap;font-size:12px;color:var(--text)'>\${esc(this.dataset.t)}</pre>\`)" data-t="${esc(o.message_text||'')}">${esc((o.message_text||'').slice(0,120))}</td>
+        <td class="mono dim nowrap">${fmtFull(o.sent_at)}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+
+/* ═══════════════ CAMPAIGNS ═══════════════ */
+async function pgCamp(el){
+  const [camps,status]=await Promise.all([api('/campaigns'),api('/campaign/status')]);
+  el.innerHTML=`
+    <div class="flex-between mb-16">
+      <div class="page-title" style="margin:0">Campaigns</div>
+      <button class="btn primary" onclick="showNewCampaign()">+ New Campaign</button>
+    </div>
+    <div class="section-label">Active Campaigns</div>
+    <div class="card"><div class="card-body flush">
+      <table class="tbl"><thead><tr><th>Name</th><th>Status</th><th>Tags</th><th>Sent</th><th>Failed</th><th>Pending</th><th>Total</th><th>Created</th><th></th></tr></thead><tbody>
+      ${camps.items.map(c=>`<tr>
+        <td><strong>${esc(c.name)}</strong></td>
+        <td><span class="status-dot ${c.status==='active'?'green':c.status==='paused'?'amber':'gray'}"></span>${c.status}</td>
+        <td><span class="tag">${esc(c.target_tags)}</span></td>
+        <td class="mono">${c.sent_count}</td><td class="mono">${c.failed_count}</td><td class="mono">${c.pending_count}</td><td class="mono">${c.total_count}</td>
+        <td class="mono dim nowrap">${fmtDate(c.created_at)}</td>
+        <td><button class="btn sm ghost" onclick="toggleCampaign(${c.id},'${c.status==='active'?'paused':'active'}')">${c.status==='active'?'Pause':'Resume'}</button></td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>
+    <div class="section-label mt-16">Registry Access 2W — Run Day</div>
+    <div class="card"><div class="card-body">
+      <div class="kpi-row mb-16">
+        ${status.accounts.map(a=>`
+          <div class="kpi amber"><div class="num">${a.leads}</div><div class="lbl">${a.account.alias} leads</div></div>
+          <div class="kpi teal"><div class="num">${a.sent}</div><div class="lbl">${a.account.alias} sent</div></div>
+        `).join('')}
+      </div>
+      <div class="input-row mb-16">
+        <div class="field" style="max-width:160px"><label>Account</label>
+          <select id="cr-acc">${status.accounts.map(a=>`<option value="${a.account.alias}">${a.account.name}</option>`).join('')}</select>
         </div>
-        <table>
-          <tr><th>Name</th><th>Headline</th><th>Location</th><th>Tags</th><th>Source</th></tr>
-          ${data.items.map(l => `
-            <tr>
-              <td><strong>${esc(l.name)}</strong></td>
-              <td class="truncate">${esc(l.headline)}</td>
-              <td>${esc(l.location)}</td>
-              <td>${l.tags ? l.tags.split(',').map(t => `<span class="tag">${t}</span>`).join('') : ''}</td>
-              <td style="color:var(--muted)">${l.source}</td>
-            </tr>
-          `).join('')}
-        </table>`;
-    }
+        <div class="field" style="max-width:80px"><label>Day</label><input type="number" id="cr-day" value="1" min="1" max="14"></div>
+        <div class="field" style="max-width:80px"><label>Leads</label><input type="number" id="cr-leads" value="40"></div>
+        <div class="field" style="max-width:80px"><label>Msgs</label><input type="number" id="cr-msgs" value="40"></div>
+        <div class="field"><label>&nbsp;</label><div class="btn-group"><button class="btn" onclick="runDay(true)">Dry Run</button><button class="btn primary" onclick="runDay(false)">Execute</button></div></div>
+      </div>
+      <div id="cr-result" style="font-family:var(--mono);font-size:11px;color:var(--text3)"></div>
+    </div></div>
+    <div class="section-label mt-16">14-Day Plan</div>
+    <div class="card"><div class="card-body flush">
+      <table class="tbl"><thead><tr><th>Day</th><th>Keywords</th><th>Title Filter</th></tr></thead><tbody>
+      ${status.plan.map((q,i)=>`<tr><td class="mono">${i+1}</td><td>${q.keywords}</td><td class="dim">${q.title}</td></tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+async function toggleCampaign(id,status){
+  await api(`/campaigns/${id}`,{method:'PATCH',body:{status}});toast(`Campaign ${status}`);pgCamp(vp());
+}
+async function runDay(dry){
+  $('cr-result').textContent='Running...';
+  const r=await api('/campaign/run',{method:'POST',body:{
+    account:$('cr-acc').value,day:+$('cr-day').value,maxLeads:+$('cr-leads').value,maxMessages:+$('cr-msgs').value,dryRun:dry
+  }});
+  $('cr-result').textContent=r.error?'Error: '+r.error:`Done — Found: ${r.searched}, Sent: ${r.messaged}, Replied: ${r.replied}`;
+  if(!r.error)toast(dry?'Dry run complete':'Campaign day executed');
+}
+function showNewCampaign(){
+  modal('New Campaign',`
+    <div class="field"><label>Name</label><input type="text" id="nc-name" placeholder="Campaign name"></div>
+    <div class="field"><label>Template</label><textarea id="nc-tpl" placeholder="Message template..."></textarea></div>
+    <div class="field"><label>Target Tags</label><input type="text" id="nc-tags" placeholder="e.g. legaltech-executive-ua"></div>
+    <div class="field"><label>Account</label>
+      <select id="nc-acc"><option value="ihor">Ihor</option><option value="vladimir">Vladimir</option></select>
+    </div>
+    <button class="btn primary" onclick="createCampaign()">Create</button>
+  `);
+}
+async function createCampaign(){
+  const r=await api('/campaigns',{method:'POST',body:{
+    name:$('nc-name').value,template:$('nc-tpl').value,targetTags:$('nc-tags').value,account:$('nc-acc').value
+  }});
+  document.querySelector('.modal-overlay')?.remove();
+  toast('Campaign created');pgCamp(vp());
+}
 
-    // --- Conversations ---
-    async function renderConversations(el) {
-      const data = await api('/conversations?limit=100');
-      el.innerHTML = `
-        <h2>Conversations</h2>
-        <div class="form-row">
-          <button class="btn btn-outline btn-sm" onclick="renderConversationsFiltered(false)">All</button>
-          <button class="btn btn-red btn-sm" onclick="renderConversationsFiltered(true)">Unread only</button>
+/* ═══════════════ POSTS ═══════════════ */
+async function pgPosts(el){
+  el.innerHTML=`
+    <div class="page-title">Posts</div>
+    <div class="tabs">
+      <div class="tab active" onclick="loadPostsTab(this,'company')">Company</div>
+      <div class="tab" onclick="loadPostsTab(this,'personal')">Personal</div>
+    </div>
+    <div id="posts-tbl"></div>`;
+  await loadPostsView('company');
+}
+function loadPostsTab(tab,type){
+  tab.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');loadPostsView(type);
+}
+async function loadPostsView(type){
+  const d=await api('/posts?limit=100'+(type==='company'?'&company=true':''));
+  $('posts-tbl').innerHTML=`
+    <div class="card"><div class="card-body flush" style="max-height:70vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Author</th><th>Written By</th><th>Text</th><th>Reacts</th><th>Impress</th><th>Clicks</th><th>Engage %</th><th>Date</th></tr></thead><tbody>
+      ${d.items.map(p=>`<tr>
+        <td class="nowrap">${esc(p.author_name)}</td>
+        <td class="nowrap dim">${esc(p.written_by_name||'')}</td>
+        <td class="msg-preview" style="max-width:350px;cursor:pointer" onclick="modal('Post',\`<pre style='white-space:pre-wrap;font-size:12px;line-height:1.6;color:var(--text)'>\${esc(this.dataset.t)}</pre><div style=margin-top:12px><a href='\${this.dataset.u}' target=_blank style='color:var(--amber);font-size:12px'>Open on LinkedIn &rarr;</a></div>\`)" data-t="${esc(p.text)}" data-u="${esc(p.share_url)}">${esc(p.text?.slice(0,120))}</td>
+        <td class="mono">${p.reaction_count}</td>
+        <td class="mono">${p.impressions_count}</td>
+        <td class="mono">${p.clicks||0}</td>
+        <td class="mono ${p.engagement_rate>5?'amber':''}">${p.engagement_rate?p.engagement_rate.toFixed(1)+'%':'—'}</td>
+        <td class="mono dim nowrap">${fmtDate(p.posted_at)}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+
+/* ═══════════════ SEARCH ═══════════════ */
+async function pgSearch(el){
+  el.innerHTML=`
+    <div class="page-title">Search LinkedIn</div>
+    <div class="card"><div class="card-body">
+      <div class="input-row mb-16">
+        <div class="field"><label>Keywords</label><input type="text" id="sq" placeholder="legaltech lawyer адвокат"></div>
+        <div class="field"><label>Title</label><input type="text" id="st" placeholder="CEO OR Partner OR Director"></div>
+      </div>
+      <div class="input-row mb-16">
+        <div class="field" style="max-width:160px"><label>Location ID</label><input type="text" id="sloc" value="102264497"></div>
+        <div class="field" style="max-width:100px"><label>Limit</label><input type="number" id="slim" value="25"></div>
+        <div class="field" style="max-width:120px"><label>Tag</label><input type="text" id="stag" value="search"></div>
+        <div class="field" style="max-width:160px"><label>Account</label>
+          <select id="sacc"><option value="ihor">Ihor</option><option value="vladimir">Vladimir</option></select>
         </div>
-        <table id="conv-table">
-          <tr><th>Status</th><th>Contact</th><th>Subject</th><th>Last Message</th><th>Type</th><th></th></tr>
-          ${data.items.map(c => `
-            <tr>
-              <td>${c.unread_count > 0 ? `<span class="badge-new">NEW (${c.unread_count})</span>` : '<span class="badge-read">read</span>'}</td>
-              <td><strong>${esc(c.attendee_name || c.lead_name || 'Unknown')}</strong></td>
-              <td class="truncate">${esc(c.subject)}</td>
-              <td style="color:var(--muted);font-size:12px">${c.last_message_at ? new Date(c.last_message_at).toLocaleString() : ''}</td>
-              <td style="color:var(--muted);font-size:11px">${c.content_type}</td>
-              <td><button class="btn btn-outline btn-sm" onclick="openConversation('${c.chat_id}','${esc(c.attendee_name || c.lead_name || '')}')">Open</button></td>
-            </tr>
-          `).join('')}
-        </table>
-        <div id="conv-detail" class="hidden"></div>`;
-    }
-
-    async function renderConversationsFiltered(unread) {
-      const data = await api('/conversations?limit=100' + (unread ? '&unread=true' : ''));
-      const table = $('conv-table');
-      if (!table) return;
-      table.innerHTML = `
-        <tr><th>Status</th><th>Contact</th><th>Subject</th><th>Last Message</th><th>Type</th><th></th></tr>
-        ${data.items.map(c => `
-          <tr>
-            <td>${c.unread_count > 0 ? `<span class="badge-new">NEW (${c.unread_count})</span>` : '<span class="badge-read">read</span>'}</td>
-            <td><strong>${esc(c.attendee_name || c.lead_name || 'Unknown')}</strong></td>
-            <td class="truncate">${esc(c.subject)}</td>
-            <td style="color:var(--muted);font-size:12px">${c.last_message_at ? new Date(c.last_message_at).toLocaleString() : ''}</td>
-            <td style="color:var(--muted);font-size:11px">${c.content_type}</td>
-            <td><button class="btn btn-outline btn-sm" onclick="openConversation('${c.chat_id}','${esc(c.attendee_name || c.lead_name || '')}')">Open</button></td>
-          </tr>
-        `).join('')}`;
-    }
-
-    async function openConversation(chatId, name) {
-      const data = await api(`/conversations/${chatId}/messages`);
-      const detail = $('conv-detail');
-      detail.classList.remove('hidden');
-      detail.innerHTML = `
-        <div class="section" style="margin-top:20px">
-          <h3>Conversation with ${name}</h3>
-          <div class="messages" id="msg-list">
-            ${data.items.map(m => `
-              <div class="msg ${m.is_sender ? 'sent' : 'received'}">
-                ${esc(m.text)}
-                <div class="meta">${new Date(m.timestamp).toLocaleString()} ${m.message_type ? '(' + m.message_type + ')' : ''}</div>
-              </div>
-            `).join('')}
-          </div>
-          <div class="flex mb">
-            <button class="btn btn-outline btn-sm" onclick="generateAiReply('${chatId}')">AI Draft</button>
-          </div>
-          <textarea id="reply-text" placeholder="Type your reply..."></textarea>
-          <div class="flex" style="margin-top:8px">
-            <button class="btn btn-green" onclick="sendReply('${chatId}')">Send</button>
-          </div>
-        </div>`;
-      detail.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    async function generateAiReply(chatId) {
-      $('reply-text').value = 'Generating...';
-      const data = await api(`/conversations/${chatId}/ai-reply`, { method: 'POST', body: {} });
-      $('reply-text').value = data.draft || data.error || '';
-    }
-
-    async function sendReply(chatId) {
-      const text = $('reply-text').value;
-      if (!text) return;
-      const res = await api(`/conversations/${chatId}/reply`, { method: 'POST', body: { text } });
-      if (res.ok) { $('reply-text').value = ''; openConversation(chatId, ''); }
-      else alert(res.error);
-    }
-
-    // --- Campaign ---
-    async function renderCampaign(el) {
-      const data = await api('/campaign/status');
-      el.innerHTML = `
-        <h2>Campaign: ${data.campaign}</h2>
-        <div class="stats">
-          ${data.accounts.map(a => `
-            <div class="stat">
-              <div class="value">${a.sent}</div>
-              <div class="label">${a.account.name} — sent</div>
-            </div>
-            <div class="stat">
-              <div class="value">${a.leads}</div>
-              <div class="label">${a.account.name} — leads</div>
-            </div>
-          `).join('')}
+        <div class="field"><label>&nbsp;</label>
+          <label class="check-label"><input type="checkbox" id="ssave"> Save to DB</label>
         </div>
-        <div class="section">
-          <h3>Run Campaign Day</h3>
-          <div class="form-row">
-            <label>Account</label>
-            <select id="camp-account">${data.accounts.map(a => `<option value="${a.account.alias}">${a.account.name}</option>`).join('')}</select>
-            <label>Day</label><input id="camp-day" type="number" value="1" min="1" max="14" style="width:60px">
-            <label>Leads</label><input id="camp-leads" type="number" value="25" style="width:60px">
-            <label>Messages</label><input id="camp-msgs" type="number" value="20" style="width:60px">
-          </div>
-          <div class="flex">
-            <button class="btn btn-outline" onclick="runCampaign(true)">Dry Run</button>
-            <button class="btn btn-green" onclick="runCampaign(false)">Run (Send)</button>
-            <span id="camp-status" style="color:var(--muted);font-size:13px"></span>
-          </div>
+        <div class="field"><label>&nbsp;</label><button class="btn primary" onclick="runSearchFn()">Search</button></div>
+      </div>
+      <div id="search-status" style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:12px"></div>
+    </div></div>
+    <div id="search-res"></div>`;
+}
+async function runSearchFn(){
+  $('search-status').textContent='Searching...';
+  const r=await api('/search',{method:'POST',body:{
+    account:$('sacc').value,keywords:$('sq').value,location:$('sloc').value,title:$('st').value,
+    limit:+$('slim').value,save:$('ssave').checked,tag:$('stag').value
+  }});
+  $('search-status').textContent=r.error?'Error: '+r.error:`Found ${r.count} leads`;
+  if(r.items)$('search-res').innerHTML=`
+    <div class="card"><div class="card-body flush" style="max-height:60vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Name</th><th>Headline</th><th>Location</th><th>Distance</th></tr></thead><tbody>
+      ${r.items.map(l=>`<tr>
+        <td><strong>${esc(l.name)}</strong></td>
+        <td class="msg-preview">${esc(l.headline)}</td>
+        <td class="dim">${esc(l.location)}</td>
+        <td><span class="tag ${l.networkDistance==='DISTANCE_1'?'teal':l.networkDistance==='DISTANCE_2'?'amber':''}">
+          ${l.networkDistance==='DISTANCE_1'?'1st':l.networkDistance==='DISTANCE_2'?'2nd':'3rd+'}
+        </span></td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+
+/* ═══════════════ SYNC ═══════════════ */
+async function pgSync(el){
+  el.innerHTML=`
+    <div class="page-title">Sync Data</div>
+    <div class="card"><div class="card-body">
+      <div class="field" style="max-width:200px"><label>Account</label>
+        <select id="sync-acc"><option value="ihor">Ihor Kyrychenko</option><option value="vladimir">Vladimir Ovcharov</option></select>
+      </div>
+      <div class="btn-group mt-16" style="flex-wrap:wrap">
+        <button class="btn" onclick="doSync('leads')">Sync Leads</button>
+        <button class="btn" onclick="doSync('conversations')">Sync Conversations</button>
+        <button class="btn" onclick="doSync('posts')">Sync Posts</button>
+        <button class="btn" onclick="doSync('company-posts')">Sync Company Posts</button>
+      </div>
+      <div id="sync-out" style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:16px;white-space:pre-wrap"></div>
+    </div></div>`;
+}
+async function doSync(type){
+  $('sync-out').textContent=`Syncing ${type}...`;
+  const r=await api('/sync',{method:'POST',body:{type,account:$('sync-acc').value}});
+  $('sync-out').textContent=r.error?'Error: '+r.error:'Done: '+JSON.stringify(r,null,2);
+  if(!r.error)toast(`${type} synced`);
+}
+
+/* ═══════════════ ACTIVITY LOG ═══════════════ */
+async function pgActivity(el){
+  const d=await api('/activity');
+  const cfg=await api('/config');
+  el.innerHTML=`
+    <div class="page-title">Activity & Config</div>
+    <div class="section-label">Daily Activity</div>
+    <div class="card"><div class="card-body flush" style="max-height:40vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Date</th><th>Account</th><th>Action</th><th>Count</th></tr></thead><tbody>
+      ${d.items.map(a=>`<tr>
+        <td class="mono">${fmtDate(a.date)}</td>
+        <td class="mono dim">${a.account_id?.slice(0,12)||'—'}</td>
+        <td>${a.action_type}</td>
+        <td class="mono">${a.count}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>
+    <div class="section-label mt-16">System Config</div>
+    <div class="card"><div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px">
+        <div>
+          <div class="dim mb-8">Model</div><div class="mono">${cfg.model}</div>
+          <div class="dim mb-8 mt-16">Default Account</div><div class="mono">${cfg.defaultAccount}</div>
         </div>
-        <div class="section">
-          <h3>14-Day Plan</h3>
-          <table><tr><th>Day</th><th>Keywords</th><th>Title Filter</th></tr>
-          ${data.plan.map((q,i) => `<tr><td>${i+1}</td><td>${q.keywords}</td><td style="color:var(--muted)">${q.title}</td></tr>`).join('')}
-          </table>
-        </div>`;
-    }
-
-    async function runCampaign(dryRun) {
-      $('camp-status').textContent = 'Running...';
-      const res = await api('/campaign/run', { method: 'POST', body: {
-        account: $('camp-account').value,
-        day: parseInt($('camp-day').value),
-        maxLeads: parseInt($('camp-leads').value),
-        maxMessages: parseInt($('camp-msgs').value),
-        dryRun
-      }});
-      $('camp-status').textContent = res.error
-        ? `Error: ${res.error}`
-        : `Done! Found: ${res.searched}, Sent: ${res.messaged}, Replied: ${res.replied}`;
-    }
-
-    // --- Search ---
-    async function renderSearch(el) {
-      el.innerHTML = `
-        <h2>Search LinkedIn Leads</h2>
-        <div class="section">
-          <div class="form-row"><label>Keywords</label><input id="s-kw" placeholder="legaltech lawyer" style="flex:1"></div>
-          <div class="form-row"><label>Title</label><input id="s-title" placeholder="CEO OR Partner OR Director" style="flex:1"></div>
-          <div class="form-row">
-            <label>Location</label><input id="s-loc" value="102264497" placeholder="Location ID" style="width:150px">
-            <label>Limit</label><input id="s-limit" type="number" value="25" style="width:70px">
-            <label>Tag</label><input id="s-tag" value="search" style="width:120px">
-            <label><input type="checkbox" id="s-save"> Save to DB</label>
-          </div>
-          <div class="flex">
-            <button class="btn btn-primary" onclick="runSearch()">Search</button>
-            <span id="s-status" style="color:var(--muted);font-size:13px"></span>
-          </div>
+        <div>
+          <div class="dim mb-8">Rate Limits</div>
+          <div class="mono">${cfg.limits.messagesPerDay} msgs/day, ${cfg.limits.invitationsPerDay} invites/day</div>
+          <div class="mono">${cfg.limits.delay} delay, ${cfg.limits.businessHours}</div>
+          <div class="dim mb-8 mt-16">Persona</div>
+          <div class="mono">${cfg.persona.name} — ${cfg.persona.objective}</div>
         </div>
-        <div id="search-results"></div>`;
-    }
+      </div>
+    </div></div>`;
+}
 
-    async function runSearch() {
-      $('s-status').textContent = 'Searching...';
-      const res = await api('/search', { method: 'POST', body: {
-        account: 'ihor',
-        keywords: $('s-kw').value,
-        location: $('s-loc').value,
-        title: $('s-title').value,
-        limit: parseInt($('s-limit').value),
-        save: $('s-save').checked,
-        tag: $('s-tag').value,
-      }});
-      $('s-status').textContent = res.error ? `Error: ${res.error}` : `Found: ${res.count}`;
-      if (res.items) {
-        $('search-results').innerHTML = `
-          <table style="margin-top:16px">
-            <tr><th>Name</th><th>Headline</th><th>Location</th><th>Distance</th></tr>
-            ${res.items.map(r => `<tr>
-              <td><strong>${esc(r.name)}</strong></td>
-              <td class="truncate">${esc(r.headline)}</td>
-              <td>${esc(r.location)}</td>
-              <td>${r.networkDistance === 'DISTANCE_1' ? '<span class="tag green">1st</span>' : r.networkDistance === 'DISTANCE_2' ? '<span class="tag">2nd</span>' : '3rd+'}</td>
-            </tr>`).join('')}
-          </table>`;
-      }
-    }
-
-    // --- Posts ---
-    async function renderPosts(el) {
-      const personal = await api('/posts?limit=50');
-      const company = await api('/posts?company=true&limit=50');
-      el.innerHTML = `
-        <h2>Posts</h2>
-        <div class="section">
-          <h3>Company Posts (${company.items.length})</h3>
-          <table><tr><th>Author</th><th>Text</th><th>Reactions</th><th>Impressions</th><th>Engagement</th><th>Date</th></tr>
-          ${company.items.map(p => `<tr>
-            <td>${esc(p.written_by_name || p.author_name)}</td>
-            <td class="truncate">${esc(p.text.slice(0,100))}</td>
-            <td>${p.reaction_count}</td><td>${p.impressions_count}</td>
-            <td>${p.engagement_rate ? p.engagement_rate.toFixed(1) + '%' : '-'}</td>
-            <td style="color:var(--muted);font-size:12px">${p.posted_at ? new Date(p.posted_at).toLocaleDateString() : ''}</td>
-          </tr>`).join('')}</table>
-        </div>
-        <div class="section">
-          <h3>Personal Posts (${personal.items.length})</h3>
-          <table><tr><th>Author</th><th>Text</th><th>Reactions</th><th>Impressions</th><th>Date</th></tr>
-          ${personal.items.map(p => `<tr>
-            <td>${esc(p.author_name)}</td>
-            <td class="truncate">${esc(p.text.slice(0,100))}</td>
-            <td>${p.reaction_count}</td><td>${p.impressions_count}</td>
-            <td style="color:var(--muted);font-size:12px">${p.posted_at ? new Date(p.posted_at).toLocaleDateString() : ''}</td>
-          </tr>`).join('')}</table>
-        </div>`;
-    }
-
-    // --- Sync ---
-    async function renderSync(el) {
-      el.innerHTML = `
-        <h2>Sync Data</h2>
-        <div class="section">
-          <h3>Sync from LinkedIn</h3>
-          <div class="form-row">
-            <label>Account</label>
-            <select id="sync-account">
-              <option value="ihor">Ihor Kyrychenko</option>
-              <option value="vladimir">Vladimir Ovcharov</option>
-            </select>
-          </div>
-          <div class="flex" style="gap:12px;flex-wrap:wrap">
-            <button class="btn btn-primary" onclick="runSync('leads')">Sync Leads</button>
-            <button class="btn btn-primary" onclick="runSync('conversations')">Sync Conversations</button>
-            <button class="btn btn-primary" onclick="runSync('posts')">Sync Posts</button>
-            <button class="btn btn-primary" onclick="runSync('company-posts')">Sync Company Posts</button>
-          </div>
-          <p id="sync-status" style="margin-top:12px;color:var(--muted);font-size:13px"></p>
-        </div>`;
-    }
-
-    async function runSync(type) {
-      $('sync-status').textContent = `Syncing ${type}...`;
-      const res = await api('/sync', { method: 'POST', body: { type, account: $('sync-account').value } });
-      $('sync-status').textContent = res.error ? `Error: ${res.error}` : `Done! ${JSON.stringify(res)}`;
-    }
-
-    // --- Utils ---
-    function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
-    // --- Init ---
-    render();
-  </script>
+/* ── INIT ── */
+render();
+</script>
 </body>
 </html>

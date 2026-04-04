@@ -271,6 +271,103 @@ apiRouter.post("/sync", async (req, res) => {
   }
 });
 
+// --- Messages (all) ---
+apiRouter.get("/messages", async (req, res) => {
+  const limit = parseInt(req.query.limit as string) || 100;
+  const offset = parseInt(req.query.offset as string) || 0;
+  const type = req.query.type as string;
+  const sentOnly = req.query.sent === "true";
+
+  const rows = await sql`
+    SELECT m.*, c.attendee_name, c.subject as conv_subject
+    FROM messages m
+    LEFT JOIN conversations c ON m.chat_id = c.chat_id
+    WHERE 1=1
+    ${type ? sql`AND m.message_type = ${type}` : sql``}
+    ${sentOnly ? sql`AND m.is_sender = true` : sql``}
+    ORDER BY m.timestamp DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  const [total] = await sql`SELECT COUNT(*) as count FROM messages ${sentOnly ? sql`WHERE is_sender = true` : sql``}`;
+  res.json({ items: rows, total: Number(total.count) });
+});
+
+// --- Outreach Queue ---
+apiRouter.get("/outreach", async (req, res) => {
+  const limit = parseInt(req.query.limit as string) || 100;
+  const offset = parseInt(req.query.offset as string) || 0;
+  const status = req.query.status as string;
+
+  const rows = await sql`
+    SELECT oq.*, l.name as lead_name, l.headline as lead_headline, l.linkedin_id,
+           oc.name as campaign_name
+    FROM outreach_queue oq
+    LEFT JOIN leads l ON oq.lead_id = l.id
+    LEFT JOIN outreach_campaigns oc ON oq.campaign_id = oc.id
+    WHERE 1=1
+    ${status ? sql`AND oq.status = ${status}` : sql``}
+    ORDER BY oq.scheduled_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  const [total] = await sql`SELECT COUNT(*) as count FROM outreach_queue`;
+  res.json({ items: rows, total: Number(total.count) });
+});
+
+// --- Campaigns CRUD ---
+apiRouter.get("/campaigns", async (_req, res) => {
+  const rows = await sql`
+    SELECT oc.*,
+      (SELECT COUNT(*) FROM outreach_queue WHERE campaign_id = oc.id AND status = 'sent') as sent_count,
+      (SELECT COUNT(*) FROM outreach_queue WHERE campaign_id = oc.id AND status = 'failed') as failed_count,
+      (SELECT COUNT(*) FROM outreach_queue WHERE campaign_id = oc.id AND status = 'pending') as pending_count,
+      (SELECT COUNT(*) FROM outreach_queue WHERE campaign_id = oc.id) as total_count
+    FROM outreach_campaigns oc
+    ORDER BY oc.created_at DESC
+  `;
+  res.json({ items: rows });
+});
+
+apiRouter.post("/campaigns", async (req, res) => {
+  const { name, template, targetTags, account } = req.body;
+  const accountId = resolveAccountId(account);
+  const [campaign] = await sql`
+    INSERT INTO outreach_campaigns (account_id, name, template, target_tags, status)
+    VALUES (${accountId}, ${name}, ${template || ''}, ${targetTags || ''}, 'active')
+    RETURNING *
+  `;
+  res.json(campaign);
+});
+
+apiRouter.patch("/campaigns/:id", async (req, res) => {
+  const { status } = req.body;
+  await sql`UPDATE outreach_campaigns SET status = ${status} WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
+// --- Daily Activity ---
+apiRouter.get("/activity", async (_req, res) => {
+  const rows = await sql`
+    SELECT da.*,
+      CASE WHEN da.account_id = '' THEN 'unknown' ELSE da.account_id END as acc
+    FROM daily_activity da
+    ORDER BY da.date DESC, da.action_type
+    LIMIT 100
+  `;
+  res.json({ items: rows });
+});
+
+// --- Drafts ---
+apiRouter.get("/drafts", async (_req, res) => {
+  const rows = await sql`
+    SELECT d.*, c.attendee_name, c.chat_id
+    FROM drafts d
+    LEFT JOIN conversations c ON d.conversation_id = c.id
+    ORDER BY d.created_at DESC
+    LIMIT 100
+  `;
+  res.json({ items: rows });
+});
+
 // --- Config ---
 apiRouter.get("/config", async (_req, res) => {
   res.json({
