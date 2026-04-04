@@ -138,10 +138,12 @@ async function syncChatMessages(
         )
         VALUES (
           ${conversationId}, ${msg.id}, ${msg.chat_id}, ${msg.sender_id},
-          ${text}, ${msg.is_sender}, ${msg.message_type ?? ""},
-          ${msg.timestamp}, ${msg.seen === 1}
+          ${text}, ${Boolean(msg.is_sender)}, ${msg.message_type ?? ""},
+          ${msg.timestamp}, ${Boolean(msg.seen)}
         )
-        ON CONFLICT (message_id) DO NOTHING
+        ON CONFLICT (message_id) DO UPDATE SET
+          is_sender = EXCLUDED.is_sender,
+          seen = EXCLUDED.seen
       `;
       count++;
     }
