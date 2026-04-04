@@ -69,7 +69,7 @@ export async function initDatabase(): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
-      conversation_id INTEGER REFERENCES conversations(id),
+      conversation_id INTEGER,
       message_id TEXT UNIQUE NOT NULL,
       chat_id TEXT NOT NULL,
       sender_id TEXT NOT NULL DEFAULT '',
@@ -110,7 +110,7 @@ export async function initDatabase(): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS drafts (
       id SERIAL PRIMARY KEY,
-      conversation_id INTEGER REFERENCES conversations(id),
+      conversation_id INTEGER,
       lead_id INTEGER REFERENCES leads(id),
       draft_text TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',

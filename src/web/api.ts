@@ -134,7 +134,7 @@ apiRouter.post("/conversations/:chatId/reply", async (req, res) => {
 
     await sql`
       INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
-      VALUES (0, ${"web-" + req.params.chatId + "-" + Date.now()}, ${req.params.chatId}, ${unipile.accountId}, ${text}, true, 'WEB_REPLY', NOW(), true)
+      VALUES (NULL, ${"web-" + req.params.chatId + "-" + Date.now()}, ${req.params.chatId}, ${unipile.accountId}, ${text}, true, 'WEB_REPLY', NOW(), true)
       ON CONFLICT (message_id) DO NOTHING
     `;
 

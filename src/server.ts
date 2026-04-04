@@ -75,7 +75,7 @@ app.post("/webhook/message", async (req, res) => {
 
     await sql`
       INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
-      VALUES (0, ${messageId}, ${chatId}, ${senderId}, ${text}, ${isSender}, ${messageType}, ${timestamp}, false)
+      VALUES (NULL, ${messageId}, ${chatId}, ${senderId}, ${text}, ${isSender}, ${messageType}, ${timestamp}, false)
       ON CONFLICT (message_id) DO NOTHING
     `;
 

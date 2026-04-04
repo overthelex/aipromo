@@ -230,7 +230,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
 
         await sql`
           INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
-          VALUES (0, ${'outreach-' + lead.id + '-' + Date.now()}, ${chatId}, ${accountId}, ${message}, true, 'OUTREACH', NOW(), true)
+          VALUES (NULL, ${'outreach-' + lead.id + '-' + Date.now()}, ${chatId}, ${accountId}, ${message}, true, 'OUTREACH', NOW(), true)
           ON CONFLICT (message_id) DO NOTHING
         `;
 
@@ -341,7 +341,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         // Store reply in messages table
         await sql`
           INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
-          VALUES (0, ${'reply-' + chat.id + '-' + Date.now()}, ${chat.id}, ${accountId}, ${reply}, true, 'CAMPAIGN_REPLY', NOW(), true)
+          VALUES (NULL, ${'reply-' + chat.id + '-' + Date.now()}, ${chat.id}, ${accountId}, ${reply}, true, 'CAMPAIGN_REPLY', NOW(), true)
           ON CONFLICT (message_id) DO NOTHING
         `;
 
