@@ -110,4 +110,20 @@ export class ClaudeService {
       response.content[0].type === "text" ? response.content[0].text : "";
     return text.trim();
   }
+
+  async generateWithSystem(
+    systemPrompt: string,
+    userPrompt: string
+  ): Promise<string> {
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "";
+    return text.trim();
+  }
 }

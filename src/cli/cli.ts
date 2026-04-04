@@ -6,6 +6,7 @@ import { registerOutreachCommand } from "./commands/outreach.command.js";
 import { registerConfigCommand } from "./commands/config.command.js";
 import { registerSyncCommand } from "./commands/sync.command.js";
 import { registerSearchCommand } from "./commands/search.command.js";
+import { registerCampaignCommand } from "./commands/campaign.command.js";
 
 export function createCli(): Command {
   const program = new Command();
@@ -18,6 +19,7 @@ export function createCli(): Command {
 
   registerSyncCommand(program);
   registerSearchCommand(program);
+  registerCampaignCommand(program);
   registerInboxCommand(program);
   registerRespondCommand(program);
   registerLeadsCommand(program);
