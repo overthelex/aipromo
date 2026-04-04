@@ -123,10 +123,14 @@ async function syncChatMessages(
     let reachedExisting = false;
 
     for (const msg of page.items) {
-      // If we already have this message, stop paginating
-      if (latestTimestamp && new Date(msg.timestamp) <= new Date(latestTimestamp)) {
-        reachedExisting = true;
-        break;
+      // If we already have this message, stop paginating (compare as UTC ISO strings)
+      if (latestTimestamp) {
+        const msgTime = new Date(msg.timestamp).getTime();
+        const latestTime = new Date(latestTimestamp).getTime();
+        if (!isNaN(msgTime) && !isNaN(latestTime) && msgTime <= latestTime) {
+          reachedExisting = true;
+          break;
+        }
       }
 
       const text = sanitize(msg.text ?? "");

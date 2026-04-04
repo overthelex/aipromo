@@ -249,18 +249,26 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       } catch (err: any) {
         // If direct message fails (unreachable), try connection request with note
         if (err.message?.includes('unreachable') || err.message?.includes('422')) {
-          try {
-            const note = message.slice(0, 290);
-            await unipile.sendInvitation(lead.linkedin_id, note);
-            await incrementDailyCount(accountId, "invitation");
-            sentCount++;
-            await sql`UPDATE outreach_queue SET status = 'sent', message_text = ${note}, sent_at = NOW() WHERE id = ${queued.id}`;
-            console.log(chalk.yellow(`  → ${profile.name} [invitation + note]`));
-            await sleep(randomDelay(10, 25));
-          } catch (invErr: any) {
-            await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${queued.id}`;
-            console.log(chalk.red(`  ✗ ${profile.name}: ${invErr.message}`));
+          let invSent = false;
+          const note = message.slice(0, 290);
+          if (message.length > 290) logger.warn({ lead: profile.name, original: message.length }, "Invitation note truncated to 290 chars");
+          for (let retry = 0; retry < 2 && !invSent; retry++) {
+            try {
+              if (retry > 0) await sleep(5000);
+              await unipile.sendInvitation(lead.linkedin_id, note);
+              await incrementDailyCount(accountId, "invitation");
+              sentCount++;
+              await sql`UPDATE outreach_queue SET status = 'sent', message_text = ${note}, sent_at = NOW() WHERE id = ${queued.id}`;
+              console.log(chalk.yellow(`  → ${profile.name} [invitation + note]`));
+              invSent = true;
+            } catch (invErr: any) {
+              if (retry === 1) {
+                await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${queued.id}`;
+                console.log(chalk.red(`  ✗ ${profile.name}: ${invErr.message}`));
+              }
+            }
           }
+          if (invSent) await sleep(randomDelay(10, 25));
         } else {
           await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${queued.id}`;
           console.log(chalk.red(`  ✗ ${profile.name}: ${err.message}`));
@@ -337,16 +345,23 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         await incrementDailyCount(accountId, "message");
         repliedCount++;
 
-        // Store reply in messages table
+        // Link to conversation
+        const convRow = await sql`SELECT id FROM conversations WHERE chat_id = ${chat.id} LIMIT 1`;
+        const convId = convRow.length > 0 ? convRow[0].id : null;
+
         await sql`
           INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
-          VALUES (NULL, ${'reply-' + chat.id + '-' + Date.now()}, ${chat.id}, ${accountId}, ${reply}, true, 'CAMPAIGN_REPLY', NOW(), true)
+          VALUES (${convId}, ${'reply-' + chat.id + '-' + Date.now()}, ${chat.id}, ${accountId}, ${reply}, true, 'CAMPAIGN_REPLY', NOW(), true)
           ON CONFLICT (message_id) DO NOTHING
         `;
+
+        // Mark as read after reply
+        await sql`UPDATE conversations SET unread_count = 0, status = 'read' WHERE chat_id = ${chat.id}`;
 
         console.log(chalk.green(`  ↩ Replied to ${profile.name}`));
         await sleep(randomDelay(8, 15));
       } catch (err: any) {
+        logger.error({ lead: profile.name, error: err.message }, "Campaign reply failed");
         console.log(chalk.red(`  ✗ Reply failed for ${profile.name}: ${err.message}`));
       }
     }
