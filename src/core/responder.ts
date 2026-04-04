@@ -146,6 +146,17 @@ export async function runResponder(opts: ResponderOptions): Promise<void> {
     await unipile.sendMessage(conv.chatId, finalText);
     await incrementDailyCount(accountId, "message");
 
+    // Store sent message
+    await sql`
+      INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
+      VALUES (
+        ${conversationId ?? 0},
+        ${'respond-' + conv.chatId + '-' + Date.now()},
+        ${conv.chatId}, ${accountId}, ${finalText}, true, 'RESPOND', NOW(), true
+      )
+      ON CONFLICT (message_id) DO NOTHING
+    `;
+
     // Update draft status
     if (conversationId) {
       await sql`

@@ -218,13 +218,20 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       console.log(`  ${chalk.green(message)}\n`);
     } else {
       try {
-        await unipile.startChat(lead.linkedin_id, message);
+        const chatId = await unipile.startChat(lead.linkedin_id, message);
         await incrementDailyCount(accountId, "message");
         sentCount++;
 
         await sql`
           INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, sent_at)
           VALUES (${campaign.id}, ${lead.id}, ${message}, 'sent', NOW())
+        `;
+
+        // Store sent message in messages table
+        await sql`
+          INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
+          VALUES (0, ${'outreach-' + lead.id + '-' + Date.now()}, ${chatId}, ${accountId}, ${message}, true, 'OUTREACH', NOW(), true)
+          ON CONFLICT (message_id) DO NOTHING
         `;
 
         console.log(chalk.green(`  ✓ ${profile.name} [${angle}]`));
@@ -306,6 +313,14 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         await unipile.sendMessage(chat.id, reply);
         await incrementDailyCount(accountId, "message");
         repliedCount++;
+
+        // Store reply in messages table
+        await sql`
+          INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
+          VALUES (0, ${'reply-' + chat.id + '-' + Date.now()}, ${chat.id}, ${accountId}, ${reply}, true, 'CAMPAIGN_REPLY', NOW(), true)
+          ON CONFLICT (message_id) DO NOTHING
+        `;
+
         console.log(chalk.green(`  ↩ Replied to ${profile.name}`));
         await sleep(randomDelay(8, 15));
       } catch (err: any) {
