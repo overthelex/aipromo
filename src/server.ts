@@ -1,15 +1,22 @@
 import express from "express";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { sql, initDatabase } from "./storage/store.js";
 import { logger } from "./utils/logger.js";
+import { apiRouter } from "./web/api.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(express.json());
 
-// Health check
-app.get("/", (_req, res) => {
-  res.json({ status: "ok", service: "aipromo" });
-});
+// API routes
+app.use("/api", apiRouter);
 
+// Serve dashboard
+app.use(express.static(join(__dirname, "web/public")));
+
+// Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>aipromo — LinkedIn Lead Automation</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a;
+      --text: #e4e4e7; --muted: #71717a; --accent: #6366f1;
+      --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #3b82f6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    a { color: var(--accent); text-decoration: none; }
+
+    /* Layout */
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px 0; flex-shrink: 0; }
+    .sidebar h1 { font-size: 18px; padding: 0 20px 20px; color: var(--accent); }
+    .sidebar a { display: block; padding: 10px 20px; color: var(--muted); font-size: 14px; transition: all 0.15s; }
+    .sidebar a:hover, .sidebar a.active { color: var(--text); background: var(--border); }
+    .sidebar a .badge { background: var(--red); color: white; font-size: 11px; padding: 1px 6px; border-radius: 10px; margin-left: 6px; }
+    .main { flex: 1; padding: 24px 32px; overflow-y: auto; max-height: 100vh; }
+    .main h2 { font-size: 22px; margin-bottom: 20px; }
+
+    /* Cards */
+    .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .stat .value { font-size: 28px; font-weight: 700; }
+    .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 10px; overflow: hidden; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+    th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    tr:hover td { background: rgba(99,102,241,0.05); }
+    .tag { background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
+    .tag.green { background: var(--green); }
+    .badge-new { background: var(--red); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+    .badge-read { color: var(--muted); font-size: 11px; }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-green { background: var(--green); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-red { background: var(--red); color: white; }
+
+    /* Forms */
+    input, select, textarea { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    .form-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+    .form-row label { font-size: 12px; color: var(--muted); min-width: 60px; }
+    textarea { width: 100%; min-height: 60px; resize: vertical; }
+
+    /* Messages */
+    .messages { max-height: 400px; overflow-y: auto; padding: 12px; background: var(--bg); border-radius: 8px; margin-bottom: 12px; }
+    .msg { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 13px; line-height: 1.5; }
+    .msg.sent { background: var(--accent); color: white; margin-left: auto; }
+    .msg.received { background: var(--surface); border: 1px solid var(--border); }
+    .msg .meta { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .msg.received .meta { color: var(--muted); }
+
+    /* Sections */
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    .section h3 { font-size: 15px; margin-bottom: 12px; }
+    .hidden { display: none; }
+    .loading { color: var(--muted); font-style: italic; }
+    .truncate { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .flex { display: flex; gap: 10px; align-items: center; }
+    .ml-auto { margin-left: auto; }
+    .mb { margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="sidebar">
+      <h1>aipromo</h1>
+      <a href="#" data-page="dashboard" class="active">Dashboard</a>
+      <a href="#" data-page="leads">Leads</a>
+      <a href="#" data-page="conversations">Conversations <span class="badge" id="unread-badge"></span></a>
+      <a href="#" data-page="campaign">Campaign</a>
+      <a href="#" data-page="search">Search</a>
+      <a href="#" data-page="posts">Posts</a>
+      <a href="#" data-page="sync">Sync</a>
+    </nav>
+    <main class="main" id="content">
+      <div class="loading">Loading...</div>
+    </main>
+  </div>
+
+  <script>
+    const API = '/api';
+    let currentPage = 'dashboard';
+
+    // --- Fetch helper ---
+    async function api(path, opts) {
+      const r = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts,
+        body: opts?.body ? JSON.stringify(opts.body) : undefined,
+      });
+      return r.json();
+    }
+
+    // --- Navigation ---
+    document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('.sidebar a').forEach(x => x.classList.remove('active'));
+        a.classList.add('active');
+        currentPage = a.dataset.page;
+        render();
+      });
+    });
+
+    const $ = id => document.getElementById(id);
+    const content = () => $('content');
+
+    // --- Render pages ---
+    async function render() {
+      const el = content();
+      el.innerHTML = '<div class="loading">Loading...</div>';
+      try {
+        switch (currentPage) {
+          case 'dashboard': return renderDashboard(el);
+          case 'leads': return renderLeads(el);
+          case 'conversations': return renderConversations(el);
+          case 'campaign': return renderCampaign(el);
+          case 'search': return renderSearch(el);
+          case 'posts': return renderPosts(el);
+          case 'sync': return renderSync(el);
+        }
+      } catch (e) { el.innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`; }
+    }
+
+    // --- Dashboard ---
+    async function renderDashboard(el) {
+      const s = await api('/stats');
+      $('unread-badge').textContent = s.unreadConversations || '';
+      el.innerHTML = `
+        <h2>Dashboard</h2>
+        <div class="stats">
+          <div class="stat"><div class="value">${s.leads}</div><div class="label">Total Leads</div></div>
+          <div class="stat"><div class="value">${s.conversations}</div><div class="label">Conversations</div></div>
+          <div class="stat"><div class="value">${s.messages}</div><div class="label">Messages</div></div>
+          <div class="stat"><div class="value">${s.posts}</div><div class="label">Posts</div></div>
+          <div class="stat"><div class="value" style="color:var(--green)">${s.sentToday}</div><div class="label">Sent Today</div></div>
+          <div class="stat"><div class="value" style="color:var(--accent)">${s.campaignLeads}</div><div class="label">Campaign Leads</div></div>
+          <div class="stat"><div class="value" style="color:var(--blue)">${s.sentMessages}</div><div class="label">Total Sent</div></div>
+          <div class="stat"><div class="value" style="color:${s.unreadConversations ? 'var(--red)' : 'var(--muted)'}">${s.unreadConversations}</div><div class="label">Unread</div></div>
+        </div>
+        <div class="section">
+          <h3>Accounts</h3>
+          <table><tr><th>Alias</th><th>Name</th><th>ID</th></tr>
+          ${s.accounts.map(a => `<tr><td><span class="tag">${a.alias}</span></td><td>${a.name}</td><td style="color:var(--muted);font-size:11px">${a.id}</td></tr>`).join('')}
+          </table>
+        </div>`;
+    }
+
+    // --- Leads ---
+    async function renderLeads(el, searchQ = '', tag = '') {
+      const params = new URLSearchParams({ limit: '100' });
+      if (searchQ) params.set('search', searchQ);
+      if (tag) params.set('tag', tag);
+      const data = await api('/leads?' + params);
+      el.innerHTML = `
+        <h2>Leads <span style="color:var(--muted);font-size:14px">(${data.total} total)</span></h2>
+        <div class="form-row">
+          <input id="lead-search" placeholder="Search by name, headline, company..." value="${searchQ}" style="flex:1">
+          <input id="lead-tag-filter" placeholder="Filter by tag" value="${tag}" style="width:150px">
+          <button class="btn btn-primary" onclick="renderLeads(content(), $('lead-search').value, $('lead-tag-filter').value)">Filter</button>
+        </div>
+        <table>
+          <tr><th>Name</th><th>Headline</th><th>Location</th><th>Tags</th><th>Source</th></tr>
+          ${data.items.map(l => `
+            <tr>
+              <td><strong>${esc(l.name)}</strong></td>
+              <td class="truncate">${esc(l.headline)}</td>
+              <td>${esc(l.location)}</td>
+              <td>${l.tags ? l.tags.split(',').map(t => `<span class="tag">${t}</span>`).join('') : ''}</td>
+              <td style="color:var(--muted)">${l.source}</td>
+            </tr>
+          `).join('')}
+        </table>`;
+    }
+
+    // --- Conversations ---
+    async function renderConversations(el) {
+      const data = await api('/conversations?limit=100');
+      el.innerHTML = `
+        <h2>Conversations</h2>
+        <div class="form-row">
+          <button class="btn btn-outline btn-sm" onclick="renderConversationsFiltered(false)">All</button>
+          <button class="btn btn-red btn-sm" onclick="renderConversationsFiltered(true)">Unread only</button>
+        </div>
+        <table id="conv-table">
+          <tr><th>Status</th><th>Contact</th><th>Subject</th><th>Last Message</th><th>Type</th><th></th></tr>
+          ${data.items.map(c => `
+            <tr>
+              <td>${c.unread_count > 0 ? `<span class="badge-new">NEW (${c.unread_count})</span>` : '<span class="badge-read">read</span>'}</td>
+              <td><strong>${esc(c.attendee_name || c.lead_name || 'Unknown')}</strong></td>
+              <td class="truncate">${esc(c.subject)}</td>
+              <td style="color:var(--muted);font-size:12px">${c.last_message_at ? new Date(c.last_message_at).toLocaleString() : ''}</td>
+              <td style="color:var(--muted);font-size:11px">${c.content_type}</td>
+              <td><button class="btn btn-outline btn-sm" onclick="openConversation('${c.chat_id}','${esc(c.attendee_name || c.lead_name || '')}')">Open</button></td>
+            </tr>
+          `).join('')}
+        </table>
+        <div id="conv-detail" class="hidden"></div>`;
+    }
+
+    async function renderConversationsFiltered(unread) {
+      const data = await api('/conversations?limit=100' + (unread ? '&unread=true' : ''));
+      const table = $('conv-table');
+      if (!table) return;
+      table.innerHTML = `
+        <tr><th>Status</th><th>Contact</th><th>Subject</th><th>Last Message</th><th>Type</th><th></th></tr>
+        ${data.items.map(c => `
+          <tr>
+            <td>${c.unread_count > 0 ? `<span class="badge-new">NEW (${c.unread_count})</span>` : '<span class="badge-read">read</span>'}</td>
+            <td><strong>${esc(c.attendee_name || c.lead_name || 'Unknown')}</strong></td>
+            <td class="truncate">${esc(c.subject)}</td>
+            <td style="color:var(--muted);font-size:12px">${c.last_message_at ? new Date(c.last_message_at).toLocaleString() : ''}</td>
+            <td style="color:var(--muted);font-size:11px">${c.content_type}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="openConversation('${c.chat_id}','${esc(c.attendee_name || c.lead_name || '')}')">Open</button></td>
+          </tr>
+        `).join('')}`;
+    }
+
+    async function openConversation(chatId, name) {
+      const data = await api(`/conversations/${chatId}/messages`);
+      const detail = $('conv-detail');
+      detail.classList.remove('hidden');
+      detail.innerHTML = `
+        <div class="section" style="margin-top:20px">
+          <h3>Conversation with ${name}</h3>
+          <div class="messages" id="msg-list">
+            ${data.items.map(m => `
+              <div class="msg ${m.is_sender ? 'sent' : 'received'}">
+                ${esc(m.text)}
+                <div class="meta">${new Date(m.timestamp).toLocaleString()} ${m.message_type ? '(' + m.message_type + ')' : ''}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="flex mb">
+            <button class="btn btn-outline btn-sm" onclick="generateAiReply('${chatId}')">AI Draft</button>
+          </div>
+          <textarea id="reply-text" placeholder="Type your reply..."></textarea>
+          <div class="flex" style="margin-top:8px">
+            <button class="btn btn-green" onclick="sendReply('${chatId}')">Send</button>
+          </div>
+        </div>`;
+      detail.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function generateAiReply(chatId) {
+      $('reply-text').value = 'Generating...';
+      const data = await api(`/conversations/${chatId}/ai-reply`, { method: 'POST', body: {} });
+      $('reply-text').value = data.draft || data.error || '';
+    }
+
+    async function sendReply(chatId) {
+      const text = $('reply-text').value;
+      if (!text) return;
+      const res = await api(`/conversations/${chatId}/reply`, { method: 'POST', body: { text } });
+      if (res.ok) { $('reply-text').value = ''; openConversation(chatId, ''); }
+      else alert(res.error);
+    }
+
+    // --- Campaign ---
+    async function renderCampaign(el) {
+      const data = await api('/campaign/status');
+      el.innerHTML = `
+        <h2>Campaign: ${data.campaign}</h2>
+        <div class="stats">
+          ${data.accounts.map(a => `
+            <div class="stat">
+              <div class="value">${a.sent}</div>
+              <div class="label">${a.account.name} — sent</div>
+            </div>
+            <div class="stat">
+              <div class="value">${a.leads}</div>
+              <div class="label">${a.account.name} — leads</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="section">
+          <h3>Run Campaign Day</h3>
+          <div class="form-row">
+            <label>Account</label>
+            <select id="camp-account">${data.accounts.map(a => `<option value="${a.account.alias}">${a.account.name}</option>`).join('')}</select>
+            <label>Day</label><input id="camp-day" type="number" value="1" min="1" max="14" style="width:60px">
+            <label>Leads</label><input id="camp-leads" type="number" value="25" style="width:60px">
+            <label>Messages</label><input id="camp-msgs" type="number" value="20" style="width:60px">
+          </div>
+          <div class="flex">
+            <button class="btn btn-outline" onclick="runCampaign(true)">Dry Run</button>
+            <button class="btn btn-green" onclick="runCampaign(false)">Run (Send)</button>
+            <span id="camp-status" style="color:var(--muted);font-size:13px"></span>
+          </div>
+        </div>
+        <div class="section">
+          <h3>14-Day Plan</h3>
+          <table><tr><th>Day</th><th>Keywords</th><th>Title Filter</th></tr>
+          ${data.plan.map((q,i) => `<tr><td>${i+1}</td><td>${q.keywords}</td><td style="color:var(--muted)">${q.title}</td></tr>`).join('')}
+          </table>
+        </div>`;
+    }
+
+    async function runCampaign(dryRun) {
+      $('camp-status').textContent = 'Running...';
+      const res = await api('/campaign/run', { method: 'POST', body: {
+        account: $('camp-account').value,
+        day: parseInt($('camp-day').value),
+        maxLeads: parseInt($('camp-leads').value),
+        maxMessages: parseInt($('camp-msgs').value),
+        dryRun
+      }});
+      $('camp-status').textContent = res.error
+        ? `Error: ${res.error}`
+        : `Done! Found: ${res.searched}, Sent: ${res.messaged}, Replied: ${res.replied}`;
+    }
+
+    // --- Search ---
+    async function renderSearch(el) {
+      el.innerHTML = `
+        <h2>Search LinkedIn Leads</h2>
+        <div class="section">
+          <div class="form-row"><label>Keywords</label><input id="s-kw" placeholder="legaltech lawyer" style="flex:1"></div>
+          <div class="form-row"><label>Title</label><input id="s-title" placeholder="CEO OR Partner OR Director" style="flex:1"></div>
+          <div class="form-row">
+            <label>Location</label><input id="s-loc" value="102264497" placeholder="Location ID" style="width:150px">
+            <label>Limit</label><input id="s-limit" type="number" value="25" style="width:70px">
+            <label>Tag</label><input id="s-tag" value="search" style="width:120px">
+            <label><input type="checkbox" id="s-save"> Save to DB</label>
+          </div>
+          <div class="flex">
+            <button class="btn btn-primary" onclick="runSearch()">Search</button>
+            <span id="s-status" style="color:var(--muted);font-size:13px"></span>
+          </div>
+        </div>
+        <div id="search-results"></div>`;
+    }
+
+    async function runSearch() {
+      $('s-status').textContent = 'Searching...';
+      const res = await api('/search', { method: 'POST', body: {
+        account: 'ihor',
+        keywords: $('s-kw').value,
+        location: $('s-loc').value,
+        title: $('s-title').value,
+        limit: parseInt($('s-limit').value),
+        save: $('s-save').checked,
+        tag: $('s-tag').value,
+      }});
+      $('s-status').textContent = res.error ? `Error: ${res.error}` : `Found: ${res.count}`;
+      if (res.items) {
+        $('search-results').innerHTML = `
+          <table style="margin-top:16px">
+            <tr><th>Name</th><th>Headline</th><th>Location</th><th>Distance</th></tr>
+            ${res.items.map(r => `<tr>
+              <td><strong>${esc(r.name)}</strong></td>
+              <td class="truncate">${esc(r.headline)}</td>
+              <td>${esc(r.location)}</td>
+              <td>${r.networkDistance === 'DISTANCE_1' ? '<span class="tag green">1st</span>' : r.networkDistance === 'DISTANCE_2' ? '<span class="tag">2nd</span>' : '3rd+'}</td>
+            </tr>`).join('')}
+          </table>`;
+      }
+    }
+
+    // --- Posts ---
+    async function renderPosts(el) {
+      const personal = await api('/posts?limit=50');
+      const company = await api('/posts?company=true&limit=50');
+      el.innerHTML = `
+        <h2>Posts</h2>
+        <div class="section">
+          <h3>Company Posts (${company.items.length})</h3>
+          <table><tr><th>Author</th><th>Text</th><th>Reactions</th><th>Impressions</th><th>Engagement</th><th>Date</th></tr>
+          ${company.items.map(p => `<tr>
+            <td>${esc(p.written_by_name || p.author_name)}</td>
+            <td class="truncate">${esc(p.text.slice(0,100))}</td>
+            <td>${p.reaction_count}</td><td>${p.impressions_count}</td>
+            <td>${p.engagement_rate ? p.engagement_rate.toFixed(1) + '%' : '-'}</td>
+            <td style="color:var(--muted);font-size:12px">${p.posted_at ? new Date(p.posted_at).toLocaleDateString() : ''}</td>
+          </tr>`).join('')}</table>
+        </div>
+        <div class="section">
+          <h3>Personal Posts (${personal.items.length})</h3>
+          <table><tr><th>Author</th><th>Text</th><th>Reactions</th><th>Impressions</th><th>Date</th></tr>
+          ${personal.items.map(p => `<tr>
+            <td>${esc(p.author_name)}</td>
+            <td class="truncate">${esc(p.text.slice(0,100))}</td>
+            <td>${p.reaction_count}</td><td>${p.impressions_count}</td>
+            <td style="color:var(--muted);font-size:12px">${p.posted_at ? new Date(p.posted_at).toLocaleDateString() : ''}</td>
+          </tr>`).join('')}</table>
+        </div>`;
+    }
+
+    // --- Sync ---
+    async function renderSync(el) {
+      el.innerHTML = `
+        <h2>Sync Data</h2>
+        <div class="section">
+          <h3>Sync from LinkedIn</h3>
+          <div class="form-row">
+            <label>Account</label>
+            <select id="sync-account">
+              <option value="ihor">Ihor Kyrychenko</option>
+              <option value="vladimir">Vladimir Ovcharov</option>
+            </select>
+          </div>
+          <div class="flex" style="gap:12px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="runSync('leads')">Sync Leads</button>
+            <button class="btn btn-primary" onclick="runSync('conversations')">Sync Conversations</button>
+            <button class="btn btn-primary" onclick="runSync('posts')">Sync Posts</button>
+            <button class="btn btn-primary" onclick="runSync('company-posts')">Sync Company Posts</button>
+          </div>
+          <p id="sync-status" style="margin-top:12px;color:var(--muted);font-size:13px"></p>
+        </div>`;
+    }
+
+    async function runSync(type) {
+      $('sync-status').textContent = `Syncing ${type}...`;
+      const res = await api('/sync', { method: 'POST', body: { type, account: $('sync-account').value } });
+      $('sync-status').textContent = res.error ? `Error: ${res.error}` : `Done! ${JSON.stringify(res)}`;
+    }
+
+    // --- Utils ---
+    function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // --- Init ---
+    render();
+  </script>
+</body>
+</html>
