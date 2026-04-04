@@ -498,15 +498,16 @@ async function loadConv(unread,silent){
     const lastMsg=c.last_message_text||'';
     const preview=lastMsg.slice(0,80).replace(/\n/g,' ');
     const isActive=window._activeChat===c.chat_id;
-    return `<div class="conv-item${isActive?' conv-active':''}${unr?' conv-unread':''}" data-chat="${c.chat_id}" onclick="selectConv('${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}')">
+    return `<div class="conv-item${isActive?' conv-active':''}${unr?' conv-unread':''}" data-chat="${c.chat_id}" onclick="selectConv('${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}','${c.account_id||''}')">
       <div class="flex-between"><strong style="font-size:12px">${displayName}</strong><span class="mono dim" style="font-size:10px">${ago(c.last_message_at)}</span></div>
       <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.last_message_is_sender?'<span style="color:var(--amber)">You:</span> ':''}${esc(preview)}</div>
       ${c.content_type?`<span class="tag" style="margin-top:4px;font-size:9px">${c.content_type}</span>`:''} ${unr?`<span class="tag red" style="margin-top:4px">${c.unread_count} new</span>`:''}
     </div>`;
   }).join('');
 }
-function selectConv(chatId,name){
+function selectConv(chatId,name,accountId){
   window._activeChat=chatId;
+  window._activeChatAccount=accountId;
   document.querySelectorAll('.conv-item').forEach(el=>{
     el.classList.toggle('conv-active',el.dataset.chat===chatId);
   });
@@ -525,23 +526,42 @@ async function openThread(chatId,name){
       `).join('')}
     </div>
     <div style="padding:12px 16px;border-top:1px solid var(--border)">
-      <div class="flex mb-8"><button class="btn sm" onclick="aiDraft('${chatId}')">AI Draft</button></div>
+      <div class="flex mb-8">
+        <select id="reply-account" style="font-size:11px;padding:3px 8px;width:auto">
+          <option value="ihor">Ihor</option>
+          <option value="vladimir">Vladimir</option>
+        </select>
+        <button class="btn sm" onclick="aiDraft('${chatId}')">AI Draft</button>
+      </div>
       <textarea id="reply-box" placeholder="Type reply..." rows="2"></textarea>
       <div class="flex mt-16"><button class="btn teal" onclick="sendReply('${chatId}','${esc(name)}')">Send</button></div>
     </div>`;
   const t=$('thread-msgs');t.scrollTop=t.scrollHeight;
+  // Auto-select account based on conversation owner
+  const accSel=$('reply-account');
+  if(accSel&&window._activeChatAccount){
+    const accId=window._activeChatAccount;
+    if(accId==='hYhcYj2_R2Kp7AQCtvQYZg')accSel.value='ihor';
+    else if(accId==='H4VkNF35Qn2cxLJjqnxTzw')accSel.value='vladimir';
+  }
 }
-async function aiDraft(chatId){$('reply-box').value='Generating...';const r=await api(`/conversations/${chatId}/ai-reply`,{method:'POST',body:{}});$('reply-box').value=r.draft||r.error||'';}
+async function aiDraft(chatId){
+  $('reply-box').value='Generating...';
+  const acc=$('reply-account')?.value||'ihor';
+  const r=await api(`/conversations/${chatId}/ai-reply`,{method:'POST',body:{account:acc}});
+  $('reply-box').value=r.draft||r.error||'';
+}
 let _sending=false;
 async function sendReply(chatId,name){
   if(_sending)return;
   const t=$('reply-box').value;if(!t)return;
+  const acc=$('reply-account')?.value||'ihor';
   _sending=true;
-  _wsPaused=true; // pause WS to prevent echo
+  _wsPaused=true;
   const btn=document.querySelector('[onclick*="sendReply"]');
   if(btn){btn.disabled=true;btn.textContent='Sending...';}
   try{
-    const r=await api(`/conversations/${chatId}/reply`,{method:'POST',body:{text:t}});
+    const r=await api(`/conversations/${chatId}/reply`,{method:'POST',body:{text:t,account:acc}});
     if(r.ok){
       toast('Sent');
       $('reply-box').value='';
