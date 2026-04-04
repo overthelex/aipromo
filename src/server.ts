@@ -59,7 +59,11 @@ for (const p of PAGES) {
 app.post("/webhook/message", async (req, res) => {
   try {
     const data = req.body;
-    logger.info({ event: "message_received", data }, "Webhook: message received");
+    if (!data || typeof data !== "object" || !data.chat_id) {
+      logger.warn({ body: data }, "Webhook: ignoring non-message event");
+      return res.json({ ok: true, skipped: true });
+    }
+    logger.info({ event: data.message_type || "message", chatId: data.chat_id }, "Webhook: message");
 
     const accountId = data.account_id ?? "";
     const chatId = data.chat_id ?? "";
