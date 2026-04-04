@@ -5,6 +5,7 @@ import { registerLeadsCommand } from "./commands/leads.command.js";
 import { registerOutreachCommand } from "./commands/outreach.command.js";
 import { registerConfigCommand } from "./commands/config.command.js";
 import { registerSyncCommand } from "./commands/sync.command.js";
+import { registerSearchCommand } from "./commands/search.command.js";
 
 export function createCli(): Command {
   const program = new Command();
@@ -16,6 +17,7 @@ export function createCli(): Command {
     .option("-a, --account <alias>", "LinkedIn account alias (e.g. ihor, vladimir)");
 
   registerSyncCommand(program);
+  registerSearchCommand(program);
   registerInboxCommand(program);
   registerRespondCommand(program);
   registerLeadsCommand(program);

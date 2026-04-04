@@ -178,12 +178,33 @@ export class UnipileService {
   ): Promise<UnipileSearchResult[]> {
     const data = await this.request<{ items: UnipileSearchResult[] }>(
       "POST",
-      "/linkedin/search",
-      {
-        account_id: this.accountId,
-        ...filters,
-      }
+      `/linkedin/search?account_id=${this.accountId}`,
+      filters
     );
     return data.items;
+  }
+
+  async searchPeople(
+    body: Record<string, unknown>
+  ): Promise<{ items: any[]; cursor?: string }> {
+    return this.request<{ items: any[]; cursor?: string }>(
+      "POST",
+      `/linkedin/search?account_id=${this.accountId}`,
+      body
+    );
+  }
+
+  async getSearchParameters(
+    type: string,
+    keyword: string
+  ): Promise<{ items: Array<{ id: string; title: string }> }> {
+    const params = new URLSearchParams();
+    params.set("account_id", this.accountId);
+    params.set("type", type);
+    params.set("keyword", keyword);
+    return this.request<{ items: Array<{ id: string; title: string }> }>(
+      "GET",
+      `/linkedin/search/parameters?${params.toString()}`
+    );
   }
 }
