@@ -30,11 +30,22 @@ export interface UnipilePaginatedResponse<T> {
 
 export interface UnipileChat {
   id: string;
+  name: string;
+  subject: string;
+  type: number;
+  folder: string[];
   account_id: string;
-  provider: string;
-  attendees: UnipileChatAttendee[];
+  account_type: string;
+  content_type: string;
+  provider_id: string;
+  attendee_provider_id: string;
+  attendees?: UnipileChatAttendee[];
   timestamp: string;
-  unread_count?: number;
+  unread: number;
+  unread_count: number;
+  archived: number;
+  read_only: number;
+  pinned: number;
   last_message?: UnipileMessage;
 }
 
@@ -49,9 +60,15 @@ export interface UnipileMessage {
   id: string;
   chat_id: string;
   sender_id: string;
+  sender_attendee_id?: string;
   text: string;
   timestamp: string;
   is_sender: boolean;
+  message_type?: string;
+  subject?: string | null;
+  seen: number;
+  delivered: number;
+  attachments: unknown[];
 }
 
 export interface UnipileSendMessageRequest {

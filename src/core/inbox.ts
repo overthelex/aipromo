@@ -33,7 +33,7 @@ export async function fetchInbox(
     for (const chat of page.items) {
       if (collected >= opts.limit) break;
 
-      const attendee = chat.attendees.find((a) => !a.is_self);
+      const attendee = chat.attendees?.find((a) => !a.is_self);
       if (!attendee) continue;
 
       const unreadCount = chat.unread_count ?? 0;

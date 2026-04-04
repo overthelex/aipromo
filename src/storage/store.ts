@@ -28,8 +28,30 @@ export async function initDatabase(): Promise<void> {
       account_id TEXT NOT NULL DEFAULT '',
       chat_id TEXT UNIQUE NOT NULL,
       lead_id INTEGER REFERENCES leads(id),
+      attendee_name TEXT NOT NULL DEFAULT '',
+      attendee_provider_id TEXT NOT NULL DEFAULT '',
+      subject TEXT NOT NULL DEFAULT '',
+      content_type TEXT NOT NULL DEFAULT '',
+      folder TEXT NOT NULL DEFAULT '',
+      unread_count INTEGER NOT NULL DEFAULT 0,
       last_message_at TIMESTAMPTZ,
-      status TEXT NOT NULL DEFAULT 'new'
+      status TEXT NOT NULL DEFAULT 'new',
+      synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      conversation_id INTEGER REFERENCES conversations(id),
+      message_id TEXT UNIQUE NOT NULL,
+      chat_id TEXT NOT NULL,
+      sender_id TEXT NOT NULL DEFAULT '',
+      text TEXT NOT NULL DEFAULT '',
+      is_sender BOOLEAN NOT NULL DEFAULT false,
+      message_type TEXT NOT NULL DEFAULT '',
+      timestamp TIMESTAMPTZ NOT NULL,
+      seen BOOLEAN NOT NULL DEFAULT false
     )
   `;
 
@@ -93,6 +115,15 @@ export async function initDatabase(): Promise<void> {
   await sql`
     ALTER TABLE daily_activity ADD COLUMN IF NOT EXISTS account_id TEXT NOT NULL DEFAULT ''
   `;
+
+  // Migrations for conversations columns
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS attendee_name TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS attendee_provider_id TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS subject TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS content_type TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS folder TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS unread_count INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`;
 
   // Drop old unique constraint on leads if exists, add new one
   await sql`
