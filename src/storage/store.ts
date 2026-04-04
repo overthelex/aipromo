@@ -1,7 +1,31 @@
 import postgres from "postgres";
 import { appConfig } from "../config.js";
 
-export const sql = postgres(appConfig.databaseUrl);
+function createSql() {
+  const url = appConfig.databaseUrl;
+
+  // Cloud SQL uses Unix sockets: detect ?host=/cloudsql/... pattern
+  // Format: postgres://user:pass@/dbname?host=/cloudsql/project:region:instance
+  const hostMatch = url.match(/\?host=(.+)$/);
+  if (hostMatch) {
+    const cleanUrl = url.replace(/\?host=.+$/, "");
+    // postgres://user:pass@/dbname -> extract user, pass, dbname
+    const match = cleanUrl.match(/postgres:\/\/([^:]+):([^@]+)@\/(.+)/);
+    if (match) {
+      return postgres({
+        host: hostMatch[1],
+        port: 5432,
+        database: match[3],
+        username: match[1],
+        password: match[2],
+      });
+    }
+  }
+
+  return postgres(url);
+}
+
+export const sql = createSql();
 
 export async function initDatabase(): Promise<void> {
   await sql`

@@ -3,10 +3,13 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --production=false
 
 COPY tsconfig.json ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 
-ENTRYPOINT ["npx", "tsx", "src/index.ts"]
+EXPOSE 8080
+
+# Default: run webhook server. Override with args for CLI commands.
+CMD ["npx", "tsx", "src/server.ts"]
