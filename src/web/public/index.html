@@ -250,35 +250,35 @@
 
   <!-- ICON RAIL -->
   <nav class="rail" id="rail">
-    <a href="#" data-p="dashboard" title="Dashboard" class="active">
+    <a href="/dashboard" data-p="dashboard" title="Dashboard" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     </a>
-    <a href="#" data-p="leads" title="Leads">
+    <a href="/leads" data-p="leads" title="Leads">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
     </a>
-    <a href="#" data-p="conversations" title="Conversations" id="nav-conv">
+    <a href="/conversations" data-p="conversations" title="Conversations" id="nav-conv">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
     </a>
-    <a href="#" data-p="messages" title="All Messages">
+    <a href="/messages" data-p="messages" title="All Messages">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
     </a>
-    <a href="#" data-p="outreach" title="Outreach Queue">
+    <a href="/outreach" data-p="outreach" title="Outreach Queue">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
     </a>
-    <a href="#" data-p="campaigns" title="Campaigns">
+    <a href="/campaigns" data-p="campaigns" title="Campaigns">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
     </a>
-    <a href="#" data-p="posts" title="Posts">
+    <a href="/posts" data-p="posts" title="Posts">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     </a>
-    <a href="#" data-p="search" title="Search">
+    <a href="/search" data-p="search" title="Search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </a>
     <span class="spacer"></span>
-    <a href="#" data-p="sync" title="Sync">
+    <a href="/sync" data-p="sync" title="Sync">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
     </a>
-    <a href="#" data-p="activity" title="Activity Log">
+    <a href="/activity" data-p="activity" title="Activity Log">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
     </a>
   </nav>
@@ -291,7 +291,9 @@
 
 <script>
 const A='/api';
-let page='dashboard', pollId=null;
+const PAGES=['dashboard','leads','conversations','messages','outreach','campaigns','posts','search','sync','activity'];
+function pageFromPath(){const p=window.location.pathname.replace(/^\//,'');return PAGES.includes(p)?p:'dashboard';}
+let page=pageFromPath(), pollId=null;
 
 /* ── HELPERS ── */
 async function api(p,o){
@@ -323,14 +325,16 @@ setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('uk-UA',{h
 document.querySelectorAll('.rail a[data-p]').forEach(a=>{
   a.addEventListener('click',e=>{e.preventDefault();navigate(a.dataset.p);});
 });
-function navigate(p){
+function navigate(p, pushState=true){
   page=p;
+  if(pushState) history.pushState(null,'','/'+p);
   document.querySelectorAll('.rail a').forEach(x=>x.classList.remove('active'));
   document.querySelector(`.rail a[data-p="${p}"]`)?.classList.add('active');
   $('crumb').innerHTML='<b>'+p.charAt(0).toUpperCase()+p.slice(1)+'</b>';
   if(pollId){clearInterval(pollId);pollId=null;}
   render();
 }
+window.addEventListener('popstate',()=>navigate(pageFromPath(),false));
 
 /* ── RENDER ROUTER ── */
 async function render(){
@@ -768,6 +772,9 @@ async function pgActivity(el){
 }
 
 /* ── INIT ── */
+document.querySelectorAll('.rail a').forEach(x=>x.classList.remove('active'));
+document.querySelector(`.rail a[data-p="${page}"]`)?.classList.add('active');
+$('crumb').innerHTML='<b>'+page.charAt(0).toUpperCase()+page.slice(1)+'</b>';
 render();
 </script>
 </body>

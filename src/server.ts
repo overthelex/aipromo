@@ -13,13 +13,21 @@ app.use(express.json());
 // API routes
 app.use("/api", apiRouter);
 
-// Serve dashboard
+// Serve static assets
 app.use(express.static(join(__dirname, "web/public")));
 
 // Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+// SPA fallback — all non-API/webhook routes serve index.html
+const PAGES = ["dashboard", "leads", "conversations", "messages", "outreach", "campaigns", "posts", "search", "sync", "activity"];
+for (const p of PAGES) {
+  app.get(`/${p}`, (_req, res) => {
+    res.sendFile(join(__dirname, "web/public/index.html"));
+  });
+}
 
 // Webhook: new message received
 app.post("/webhook/message", async (req, res) => {
