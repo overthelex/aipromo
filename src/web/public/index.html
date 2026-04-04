@@ -305,6 +305,7 @@ let page=pageFromPath();
 
 /* ── WebSocket ── */
 let ws=null;
+let _wsPaused=false; // pause WS refresh during own sends
 function connectWS(){
   const proto=location.protocol==='https:'?'wss:':'ws:';
   ws=new WebSocket(`${proto}//${location.host}/ws`);
@@ -312,6 +313,7 @@ function connectWS(){
   ws.onclose=()=>{console.log('WS disconnected, reconnecting...');setTimeout(connectWS,3000);};
   ws.onerror=()=>ws.close();
   ws.onmessage=(e)=>{
+    if(_wsPaused)return;
     try{
       const msg=JSON.parse(e.data);
       handleWSEvent(msg);
@@ -320,18 +322,14 @@ function connectWS(){
 }
 function handleWSEvent(msg){
   const ev=msg.event;
-  // Update badge
   if(ev==='message'&&!msg.isSender){
     const dot=$('nav-conv');
     if(dot&&!dot.querySelector('.dot'))dot.insertAdjacentHTML('beforeend','<span class="dot"></span>');
     toast(`New message${msg.senderName?' from '+msg.senderName:''}`,true);
-  }
-  // Refresh current page data
-  if(ev==='message'){
+    // Only refresh for INCOMING messages
     if(page==='conversations')loadConv(false,true);
     if(page==='messages')loadMsgs(window._lastMsgFilter||'');
     if(page==='dashboard')pgDash(vp());
-    // Refresh open thread if same chat
     if(window._activeChat===msg.chatId)openThread(msg.chatId,'');
   }
   if(ev==='relation'){
@@ -340,7 +338,7 @@ function handleWSEvent(msg){
   }
   if(ev==='sync'){
     if(page==='dashboard')pgDash(vp());
-    toast(`Sync complete: ${ev}`,true);
+    toast('Sync complete',true);
   }
 }
 connectWS();
@@ -534,10 +532,26 @@ async function openThread(chatId,name){
   const t=$('thread-msgs');t.scrollTop=t.scrollHeight;
 }
 async function aiDraft(chatId){$('reply-box').value='Generating...';const r=await api(`/conversations/${chatId}/ai-reply`,{method:'POST',body:{}});$('reply-box').value=r.draft||r.error||'';}
+let _sending=false;
 async function sendReply(chatId,name){
+  if(_sending)return;
   const t=$('reply-box').value;if(!t)return;
-  const r=await api(`/conversations/${chatId}/reply`,{method:'POST',body:{text:t}});
-  if(r.ok){toast('Sent');openThread(chatId,name);}else toast(r.error,false);
+  _sending=true;
+  _wsPaused=true; // pause WS to prevent echo
+  const btn=document.querySelector('[onclick*="sendReply"]');
+  if(btn){btn.disabled=true;btn.textContent='Sending...';}
+  try{
+    const r=await api(`/conversations/${chatId}/reply`,{method:'POST',body:{text:t}});
+    if(r.ok){
+      toast('Sent');
+      $('reply-box').value='';
+      await openThread(chatId,name);
+    }else{toast(r.error,false);}
+  }finally{
+    _sending=false;
+    setTimeout(()=>{_wsPaused=false;},2000); // resume WS after 2s
+    if(btn){btn.disabled=false;btn.textContent='Send';}
+  }
 }
 
 /* ═══════════════ ALL MESSAGES ═══════════════ */
