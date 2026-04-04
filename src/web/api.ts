@@ -48,35 +48,23 @@ apiRouter.get("/stats", async (_req, res) => {
 
 // --- Leads ---
 apiRouter.get("/leads", async (req, res) => {
-  const limit = parseInt(req.query.limit as string) || 50;
-  const offset = parseInt(req.query.offset as string) || 0;
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 50, 1000));
+  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
   const tag = req.query.tag as string;
   const search = req.query.search as string;
   const account = req.query.account as string;
+  const accountId = account ? resolveAccountId(account) : null;
 
-  let rows;
-  if (search) {
-    rows = await sql`
-      SELECT * FROM leads
-      WHERE (name ILIKE ${"%" + search + "%"} OR headline ILIKE ${"%" + search + "%"} OR company ILIKE ${"%" + search + "%"})
-      ${account ? sql`AND account_id = ${resolveAccountId(account)}` : sql``}
-      ORDER BY imported_at DESC LIMIT ${limit} OFFSET ${offset}
-    `;
-  } else if (tag) {
-    rows = await sql`
-      SELECT * FROM leads WHERE tags LIKE ${"%" + tag + "%"}
-      ${account ? sql`AND account_id = ${resolveAccountId(account)}` : sql``}
-      ORDER BY imported_at DESC LIMIT ${limit} OFFSET ${offset}
-    `;
-  } else {
-    rows = await sql`
-      SELECT * FROM leads
-      ${account ? sql`WHERE account_id = ${resolveAccountId(account)}` : sql``}
-      ORDER BY imported_at DESC LIMIT ${limit} OFFSET ${offset}
-    `;
-  }
+  const where = search
+    ? sql`WHERE (name ILIKE ${"%" + search + "%"} OR headline ILIKE ${"%" + search + "%"} OR company ILIKE ${"%" + search + "%"}) ${accountId ? sql`AND account_id = ${accountId}` : sql``}`
+    : tag
+    ? sql`WHERE tags LIKE ${"%" + tag + "%"} ${accountId ? sql`AND account_id = ${accountId}` : sql``}`
+    : accountId
+    ? sql`WHERE account_id = ${accountId}`
+    : sql``;
 
-  const [total] = await sql`SELECT COUNT(*) as count FROM leads`;
+  const rows = await sql`SELECT * FROM leads ${where} ORDER BY imported_at DESC LIMIT ${limit} OFFSET ${offset}`;
+  const [total] = await sql`SELECT COUNT(*) as count FROM leads ${where}`;
   res.json({ items: rows, total: Number(total.count) });
 });
 
@@ -130,6 +118,12 @@ apiRouter.post("/conversations/:chatId/reply", async (req, res) => {
 
   try {
     const unipile = new UnipileService(account);
+
+    // Rate limit check
+    const { checkAndIncrementDaily } = await import("../utils/rate-limiter.js");
+    const canSend = await checkAndIncrementDaily(unipile.accountId, "message", appConfig.maxMessagesPerDay);
+    if (!canSend) return res.status(429).json({ error: `Daily limit reached (${appConfig.maxMessagesPerDay})` });
+
     await unipile.sendMessage(req.params.chatId, text);
 
     await sql`
@@ -137,6 +131,9 @@ apiRouter.post("/conversations/:chatId/reply", async (req, res) => {
       VALUES (NULL, ${"web-" + req.params.chatId + "-" + Date.now()}, ${req.params.chatId}, ${unipile.accountId}, ${text}, true, 'WEB_REPLY', NOW(), true)
       ON CONFLICT (message_id) DO NOTHING
     `;
+
+    // Mark conversation as read after reply
+    await sql`UPDATE conversations SET unread_count = 0, status = 'read' WHERE chat_id = ${req.params.chatId}`;
 
     broadcast("message", { chatId: req.params.chatId, isSender: true, text: text.slice(0, 100) });
     res.json({ ok: true });

@@ -71,8 +71,9 @@ export class ClaudeService {
       messages: [{ role: "user", content: userPrompt }],
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
+    const block = response.content?.[0];
+    const text = block && block.type === "text" ? block.text : "";
+    if (!text) logger.warn("Claude returned empty response");
     return text.trim();
   }
 
@@ -106,8 +107,9 @@ export class ClaudeService {
       messages: [{ role: "user", content: userPrompt }],
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
+    const block = response.content?.[0];
+    const text = block && block.type === "text" ? block.text : "";
+    if (!text) logger.warn("Claude returned empty response");
     return text.trim();
   }
 
@@ -122,8 +124,9 @@ export class ClaudeService {
       messages: [{ role: "user", content: userPrompt }],
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
+    const block = response.content?.[0];
+    const text = block && block.type === "text" ? block.text : "";
+    if (!text) logger.warn("Claude returned empty response");
     return text.trim();
   }
 }

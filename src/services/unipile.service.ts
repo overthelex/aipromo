@@ -45,6 +45,7 @@ export class UnipileService {
         method,
         headers: this.headers,
         body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(30000),
       });
 
       if (!res.ok) {

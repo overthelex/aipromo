@@ -150,7 +150,7 @@ export async function runResponder(opts: ResponderOptions): Promise<void> {
     await sql`
       INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
       VALUES (
-        ${conversationId ?? 0},
+        ${conversationId ?? null},
         ${'respond-' + conv.chatId + '-' + Date.now()},
         ${conv.chatId}, ${accountId}, ${finalText}, true, 'RESPOND', NOW(), true
       )
