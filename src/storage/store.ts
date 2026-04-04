@@ -63,12 +63,17 @@ export async function initDatabase(): Promise<void> {
       social_id TEXT NOT NULL DEFAULT '',
       author_id TEXT NOT NULL DEFAULT '',
       author_name TEXT NOT NULL DEFAULT '',
+      is_company_post BOOLEAN NOT NULL DEFAULT false,
+      written_by_id TEXT NOT NULL DEFAULT '',
+      written_by_name TEXT NOT NULL DEFAULT '',
       text TEXT NOT NULL DEFAULT '',
       share_url TEXT NOT NULL DEFAULT '',
       comment_count INTEGER NOT NULL DEFAULT 0,
       reaction_count INTEGER NOT NULL DEFAULT 0,
       repost_count INTEGER NOT NULL DEFAULT 0,
       impressions_count INTEGER NOT NULL DEFAULT 0,
+      clicks INTEGER NOT NULL DEFAULT 0,
+      engagement_rate REAL NOT NULL DEFAULT 0,
       is_repost BOOLEAN NOT NULL DEFAULT false,
       posted_at TIMESTAMPTZ,
       synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -136,6 +141,13 @@ export async function initDatabase(): Promise<void> {
   await sql`
     ALTER TABLE daily_activity ADD COLUMN IF NOT EXISTS account_id TEXT NOT NULL DEFAULT ''
   `;
+
+  // Migrations for posts columns
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_company_post BOOLEAN NOT NULL DEFAULT false`;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS written_by_id TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS written_by_name TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS clicks INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS engagement_rate REAL NOT NULL DEFAULT 0`;
 
   // Migrations for conversations columns
   await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS attendee_name TEXT NOT NULL DEFAULT ''`;

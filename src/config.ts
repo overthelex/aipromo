@@ -19,6 +19,8 @@ const configSchema = z.object({
   // JSON array: [{"alias":"ihor","id":"xxx","name":"Ihor Kyrychenko"}, ...]
   unipileAccounts: z.string().min(1),
   unipileDefaultAccount: z.string().default(""),
+  // LinkedIn company page IDs (comma-separated)
+  linkedinCompanyIds: z.string().default(""),
 
   // AWS Bedrock
   awsAccessKeyId: z.string().min(1),
@@ -50,6 +52,7 @@ function loadConfig(): AppConfig {
     unipileAccessToken: process.env.UNIPILE_ACCESS_TOKEN,
     unipileAccounts: process.env.UNIPILE_ACCOUNTS,
     unipileDefaultAccount: process.env.UNIPILE_DEFAULT_ACCOUNT,
+    linkedinCompanyIds: process.env.LINKEDIN_COMPANY_IDS,
     awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID,
     awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     awsRegion: process.env.AWS_REGION,

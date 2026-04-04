@@ -106,6 +106,18 @@ export interface UnipilePost {
     headline?: string;
     profile_picture_url?: string;
   };
+  written_by?: {
+    id: string;
+    name: string;
+    public_identifier: string;
+  };
+  analytics?: {
+    clicks: number;
+    clickthrough_rate: number;
+    engagements: number;
+    engagement_rate: number;
+    impressions: number;
+  };
   attachments: unknown[];
   mentions: unknown[];
 }

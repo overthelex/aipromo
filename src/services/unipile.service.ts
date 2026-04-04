@@ -158,10 +158,12 @@ export class UnipileService {
 
   async getUserPosts(
     userProviderId: string,
-    cursor?: string
+    cursor?: string,
+    isCompany?: boolean
   ): Promise<UnipilePaginatedResponse<UnipilePost>> {
     const params = new URLSearchParams();
     params.set("account_id", this.accountId);
+    if (isCompany) params.set("is_company", "true");
     if (cursor) params.set("cursor", cursor);
     return this.request<UnipilePaginatedResponse<UnipilePost>>(
       "GET",
