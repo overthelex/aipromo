@@ -502,12 +502,15 @@ async function pgMsgs(el){
   el.innerHTML=`
     <div class="flex-between mb-16">
       <div class="page-title" style="margin:0">Messages</div>
-      <div class="btn-group">
+      <div class="btn-group" style="flex-wrap:wrap">
         <button class="btn sm" onclick="loadMsgs('')">All</button>
-        <button class="btn sm" onclick="loadMsgs('sent=true')">Sent Only</button>
-        <button class="btn sm" onclick="loadMsgs('type=OUTREACH')">Outreach</button>
-        <button class="btn sm" onclick="loadMsgs('type=CAMPAIGN_REPLY')">Campaign Replies</button>
-        <button class="btn sm" onclick="loadMsgs('type=WEB_REPLY')">Web Replies</button>
+        <button class="btn sm" onclick="loadMsgs('sent=true')">Sent</button>
+        <button class="btn sm" onclick="loadMsgs('sent=false')">Received</button>
+        <button class="btn sm" onclick="loadMsgs('type=MESSAGE')">Direct</button>
+        <button class="btn sm" onclick="loadMsgs('type=INMAIL')">InMail</button>
+        <button class="btn sm" onclick="loadMsgs('type=INMAIL_ACCEPT')">Accepted</button>
+        <button class="btn sm" onclick="loadMsgs('type=INMAIL_DECLINE')">Declined</button>
+        <button class="btn sm" onclick="loadMsgs('type=INMAIL_REPLY')">InMail Reply</button>
       </div>
     </div>
     <div id="msgs-tbl"></div>`;

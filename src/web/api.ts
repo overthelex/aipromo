@@ -279,7 +279,7 @@ apiRouter.get("/messages", async (req, res) => {
   const limit = parseInt(req.query.limit as string) || 100;
   const offset = parseInt(req.query.offset as string) || 0;
   const type = req.query.type as string;
-  const sentOnly = req.query.sent === "true";
+  const sentParam = req.query.sent as string;
 
   const rows = await sql`
     SELECT m.*,
@@ -289,11 +289,11 @@ apiRouter.get("/messages", async (req, res) => {
     LEFT JOIN leads l ON c.lead_id = l.id
     WHERE 1=1
     ${type ? sql`AND m.message_type = ${type}` : sql``}
-    ${sentOnly ? sql`AND m.is_sender = true` : sql``}
+    ${sentParam === "true" ? sql`AND m.is_sender = true` : sentParam === "false" ? sql`AND m.is_sender = false` : sql``}
     ORDER BY m.timestamp DESC
     LIMIT ${limit} OFFSET ${offset}
   `;
-  const [total] = await sql`SELECT COUNT(*) as count FROM messages ${sentOnly ? sql`WHERE is_sender = true` : sql``}`;
+  const [total] = await sql`SELECT COUNT(*) as count FROM messages`;
   res.json({ items: rows, total: Number(total.count) });
 });
 
