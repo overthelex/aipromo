@@ -284,6 +284,8 @@ apiRouter.get("/messages", async (req, res) => {
   const type = req.query.type as string;
   const sentParam = req.query.sent as string;
 
+  const accountMap = Object.fromEntries(getAccounts().map(a => [a.id, a.name.split(" ")[0]]));
+
   const rows = await sql`
     SELECT m.*,
       COALESCE(
@@ -293,11 +295,7 @@ apiRouter.get("/messages", async (req, res) => {
         NULLIF(c.subject,''),
         'Chat'
       ) as contact_name,
-      CASE
-        WHEN m.is_sender AND c.account_id = 'hYhcYj2_R2Kp7AQCtvQYZg' THEN 'Ihor'
-        WHEN m.is_sender AND c.account_id = 'H4VkNF35Qn2cxLJjqnxTzw' THEN 'Vladimir'
-        ELSE NULL
-      END as sender_name
+      c.account_id as conv_account_id
     FROM messages m
     LEFT JOIN conversations c ON m.chat_id = c.chat_id
     LEFT JOIN leads l ON c.lead_id = l.id
@@ -308,7 +306,33 @@ apiRouter.get("/messages", async (req, res) => {
     LIMIT ${limit} OFFSET ${offset}
   `;
   const [total] = await sql`SELECT COUNT(*) as count FROM messages`;
-  res.json({ items: rows, total: Number(total.count) });
+  const items = rows.map((r: any) => ({
+    ...r,
+    sender_name: r.is_sender ? (accountMap[r.conv_account_id] || null) : null,
+  }));
+  res.json({ items, total: Number(total.count) });
+});
+
+// --- Mark conversation as read ---
+apiRouter.post("/conversations/:chatId/read", async (req, res) => {
+  await sql`UPDATE conversations SET unread_count = 0, status = 'read' WHERE chat_id = ${req.params.chatId}`;
+  broadcast("read", { chatId: req.params.chatId });
+  res.json({ ok: true });
+});
+
+// --- Message search ---
+apiRouter.get("/search/messages", async (req, res) => {
+  const q = req.query.q as string;
+  if (!q || q.length < 2) return res.json({ items: [] });
+  const rows = await sql`
+    SELECT m.*, c.attendee_name, c.subject as conv_subject
+    FROM messages m
+    LEFT JOIN conversations c ON m.chat_id = c.chat_id
+    WHERE m.text ILIKE ${"%" + q + "%"}
+    ORDER BY m.timestamp DESC
+    LIMIT 50
+  `;
+  res.json({ items: rows });
 });
 
 // --- Outreach Queue ---

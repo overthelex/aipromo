@@ -34,6 +34,23 @@ export async function incrementDailyCount(accountId: string, actionType: string)
   `;
 }
 
+// Atomic check-and-increment: returns true if within limit
+export async function checkAndIncrementDaily(
+  accountId: string,
+  actionType: string,
+  limit: number
+): Promise<boolean> {
+  const result = await sql`
+    INSERT INTO daily_activity (account_id, date, action_type, count)
+    VALUES (${accountId}, CURRENT_DATE, ${actionType}, 1)
+    ON CONFLICT (account_id, date, action_type)
+    DO UPDATE SET count = daily_activity.count + 1
+    WHERE daily_activity.count < ${limit}
+    RETURNING count
+  `;
+  return result.length > 0;
+}
+
 export async function checkDailyLimit(
   accountId: string,
   actionType: string,
@@ -44,7 +61,7 @@ export async function checkDailyLimit(
 }
 
 export function isBusinessHours(): boolean {
-  const now = new Date();
-  const hour = now.getHours();
+  const kyivTime = new Date().toLocaleString("en-US", { timeZone: "Europe/Kyiv" });
+  const hour = new Date(kyivTime).getHours();
   return hour >= appConfig.businessHoursStart && hour < appConfig.businessHoursEnd;
 }

@@ -199,6 +199,16 @@ export async function initDatabase(): Promise<void> {
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS daily_activity_account_date_action_key ON daily_activity(account_id, date, action_type)
   `;
+
+  // Performance indexes
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_conversations_account_id ON conversations(account_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_conversations_last_msg ON conversations(last_message_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_outreach_queue_lead_id ON outreach_queue(lead_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_outreach_queue_campaign ON outreach_queue(campaign_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_leads_account_id ON leads(account_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_posts_account_id ON posts(account_id)`;
 }
 
 export async function closeDatabase(): Promise<void> {

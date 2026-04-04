@@ -1,11 +1,12 @@
 import express from "express";
-import { createServer } from "node:http";
+import { createServer, IncomingMessage } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
-import { sql, initDatabase } from "./storage/store.js";
+import { sql, initDatabase, closeDatabase } from "./storage/store.js";
 import { logger } from "./utils/logger.js";
 import { apiRouter } from "./web/api.js";
+import { appConfig } from "./config.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -16,7 +17,16 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
 const clients = new Set<WebSocket>();
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
+  // Auth check for WS
+  if (appConfig.dashboardApiKey) {
+    const url = new URL(req.url || "", `http://${req.headers.host}`);
+    const key = url.searchParams.get("key");
+    if (key !== appConfig.dashboardApiKey) {
+      ws.close(4001, "Unauthorized");
+      return;
+    }
+  }
   clients.add(ws);
   ws.on("close", () => clients.delete(ws));
   ws.on("error", () => clients.delete(ws));
@@ -25,16 +35,25 @@ wss.on("connection", (ws) => {
 function broadcast(event: string, payload?: Record<string, unknown>) {
   const msg = JSON.stringify({ event, ...payload });
   for (const ws of clients) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(msg);
+    try {
+      if (ws.readyState === WebSocket.OPEN) ws.send(msg);
+    } catch {
+      clients.delete(ws);
     }
   }
 }
 
-// Export for use in api.ts
 export { broadcast };
 
 app.use(express.json());
+
+// --- API Auth Middleware ---
+app.use("/api", (req, res, next) => {
+  if (!appConfig.dashboardApiKey) return next(); // skip auth if no key configured
+  const key = req.headers["x-api-key"] as string;
+  if (key === appConfig.dashboardApiKey) return next();
+  res.status(401).json({ error: "Unauthorized" });
+});
 
 // API routes
 app.use("/api", apiRouter);
@@ -42,9 +61,14 @@ app.use("/api", apiRouter);
 // Serve static assets
 app.use(express.static(join(__dirname, "web/public")));
 
-// Health check
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+// Health check (with DB ping)
+app.get("/health", async (_req, res) => {
+  try {
+    await sql`SELECT 1`;
+    res.json({ status: "ok" });
+  } catch {
+    res.status(503).json({ status: "error", detail: "database unreachable" });
+  }
 });
 
 // SPA fallback
@@ -55,12 +79,11 @@ for (const p of PAGES) {
   });
 }
 
-// Webhook: new message received
+// Webhook: new message
 app.post("/webhook/message", async (req, res) => {
   try {
     const data = req.body;
     if (!data || typeof data !== "object" || !data.chat_id) {
-      logger.warn({ body: data }, "Webhook: ignoring non-message event");
       return res.json({ ok: true, skipped: true });
     }
     logger.info({ event: data.message_type || "message", chatId: data.chat_id }, "Webhook: message");
@@ -96,9 +119,7 @@ app.post("/webhook/message", async (req, res) => {
       `;
     }
 
-    // Broadcast to all connected clients
     broadcast("message", { chatId, accountId, senderId, senderName, text: text.slice(0, 100), isSender, messageType, timestamp });
-
     res.json({ ok: true });
   } catch (err: any) {
     logger.error({ error: err.message }, "Webhook message processing failed");
@@ -106,12 +127,10 @@ app.post("/webhook/message", async (req, res) => {
   }
 });
 
-// Webhook: new relation (connection)
+// Webhook: new relation
 app.post("/webhook/relation", async (req, res) => {
   try {
     const data = req.body;
-    logger.info({ event: "new_relation", data }, "Webhook: new relation");
-
     const accountId = data.account_id ?? "";
     const linkedinId = data.user_provider_id ?? "";
     const name = (data.user_full_name ?? "").replace(/\0/g, "");
@@ -125,14 +144,21 @@ app.post("/webhook/relation", async (req, res) => {
         DO UPDATE SET name = COALESCE(NULLIF(EXCLUDED.name, ''), leads.name)
       `;
     }
-
     broadcast("relation", { accountId, linkedinId, name });
-
     res.json({ ok: true });
   } catch (err: any) {
     logger.error({ error: err.message }, "Webhook relation processing failed");
     res.status(500).json({ error: err.message });
   }
+});
+
+// --- Graceful shutdown ---
+process.on("SIGTERM", async () => {
+  logger.info("SIGTERM received, shutting down");
+  wss.close();
+  server.close();
+  await closeDatabase();
+  process.exit(0);
 });
 
 // Start server

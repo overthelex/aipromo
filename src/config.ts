@@ -13,6 +13,9 @@ const configSchema = z.object({
   // PostgreSQL
   databaseUrl: z.string().min(1),
 
+  // Dashboard auth
+  dashboardApiKey: z.string().default(""),
+
   // Unipile
   unipileDsn: z.string().min(1),
   unipileAccessToken: z.string().min(1),
@@ -47,6 +50,7 @@ export type AppConfig = z.infer<typeof configSchema>;
 
 function loadConfig(): AppConfig {
   const raw = {
+    dashboardApiKey: process.env.DASHBOARD_API_KEY,
     databaseUrl: process.env.DATABASE_URL,
     unipileDsn: process.env.UNIPILE_DSN,
     unipileAccessToken: process.env.UNIPILE_ACCESS_TOKEN,
