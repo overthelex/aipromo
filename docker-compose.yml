@@ -11,6 +11,25 @@ services:
       - "5433:5432"
     volumes:
       - aipromo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aipromo"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    container_name: aipromo-app
+    stdin_open: true
+    tty: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://aipromo:aipromo_secret@postgres:5432/aipromo
+    volumes:
+      - ./data:/app/data
 
 volumes:
   aipromo_pgdata:
