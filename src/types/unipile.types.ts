@@ -86,6 +86,30 @@ export interface UnipileInvitationRequest {
   message?: string;
 }
 
+export interface UnipilePost {
+  id: string;
+  social_id: string;
+  text: string;
+  share_url: string;
+  date: string;
+  comment_counter: number;
+  reaction_counter: number;
+  repost_counter: number;
+  impressions_counter: number;
+  is_repost: boolean;
+  parsed_datetime?: string;
+  author: {
+    id: string;
+    name: string;
+    public_identifier: string;
+    is_company: boolean;
+    headline?: string;
+    profile_picture_url?: string;
+  };
+  attachments: unknown[];
+  mentions: unknown[];
+}
+
 export interface UnipileSearchFilters {
   keywords?: string;
   title?: string;

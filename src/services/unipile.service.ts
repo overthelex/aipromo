@@ -10,6 +10,7 @@ import type {
   UnipilePaginatedResponse,
   UnipileSearchFilters,
   UnipileSearchResult,
+  UnipilePost,
 } from "../types/unipile.types.js";
 
 export class UnipileService {
@@ -151,6 +152,21 @@ export class UnipileService {
       message,
     });
     logger.info({ providerProfileId }, "Invitation sent");
+  }
+
+  // --- Posts ---
+
+  async getUserPosts(
+    userProviderId: string,
+    cursor?: string
+  ): Promise<UnipilePaginatedResponse<UnipilePost>> {
+    const params = new URLSearchParams();
+    params.set("account_id", this.accountId);
+    if (cursor) params.set("cursor", cursor);
+    return this.request<UnipilePaginatedResponse<UnipilePost>>(
+      "GET",
+      `/users/${userProviderId}/posts?${params.toString()}`
+    );
   }
 
   // --- Search ---

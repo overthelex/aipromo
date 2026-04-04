@@ -56,6 +56,27 @@ export async function initDatabase(): Promise<void> {
   `;
 
   await sql`
+    CREATE TABLE IF NOT EXISTS posts (
+      id SERIAL PRIMARY KEY,
+      account_id TEXT NOT NULL DEFAULT '',
+      post_id TEXT NOT NULL,
+      social_id TEXT NOT NULL DEFAULT '',
+      author_id TEXT NOT NULL DEFAULT '',
+      author_name TEXT NOT NULL DEFAULT '',
+      text TEXT NOT NULL DEFAULT '',
+      share_url TEXT NOT NULL DEFAULT '',
+      comment_count INTEGER NOT NULL DEFAULT 0,
+      reaction_count INTEGER NOT NULL DEFAULT 0,
+      repost_count INTEGER NOT NULL DEFAULT 0,
+      impressions_count INTEGER NOT NULL DEFAULT 0,
+      is_repost BOOLEAN NOT NULL DEFAULT false,
+      posted_at TIMESTAMPTZ,
+      synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(account_id, post_id)
+    )
+  `;
+
+  await sql`
     CREATE TABLE IF NOT EXISTS drafts (
       id SERIAL PRIMARY KEY,
       conversation_id INTEGER REFERENCES conversations(id),
