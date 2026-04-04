@@ -283,7 +283,18 @@ apiRouter.get("/messages", async (req, res) => {
 
   const rows = await sql`
     SELECT m.*,
-      COALESCE(NULLIF(c.attendee_name,''), c.subject, l.name) as contact_name
+      COALESCE(
+        NULLIF(c.attendee_name,''),
+        l.name,
+        (SELECT l2.name FROM leads l2 WHERE l2.linkedin_id = c.attendee_provider_id AND c.attendee_provider_id != '' LIMIT 1),
+        NULLIF(c.subject,''),
+        'Chat'
+      ) as contact_name,
+      CASE
+        WHEN m.is_sender AND c.account_id = 'hYhcYj2_R2Kp7AQCtvQYZg' THEN 'Ihor'
+        WHEN m.is_sender AND c.account_id = 'H4VkNF35Qn2cxLJjqnxTzw' THEN 'Vladimir'
+        ELSE NULL
+      END as sender_name
     FROM messages m
     LEFT JOIN conversations c ON m.chat_id = c.chat_id
     LEFT JOIN leads l ON c.lead_id = l.id
