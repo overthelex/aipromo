@@ -1,6 +1,8 @@
 import { Command } from "commander";
 import { initDatabase, closeDatabase } from "../../storage/store.js";
 import { fetchInbox } from "../../core/inbox.js";
+import { getAccountOption } from "../cli.js";
+import { resolveAccountName, resolveAccountId } from "../../config.js";
 import chalk from "chalk";
 
 export function registerInboxCommand(parent: Command): void {
@@ -9,12 +11,18 @@ export function registerInboxCommand(parent: Command): void {
     .description("Show unread/unanswered LinkedIn messages")
     .option("--unread-only", "Show only unread messages")
     .option("--limit <n>", "Max conversations to show", "20")
-    .action(async (opts) => {
+    .action(async function (this: Command, opts) {
+      const account = getAccountOption(this);
       await initDatabase();
       try {
+        const accountId = resolveAccountId(account);
+        const accountName = resolveAccountName(accountId);
+        console.log(chalk.dim(`Account: ${accountName}\n`));
+
         const conversations = await fetchInbox({
           unreadOnly: opts.unreadOnly ?? false,
           limit: parseInt(opts.limit, 10),
+          accountAlias: account,
         });
 
         if (conversations.length === 0) {

@@ -9,8 +9,9 @@ function sanitize(s: string): string {
   return s.replace(/\0/g, "");
 }
 
-export async function syncLeads(): Promise<number> {
-  const unipile = new UnipileService();
+export async function syncLeads(accountAlias?: string): Promise<number> {
+  const unipile = new UnipileService(accountAlias);
+  const accountId = unipile.accountId;
   const relations = await unipile.getAllRelations();
   let count = 0;
 
@@ -20,15 +21,16 @@ export async function syncLeads(): Promise<number> {
     const profileUrl = sanitize(r.public_profile_url ?? "");
 
     await sql`
-      INSERT INTO leads (linkedin_id, name, headline, profile_url, source)
+      INSERT INTO leads (account_id, linkedin_id, name, headline, profile_url, source)
       VALUES (
+        ${accountId},
         ${r.member_id},
         ${name},
         ${headline},
         ${profileUrl},
         'connection'
       )
-      ON CONFLICT (linkedin_id)
+      ON CONFLICT (account_id, linkedin_id)
       DO UPDATE SET
         name = EXCLUDED.name,
         headline = EXCLUDED.headline,
@@ -37,7 +39,7 @@ export async function syncLeads(): Promise<number> {
     count++;
   }
 
-  logger.info({ count }, "Leads synced from LinkedIn");
+  logger.info({ count, accountId }, "Leads synced from LinkedIn");
   return count;
 }
 
@@ -56,9 +58,12 @@ export async function importLeadsFromCsv(filePath: string): Promise<number> {
             row.linkedin_id || row.linkedin_url || row.profile_url || "";
           if (!linkedinId) continue;
 
+          const accountId = row.account_id || "";
+
           await sql`
-            INSERT INTO leads (linkedin_id, name, headline, company, title, location, profile_url, source)
+            INSERT INTO leads (account_id, linkedin_id, name, headline, company, title, location, profile_url, source)
             VALUES (
+              ${accountId},
               ${linkedinId},
               ${row.name || ""},
               ${row.headline || ""},
@@ -68,7 +73,7 @@ export async function importLeadsFromCsv(filePath: string): Promise<number> {
               ${row.profile_url || row.linkedin_url || ""},
               'csv'
             )
-            ON CONFLICT (linkedin_id)
+            ON CONFLICT (account_id, linkedin_id)
             DO UPDATE SET
               name = COALESCE(NULLIF(EXCLUDED.name, ''), leads.name),
               headline = COALESCE(NULLIF(EXCLUDED.headline, ''), leads.headline),
@@ -91,8 +96,6 @@ export interface ListLeadsOptions {
 }
 
 export async function listLeads(opts: ListLeadsOptions): Promise<Lead[]> {
-  const conditions: string[] = [];
-
   let rows;
 
   if (opts.tag && opts.company) {

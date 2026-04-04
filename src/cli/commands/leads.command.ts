@@ -1,6 +1,8 @@
 import { Command } from "commander";
 import { initDatabase, closeDatabase } from "../../storage/store.js";
 import { syncLeads, importLeadsFromCsv, listLeads, tagLead } from "../../core/leads.js";
+import { getAccountOption } from "../cli.js";
+import { resolveAccountName, resolveAccountId } from "../../config.js";
 import chalk from "chalk";
 
 export function registerLeadsCommand(parent: Command): void {
@@ -11,10 +13,15 @@ export function registerLeadsCommand(parent: Command): void {
   leads
     .command("sync")
     .description("Sync connections from LinkedIn")
-    .action(async () => {
+    .action(async function (this: Command) {
+      const account = getAccountOption(this);
       await initDatabase();
       try {
-        const count = await syncLeads();
+        const accountId = resolveAccountId(account);
+        const accountName = resolveAccountName(accountId);
+        console.log(chalk.dim(`Account: ${accountName}\n`));
+
+        const count = await syncLeads(account);
         console.log(chalk.green(`Synced ${count} leads from LinkedIn.`));
       } finally {
         await closeDatabase();
@@ -43,24 +50,24 @@ export function registerLeadsCommand(parent: Command): void {
     .action(async (opts) => {
       await initDatabase();
       try {
-        const leads = await listLeads({
+        const result = await listLeads({
           tag: opts.tag,
           company: opts.company,
           limit: parseInt(opts.limit, 10),
         });
 
-        if (leads.length === 0) {
+        if (result.length === 0) {
           console.log(chalk.yellow("No leads found."));
           return;
         }
 
-        for (const lead of leads) {
+        for (const lead of result) {
           console.log(
             `${chalk.bold(lead.name)} — ${lead.title} @ ${lead.company}` +
             (lead.tags ? chalk.cyan(` [${lead.tags}]`) : "")
           );
         }
-        console.log(chalk.dim(`\nTotal: ${leads.length}`));
+        console.log(chalk.dim(`\nTotal: ${result.length}`));
       } finally {
         await closeDatabase();
       }

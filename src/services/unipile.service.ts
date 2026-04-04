@@ -1,4 +1,4 @@
-import { appConfig } from "../config.js";
+import { appConfig, resolveAccountId } from "../config.js";
 import { withRetry } from "../utils/retry.js";
 import { sleepWithJitter } from "../utils/rate-limiter.js";
 import { logger } from "../utils/logger.js";
@@ -15,14 +15,16 @@ import type {
 export class UnipileService {
   private baseUrl: string;
   private headers: Record<string, string>;
+  public accountId: string;
 
-  constructor() {
+  constructor(accountAlias?: string) {
     this.baseUrl = `https://${appConfig.unipileDsn}/api/v1`;
     this.headers = {
       "X-API-KEY": appConfig.unipileAccessToken,
       "Content-Type": "application/json",
       Accept: "application/json",
     };
+    this.accountId = resolveAccountId(accountAlias);
   }
 
   private async request<T>(
@@ -69,7 +71,7 @@ export class UnipileService {
     cursor?: string
   ): Promise<UnipilePaginatedResponse<UnipileRelation>> {
     const params = new URLSearchParams();
-    params.set("account_id", appConfig.unipileAccountId);
+    params.set("account_id", this.accountId);
     if (cursor) params.set("cursor", cursor);
     return this.request<UnipilePaginatedResponse<UnipileRelation>>(
       "GET",
@@ -97,7 +99,7 @@ export class UnipileService {
   ): Promise<UnipilePaginatedResponse<UnipileChat>> {
     const params = new URLSearchParams();
     if (cursor) params.set("cursor", cursor);
-    params.set("account_id", appConfig.unipileAccountId);
+    params.set("account_id", this.accountId);
     const query = params.toString() ? `?${params.toString()}` : "";
     return this.request<UnipilePaginatedResponse<UnipileChat>>(
       "GET",
@@ -128,7 +130,7 @@ export class UnipileService {
       "POST",
       "/chats",
       {
-        account_id: appConfig.unipileAccountId,
+        account_id: this.accountId,
         attendees_ids: [attendeeProviderId],
         text,
       }
@@ -144,7 +146,7 @@ export class UnipileService {
     message?: string
   ): Promise<void> {
     await this.request("POST", "/users/invitations", {
-      account_id: appConfig.unipileAccountId,
+      account_id: this.accountId,
       provider_id: providerProfileId,
       message,
     });
@@ -160,7 +162,7 @@ export class UnipileService {
       "POST",
       "/linkedin/search",
       {
-        account_id: appConfig.unipileAccountId,
+        account_id: this.accountId,
         ...filters,
       }
     );

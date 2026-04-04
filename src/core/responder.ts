@@ -13,15 +13,18 @@ import { appConfig } from "../config.js";
 export interface ResponderOptions {
   dryRun: boolean;
   limit: number;
+  accountAlias?: string;
 }
 
 export async function runResponder(opts: ResponderOptions): Promise<void> {
-  const unipile = new UnipileService();
+  const unipile = new UnipileService(opts.accountAlias);
+  const accountId = unipile.accountId;
   const claude = new ClaudeService();
 
   const conversations = await fetchInbox({
     unreadOnly: false,
     limit: opts.limit,
+    accountAlias: opts.accountAlias,
   });
 
   if (conversations.length === 0) {
@@ -36,6 +39,7 @@ export async function runResponder(opts: ResponderOptions): Promise<void> {
   for (const conv of conversations) {
     // Check daily limit
     const canSend = await checkDailyLimit(
+      accountId,
       "message",
       appConfig.maxMessagesPerDay
     );
@@ -60,7 +64,7 @@ export async function runResponder(opts: ResponderOptions): Promise<void> {
     // Try to enrich from DB
     const dbLeads = await sql`
       SELECT headline, company, title, location
-      FROM leads WHERE linkedin_id = ${conv.attendeeId}
+      FROM leads WHERE linkedin_id = ${conv.attendeeId} AND account_id = ${accountId}
     `;
     if (dbLeads.length > 0) {
       lead.headline = dbLeads[0].headline;
@@ -140,7 +144,7 @@ export async function runResponder(opts: ResponderOptions): Promise<void> {
 
     // Send
     await unipile.sendMessage(conv.chatId, finalText);
-    await incrementDailyCount("message");
+    await incrementDailyCount(accountId, "message");
 
     // Update draft status
     if (conversationId) {
@@ -148,8 +152,6 @@ export async function runResponder(opts: ResponderOptions): Promise<void> {
         UPDATE drafts SET status = 'sent', sent_at = NOW()
         WHERE conversation_id = ${conversationId}
         AND status = 'pending'
-        ORDER BY created_at DESC
-        LIMIT 1
       `;
     }
 

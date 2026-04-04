@@ -4,6 +4,7 @@ import { sql } from "../storage/store.js";
 export interface InboxOptions {
   unreadOnly: boolean;
   limit: number;
+  accountAlias?: string;
 }
 
 export interface InboxConversation {
@@ -19,7 +20,8 @@ export interface InboxConversation {
 export async function fetchInbox(
   opts: InboxOptions
 ): Promise<InboxConversation[]> {
-  const unipile = new UnipileService();
+  const unipile = new UnipileService(opts.accountAlias);
+  const accountId = unipile.accountId;
   const result: InboxConversation[] = [];
 
   let cursor: string | undefined;
@@ -61,8 +63,8 @@ export async function fetchInbox(
 
       // Upsert conversation in DB
       await sql`
-        INSERT INTO conversations (chat_id, last_message_at, status)
-        VALUES (${chat.id}, ${chat.timestamp}, 'new')
+        INSERT INTO conversations (account_id, chat_id, last_message_at, status)
+        VALUES (${accountId}, ${chat.id}, ${chat.timestamp}, 'new')
         ON CONFLICT (chat_id)
         DO UPDATE SET last_message_at = ${chat.timestamp}
       `;

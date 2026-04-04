@@ -18,6 +18,7 @@ export interface StartCampaignOptions {
   tag: string;
   limit: number;
   dryRun: boolean;
+  accountAlias?: string;
 }
 
 export async function startCampaign(opts: StartCampaignOptions): Promise<void> {
@@ -43,10 +44,14 @@ export async function startCampaign(opts: StartCampaignOptions): Promise<void> {
     return;
   }
 
+  const unipile = new UnipileService(opts.accountAlias);
+  const accountId = unipile.accountId;
+
   // Create campaign
   const [campaign] = await sql`
-    INSERT INTO outreach_campaigns (name, template, target_tags, status)
+    INSERT INTO outreach_campaigns (account_id, name, template, target_tags, status)
     VALUES (
+      ${accountId},
       ${`${opts.template}-${opts.tag}-${new Date().toISOString().slice(0, 10)}`},
       ${opts.template},
       ${opts.tag},
@@ -60,7 +65,6 @@ export async function startCampaign(opts: StartCampaignOptions): Promise<void> {
   );
 
   const claude = new ClaudeService();
-  const unipile = new UnipileService();
 
   // Preview first 3
   console.log(chalk.dim("Previewing first 3 messages:\n"));
@@ -107,6 +111,7 @@ export async function startCampaign(opts: StartCampaignOptions): Promise<void> {
 
   for (const lead of leads) {
     const canSend = await checkDailyLimit(
+      accountId,
       "message",
       appConfig.maxMessagesPerDay
     );
@@ -147,7 +152,7 @@ export async function startCampaign(opts: StartCampaignOptions): Promise<void> {
 
     try {
       await unipile.startChat(lead.linkedin_id, message);
-      await incrementDailyCount("message");
+      await incrementDailyCount(accountId, "message");
       sentCount++;
 
       await sql`

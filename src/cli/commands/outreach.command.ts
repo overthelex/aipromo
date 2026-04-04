@@ -6,6 +6,8 @@ import {
   listCampaigns,
   getCampaignStatus,
 } from "../../core/outreach.js";
+import { getAccountOption } from "../cli.js";
+import { resolveAccountName, resolveAccountId } from "../../config.js";
 import chalk from "chalk";
 
 export function registerOutreachCommand(parent: Command): void {
@@ -20,14 +22,20 @@ export function registerOutreachCommand(parent: Command): void {
     .requiredOption("--tag <tag>", "Target leads by tag")
     .option("--limit <n>", "Max leads to message", "25")
     .option("--dry-run", "Preview without sending")
-    .action(async (opts) => {
+    .action(async function (this: Command, opts) {
+      const account = getAccountOption(this);
       await initDatabase();
       try {
+        const accountId = resolveAccountId(account);
+        const accountName = resolveAccountName(accountId);
+        console.log(chalk.dim(`Account: ${accountName}\n`));
+
         await startCampaign({
           template: opts.template,
           tag: opts.tag,
           limit: parseInt(opts.limit, 10),
           dryRun: opts.dryRun ?? false,
+          accountAlias: account,
         });
       } finally {
         await closeDatabase();

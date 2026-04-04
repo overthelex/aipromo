@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { appConfig } from "../../config.js";
+import { appConfig, getAccounts } from "../../config.js";
 import { UnipileService } from "../../services/unipile.service.js";
 import { ClaudeService } from "../../services/claude.service.js";
 import chalk from "chalk";
@@ -15,13 +15,16 @@ export function registerConfigCommand(parent: Command): void {
     .action(async () => {
       console.log(chalk.bold("Testing connections...\n"));
 
-      // Test Unipile
-      try {
-        const unipile = new UnipileService();
-        const accounts = await unipile.listAccounts();
-        console.log(chalk.green(`Unipile: OK (${accounts.length} account(s))`));
-      } catch (e: any) {
-        console.log(chalk.red(`Unipile: FAILED — ${e.message}`));
+      // Test Unipile for each account
+      const accounts = getAccounts();
+      for (const acc of accounts) {
+        try {
+          const unipile = new UnipileService(acc.alias);
+          await unipile.listAccounts();
+          console.log(chalk.green(`Unipile [${acc.alias}]: OK (${acc.name})`));
+        } catch (e: any) {
+          console.log(chalk.red(`Unipile [${acc.alias}]: FAILED — ${e.message}`));
+        }
       }
 
       // Test Claude
@@ -41,11 +44,17 @@ export function registerConfigCommand(parent: Command): void {
       const redact = (s: string) =>
         s.length > 8 ? s.slice(0, 4) + "****" + s.slice(-4) : "****";
 
+      const accounts = getAccounts();
+
       console.log(chalk.bold("Current configuration:\n"));
       console.log(`Unipile DSN:     ${appConfig.unipileDsn}`);
       console.log(`Unipile Token:   ${redact(appConfig.unipileAccessToken)}`);
-      console.log(`Unipile Account: ${appConfig.unipileAccountId}`);
-      console.log(`AWS Key:         ${redact(appConfig.awsAccessKeyId)}`);
+      console.log(`\nAccounts:`);
+      for (const acc of accounts) {
+        const isDefault = appConfig.unipileDefaultAccount === acc.alias;
+        console.log(`  ${chalk.bold(acc.alias)} — ${acc.name} (${acc.id})${isDefault ? chalk.green(" [default]") : ""}`);
+      }
+      console.log(`\nAWS Key:         ${redact(appConfig.awsAccessKeyId)}`);
       console.log(`AWS Region:      ${appConfig.awsRegion}`);
       console.log(`Bedrock Model:   ${appConfig.bedrockModel}`);
       console.log(`Database:        ${appConfig.databaseUrl.replace(/\/\/.*@/, "//***@")}`);

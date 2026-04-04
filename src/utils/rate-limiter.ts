@@ -17,28 +17,29 @@ export async function sleepWithJitter(): Promise<void> {
   await sleep(randomDelay());
 }
 
-export async function getDailyCount(actionType: string): Promise<number> {
+export async function getDailyCount(accountId: string, actionType: string): Promise<number> {
   const rows = await sql`
     SELECT count FROM daily_activity
-    WHERE date = CURRENT_DATE AND action_type = ${actionType}
+    WHERE account_id = ${accountId} AND date = CURRENT_DATE AND action_type = ${actionType}
   `;
   return rows.length > 0 ? rows[0].count : 0;
 }
 
-export async function incrementDailyCount(actionType: string): Promise<void> {
+export async function incrementDailyCount(accountId: string, actionType: string): Promise<void> {
   await sql`
-    INSERT INTO daily_activity (date, action_type, count)
-    VALUES (CURRENT_DATE, ${actionType}, 1)
-    ON CONFLICT (date, action_type)
+    INSERT INTO daily_activity (account_id, date, action_type, count)
+    VALUES (${accountId}, CURRENT_DATE, ${actionType}, 1)
+    ON CONFLICT (account_id, date, action_type)
     DO UPDATE SET count = daily_activity.count + 1
   `;
 }
 
 export async function checkDailyLimit(
+  accountId: string,
   actionType: string,
   limit: number
 ): Promise<boolean> {
-  const current = await getDailyCount(actionType);
+  const current = await getDailyCount(accountId, actionType);
   return current < limit;
 }
 

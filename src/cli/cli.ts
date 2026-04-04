@@ -11,7 +11,8 @@ export function createCli(): Command {
   program
     .name("aipromo")
     .description("LinkedIn lead response automation with AI")
-    .version("1.0.0");
+    .version("1.0.0")
+    .option("-a, --account <alias>", "LinkedIn account alias (e.g. ihor, vladimir)");
 
   registerInboxCommand(program);
   registerRespondCommand(program);
@@ -20,4 +21,15 @@ export function createCli(): Command {
   registerConfigCommand(program);
 
   return program;
+}
+
+export function getAccountOption(cmd: Command): string | undefined {
+  // Walk up to root program to get global --account option
+  let current: Command | null = cmd;
+  while (current) {
+    const opts = current.opts();
+    if (opts.account) return opts.account;
+    current = current.parent;
+  }
+  return undefined;
 }

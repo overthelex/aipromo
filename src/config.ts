@@ -3,6 +3,12 @@ import { z } from "zod";
 
 dotenvConfig();
 
+export interface AccountConfig {
+  id: string;
+  alias: string;
+  name: string;
+}
+
 const configSchema = z.object({
   // PostgreSQL
   databaseUrl: z.string().min(1),
@@ -10,7 +16,9 @@ const configSchema = z.object({
   // Unipile
   unipileDsn: z.string().min(1),
   unipileAccessToken: z.string().min(1),
-  unipileAccountId: z.string().min(1),
+  // JSON array: [{"alias":"ihor","id":"xxx","name":"Ihor Kyrychenko"}, ...]
+  unipileAccounts: z.string().min(1),
+  unipileDefaultAccount: z.string().default(""),
 
   // AWS Bedrock
   awsAccessKeyId: z.string().min(1),
@@ -40,7 +48,8 @@ function loadConfig(): AppConfig {
     databaseUrl: process.env.DATABASE_URL,
     unipileDsn: process.env.UNIPILE_DSN,
     unipileAccessToken: process.env.UNIPILE_ACCESS_TOKEN,
-    unipileAccountId: process.env.UNIPILE_ACCOUNT_ID,
+    unipileAccounts: process.env.UNIPILE_ACCOUNTS,
+    unipileDefaultAccount: process.env.UNIPILE_DEFAULT_ACCOUNT,
     awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID,
     awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     awsRegion: process.env.AWS_REGION,
@@ -75,3 +84,39 @@ function loadConfig(): AppConfig {
 }
 
 export const appConfig = loadConfig();
+
+let _accounts: AccountConfig[] | null = null;
+
+export function getAccounts(): AccountConfig[] {
+  if (!_accounts) {
+    _accounts = JSON.parse(appConfig.unipileAccounts) as AccountConfig[];
+  }
+  return _accounts;
+}
+
+export function resolveAccountId(aliasOrId?: string): string {
+  const accounts = getAccounts();
+
+  if (!aliasOrId) {
+    if (appConfig.unipileDefaultAccount) {
+      return resolveAccountId(appConfig.unipileDefaultAccount);
+    }
+    return accounts[0].id;
+  }
+
+  const found = accounts.find(
+    (a) => a.alias === aliasOrId || a.id === aliasOrId
+  );
+  if (!found) {
+    const available = accounts.map((a) => a.alias).join(", ");
+    console.error(`Account "${aliasOrId}" not found. Available: ${available}`);
+    process.exit(1);
+  }
+  return found.id;
+}
+
+export function resolveAccountName(accountId: string): string {
+  const accounts = getAccounts();
+  const found = accounts.find((a) => a.id === accountId);
+  return found?.name ?? accountId;
+}
