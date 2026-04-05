@@ -103,9 +103,16 @@ authRouter.post("/logout", (_req: Request, res: Response) => {
 
 // --- Current user ---
 authRouter.get("/me", (req: Request, res: Response) => {
-  const user = (req as any).user;
-  if (!user) return res.status(401).json({ error: t(req, "notAuthenticated") });
-  res.json(user);
+  // Parse JWT inline since authMiddleware doesn't run for /auth/* routes
+  const token = req.cookies?.[COOKIE_NAME];
+  if (!token) return res.status(401).json({ error: t(req, "notAuthenticated") });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    res.json({ username: decoded.username, displayName: decoded.displayName, role: decoded.role });
+  } catch {
+    res.clearCookie(COOKIE_NAME);
+    res.status(401).json({ error: t(req, "sessionExpired") });
+  }
 });
 
 // --- Auth middleware ---
