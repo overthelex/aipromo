@@ -1,0 +1,17 @@
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    env: {
+      DATABASE_URL: "postgres://test:test@localhost:5432/test",
+      UNIPILE_DSN: "test.unipile.com:13111",
+      UNIPILE_ACCESS_TOKEN: "test-token",
+      UNIPILE_ACCOUNTS: '[{"alias":"test","id":"test-id","name":"Test"}]',
+      UNIPILE_DEFAULT_ACCOUNT: "test",
+      AWS_ACCESS_KEY_ID: "test",
+      AWS_SECRET_ACCESS_KEY: "test",
+      AWS_REGION: "us-east-1",
+      BEDROCK_MODEL: "test-model",
+    },
+  },
+});
