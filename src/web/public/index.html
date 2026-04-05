@@ -253,6 +253,9 @@
     <div class="right">
       <span class="pulse"></span>
       <span class="clock" id="clock"></span>
+      <span class="sep" style="width:1px;height:20px;background:var(--border)"></span>
+      <span id="user-info" style="font-size:11px;color:var(--text3)"></span>
+      <button onclick="logout()" style="font-size:11px;padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:4px;cursor:pointer">Logout</button>
     </div>
   </header>
 
@@ -320,8 +323,7 @@ let ws=null;
 let _wsPaused=false; // pause WS refresh during own sends
 function connectWS(){
   const proto=location.protocol==='https:'?'wss:':'ws:';
-  const key=localStorage.getItem('apiKey')||'';
-  ws=new WebSocket(`${proto}//${location.host}/ws?key=${encodeURIComponent(key)}`);
+  ws=new WebSocket(`${proto}//${location.host}/ws`);
   ws.onopen=()=>console.log('WS connected');
   ws.onclose=()=>{console.log('WS disconnected, reconnecting...');setTimeout(connectWS,3000);};
   ws.onerror=()=>ws.close();
@@ -358,14 +360,13 @@ connectWS();
 
 /* ── HELPERS ── */
 async function api(p,o){
-  const key=localStorage.getItem('apiKey')||'';
   const r=await fetch(A+p,{
-    headers:{'Content-Type':'application/json','X-API-Key':key},
+    headers:{'Content-Type':'application/json'},
+    credentials:'same-origin',
     ...o,body:o?.body?JSON.stringify(o.body):undefined
   });
   if(r.status===401){
-    const k=prompt('Enter API key:');
-    if(k){localStorage.setItem('apiKey',k);return api(p,o);}
+    window.location.href='/login';
     return {error:'Unauthorized'};
   }
   return r.json();
@@ -1191,7 +1192,20 @@ async function cancelFollowUp(id){
   toast('Follow-up cancelled');pgFollowUps(vp());
 }
 
+/* ── AUTH ── */
+async function logout(){
+  await fetch('/auth/logout',{method:'POST',credentials:'same-origin'});
+  window.location.href='/login';
+}
+async function checkAuth(){
+  const r=await fetch('/auth/me',{credentials:'same-origin'});
+  if(!r.ok){window.location.href='/login';return;}
+  const u=await r.json();
+  $('user-info').textContent=u.displayName||u.username;
+}
+
 /* ── INIT ── */
+checkAuth();
 document.querySelectorAll('.rail a').forEach(x=>x.classList.remove('active'));
 document.querySelector(`.rail a[data-p="${page}"]`)?.classList.add('active');
 $('crumb').innerHTML='<b>'+page.charAt(0).toUpperCase()+page.slice(1)+'</b>';

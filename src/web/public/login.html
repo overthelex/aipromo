@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>aipromo — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #101014; --surface: #1e1e24; --border: #2e2e38;
+      --text: #dcdce0; --text2: #a0a0ae; --text3: #68687a;
+      --amber: #f0a830; --red: #f05050;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 40px; width: 360px; position: relative; overflow: hidden;
+    }
+    .login-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--amber), transparent);
+    }
+    .logo { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 22px; color: var(--amber); margin-bottom: 8px; }
+    .subtitle { font-size: 13px; color: var(--text3); margin-bottom: 32px; }
+    .field { margin-bottom: 20px; }
+    .field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); margin-bottom: 6px; }
+    .field input {
+      width: 100%; padding: 10px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); outline: none; transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--amber); }
+    .btn {
+      width: 100%; padding: 11px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      background: var(--amber); color: var(--bg); border: none; border-radius: 6px;
+      cursor: pointer; transition: opacity 0.12s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error { color: var(--red); font-size: 12px; margin-top: 12px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="logo">aipromo</div>
+    <div class="subtitle">LinkedIn Lead Automation</div>
+    <form id="login-form">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="username" autocomplete="username" autofocus required>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn" id="submit-btn">Sign In</button>
+      <div class="error" id="error"></div>
+    </form>
+  </div>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const err = document.getElementById('error');
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      err.textContent = '';
+
+      try {
+        const r = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          window.location.href = '/dashboard';
+        } else {
+          err.textContent = data.error || 'Login failed';
+        }
+      } catch (e) {
+        err.textContent = 'Connection error';
+      }
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    });
+
+    // Redirect if already logged in
+    fetch('/auth/me').then(r => { if (r.ok) window.location.href = '/dashboard'; });
+  </script>
+</body>
+</html>

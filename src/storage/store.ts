@@ -261,6 +261,18 @@ export async function initDatabase(): Promise<void> {
 
   // --- Outreach angle tracking ---
   await sql`ALTER TABLE outreach_queue ADD COLUMN IF NOT EXISTS message_angle TEXT NOT NULL DEFAULT ''`;
+
+  // --- Users ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      display_name TEXT NOT NULL DEFAULT '',
+      role TEXT NOT NULL DEFAULT 'user',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
 }
 
 export async function closeDatabase(): Promise<void> {
