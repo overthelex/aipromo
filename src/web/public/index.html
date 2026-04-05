@@ -282,7 +282,19 @@
     <a href="/search" data-p="search" title="Search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </a>
+    <a href="/pipeline" data-p="pipeline" title="Pipeline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </a>
+    <a href="/analytics" data-p="analytics" title="Analytics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    </a>
+    <a href="/deals" data-p="deals" title="Deals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    </a>
     <span class="spacer"></span>
+    <a href="/follow-ups" data-p="follow-ups" title="Follow-ups">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </a>
     <a href="/sync" data-p="sync" title="Sync">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
     </a>
@@ -299,7 +311,7 @@
 
 <script>
 const A='/api';
-const PAGES=['dashboard','leads','conversations','messages','outreach','campaigns','posts','search','sync','activity'];
+const PAGES=['dashboard','leads','conversations','messages','outreach','campaigns','posts','search','sync','activity','analytics','pipeline','deals','follow-ups'];
 function pageFromPath(){const p=window.location.pathname.replace(/^\//,'');return PAGES.includes(p)?p:'dashboard';}
 let page=pageFromPath();
 
@@ -399,7 +411,7 @@ async function render(){
   const el=vp();
   el.innerHTML='<div style="color:var(--text3);padding:40px;font-family:var(--mono)">Loading...</div>';
   try{
-    const fn={dashboard:pgDash,leads:pgLeads,conversations:pgConv,messages:pgMsgs,outreach:pgOutreach,campaigns:pgCamp,posts:pgPosts,search:pgSearch,sync:pgSync,activity:pgActivity}[page];
+    const fn={dashboard:pgDash,leads:pgLeads,conversations:pgConv,messages:pgMsgs,outreach:pgOutreach,campaigns:pgCamp,posts:pgPosts,search:pgSearch,sync:pgSync,activity:pgActivity,analytics:pgAnalytics,pipeline:pgPipeline,deals:pgDeals,'follow-ups':pgFollowUps}[page];
     if(fn)await fn(el);
   }catch(e){el.innerHTML=`<div style="color:var(--red);padding:40px">${e.message}</div>`;}
 }
@@ -426,12 +438,20 @@ async function pgDash(el){
       <div class="kpi blue" style="cursor:pointer" onclick="navigate('outreach')"><div class="num">${s.sentMessages}</div><div class="lbl">Outreach Sent</div></div>
       <div class="kpi ${conv?'red':''}" style="cursor:pointer" onclick="navigate('conversations');setTimeout(()=>loadConv(true),100)"><div class="num">${conv}</div><div class="lbl">Unread</div></div>
     </div>
+    <div class="section-label" style="cursor:pointer" onclick="navigate('pipeline')">Pipeline →</div>
+    <div id="dash-pipeline" class="mb-16"></div>
     <div class="section-label">Accounts</div>
     <div class="card"><div class="card-body flush">
       <table class="tbl"><thead><tr><th>Alias</th><th>Name</th><th>ID</th></tr></thead><tbody>
       ${s.accounts.map(a=>`<tr><td><span class="tag amber">${a.alias}</span></td><td>${a.name}</td><td class="mono dim">${a.id}</td></tr>`).join('')}
       </tbody></table>
     </div></div>`;
+  // Load pipeline mini-view
+  const pl=await api('/pipeline');
+  const colors={prospect:'',contacted:'amber',responded:'teal',interested:'blue',demo:'blue',customer:'teal',rejected:'red'};
+  $('dash-pipeline').innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap">${pl.stages.map(s=>
+    `<div class="kpi ${colors[s.status]||''}" style="cursor:pointer;padding:10px 14px;min-width:100px" onclick="navigate('pipeline')"><div class="num" style="font-size:18px">${s.count}</div><div class="lbl">${s.status}</div></div>`
+  ).join('')}</div>`;
 }
 
 /* ═══════════════ LEADS ═══════════════ */
@@ -949,6 +969,226 @@ async function pgActivity(el){
         </div>
       </div>
     </div></div>`;
+}
+
+/* ═══════════════ PIPELINE ═══════════════ */
+async function pgPipeline(el){
+  const d=await api('/pipeline');
+  const colors={prospect:'',contacted:'amber',responded:'teal',interested:'blue',demo:'blue',customer:'teal',rejected:'red'};
+  el.innerHTML=`
+    <div class="page-title">Lead Pipeline</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      ${d.stages.map(s=>`
+        <div class="kpi ${colors[s.status]||''}" style="cursor:pointer;min-width:130px" onclick="navigate('leads');setTimeout(()=>{$('l-q').value='';loadLeadsWithStatus('${s.status}')},100)">
+          <div class="num">${s.count}</div>
+          <div class="lbl">${s.status}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="mt-16" id="pipeline-leads"></div>`;
+  // Show all pipeline leads
+  const leads=await api('/leads?limit=200&tag=campaign');
+  $('pipeline-leads').innerHTML=`
+    <div class="card"><div class="card-body flush" style="max-height:60vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Status</th><th>Name</th><th>Headline</th><th>Tags</th><th></th></tr></thead><tbody>
+      ${leads.items.map(l=>`<tr>
+        <td><select onchange="updateLeadStatus(${l.id},this.value)" style="font-size:11px;padding:2px 4px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px">
+          ${['prospect','contacted','responded','interested','demo','customer','rejected'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${s}</option>`).join('')}
+        </select></td>
+        <td><strong style="cursor:pointer" onclick="openLeadDetail(${l.id})">${esc(l.name)}</strong></td>
+        <td class="trunc dim">${esc(l.headline)}</td>
+        <td>${(l.tags||'').split(',').filter(t=>t).slice(0,3).map(t=>'<span class="tag" style="font-size:9px">'+t+'</span> ').join('')}</td>
+        <td><button class="btn sm ghost" onclick="openLeadDetail(${l.id})">Detail</button></td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+async function updateLeadStatus(id,status){
+  await api('/leads/'+id+'/status',{method:'PATCH',body:{status}});
+  toast('Status → '+status);
+}
+function loadLeadsWithStatus(s){/* placeholder for filtered view */}
+
+/* ═══════════════ LEAD DETAIL ═══════════════ */
+async function openLeadDetail(id){
+  const d=await api('/leads/'+id);
+  const l=d.lead;
+  modal(esc(l.name),`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;margin-bottom:16px">
+      <div><span class="dim">Status</span><br><select id="ld-status" style="margin-top:4px;font-size:12px;padding:4px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px" onchange="updateLeadStatus(${l.id},this.value)">
+        ${['prospect','contacted','responded','interested','demo','customer','rejected'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${s}</option>`).join('')}
+      </select></div>
+      <div><span class="dim">Headline</span><br>${esc(l.headline)}</div>
+      <div><span class="dim">Company</span><br>${esc(l.company)||'—'}</div>
+      <div><span class="dim">Location</span><br>${esc(l.location)||'—'}</div>
+      <div><span class="dim">Tags</span><br>${(l.tags||'').split(',').filter(t=>t).map(t=>'<span class="tag">'+t+'</span> ').join('')||'—'}</div>
+      <div><span class="dim">Source</span><br>${l.source}</div>
+    </div>
+
+    <div class="section-label">Notes</div>
+    <div style="margin-bottom:8px">
+      ${d.notes.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="dim">${fmtFull(n.created_at)}</span> ${esc(n.note)}</div>`).join('')||'<div class="dim" style="font-size:12px">No notes</div>'}
+    </div>
+    <div class="flex mb-8"><input id="ld-note" placeholder="Add note..." style="flex:1;font-size:12px"><button class="btn sm" onclick="addNote(${l.id})">Add</button></div>
+
+    <div class="section-label">Outreach</div>
+    ${d.outreach.map(o=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span class="tag ${o.status==='sent'?'teal':'red'}">${o.status}</span>
+      <span class="dim">${fmtFull(o.timestamp)}</span>
+      ${o.message_angle?'<span class="tag">'+o.message_angle+'</span>':''}
+      <div style="color:var(--text2);margin-top:4px">${esc((o.text||'').slice(0,120))}</div>
+    </div>`).join('')||'<div class="dim" style="font-size:12px">No outreach</div>'}
+
+    <div class="section-label">Follow-ups</div>
+    ${d.followUps.map(f=>`<div style="padding:4px 0;font-size:12px">
+      <span class="tag ${f.status==='pending'?'amber':f.status==='sent'?'teal':''}">${f.status}</span>
+      Step ${f.step} — ${fmtFull(f.scheduled_for)}
+    </div>`).join('')||'<div class="dim" style="font-size:12px">No follow-ups</div>'}
+
+    <div class="section-label">Messages (last 10)</div>
+    <div style="max-height:200px;overflow:auto">
+    ${d.messages.slice(0,10).map(m=>`<div style="padding:4px 0;font-size:12px;border-bottom:1px solid var(--border)">
+      <span class="tag ${m.is_sender?'amber':'teal'}">${m.is_sender?'OUT':'IN'}</span>
+      <span class="dim">${fmtFull(m.timestamp)}</span>
+      <div style="color:var(--text2);margin-top:2px">${esc((m.text||'').slice(0,150))}</div>
+    </div>`).join('')||'<div class="dim" style="font-size:12px">No messages</div>'}
+    </div>
+
+    <div class="section-label">Deals</div>
+    ${d.deals.map(dl=>`<div style="font-size:12px"><strong>${esc(dl.title)}</strong> — ${dl.value} ${dl.currency} (${dl.stage})</div>`).join('')||'<div class="dim" style="font-size:12px">No deals</div>'}
+    <button class="btn sm mt-16" onclick="createDeal(${l.id},'${l.account_id}')">+ New Deal</button>
+  `);
+}
+async function addNote(leadId){
+  const note=$('ld-note')?.value;if(!note)return;
+  await api('/leads/'+leadId+'/notes',{method:'POST',body:{note}});
+  toast('Note added');openLeadDetail(leadId);
+}
+async function createDeal(leadId,accId){
+  const title=prompt('Deal title:');if(!title)return;
+  const value=prompt('Value (UAH):','4999');
+  await api('/deals',{method:'POST',body:{lead_id:leadId,account_id:accId,title,value:parseFloat(value||'0')}});
+  toast('Deal created');openLeadDetail(leadId);
+}
+
+/* ═══════════════ ANALYTICS ═══════════════ */
+async function pgAnalytics(el){
+  const d=await api('/analytics');
+  const f=d.funnel;
+  el.innerHTML=`
+    <div class="page-title">Analytics</div>
+    <div class="section-label">Funnel</div>
+    <div class="kpi-row mb-16">
+      <div class="kpi amber"><div class="num">${f.contacted}</div><div class="lbl">Contacted</div></div>
+      <div class="kpi teal"><div class="num">${f.responded}</div><div class="lbl">Responded</div></div>
+      <div class="kpi blue"><div class="num">${f.interested}</div><div class="lbl">Interested</div></div>
+      <div class="kpi blue"><div class="num">${f.demo}</div><div class="lbl">Demo</div></div>
+      <div class="kpi teal"><div class="num">${f.customer}</div><div class="lbl">Customer</div></div>
+      <div class="kpi red"><div class="num">${f.rejected}</div><div class="lbl">Rejected</div></div>
+    </div>
+
+    <div class="section-label">Outreach Performance</div>
+    <div class="kpi-row mb-16">
+      <div class="kpi amber"><div class="num">${d.outreach.sent}</div><div class="lbl">Sent</div></div>
+      <div class="kpi red"><div class="num">${d.outreach.failed}</div><div class="lbl">Failed</div></div>
+      <div class="kpi teal"><div class="num">${d.replied}</div><div class="lbl">Replied</div></div>
+      <div class="kpi blue"><div class="num">${d.outreach.replyRate}%</div><div class="lbl">Reply Rate</div></div>
+    </div>
+
+    <div class="section-label">Performance by Message Angle</div>
+    <div class="card"><div class="card-body flush">
+      <table class="tbl"><thead><tr><th>Angle</th><th>Sent</th><th>Replied</th><th>Rate</th></tr></thead><tbody>
+      ${d.angleStats.map(a=>`<tr>
+        <td><span class="tag">${a.angle}</span></td>
+        <td class="mono">${a.sent}</td>
+        <td class="mono">${a.replied}</td>
+        <td class="mono ${Number(a.sent)>0&&(Number(a.replied)/Number(a.sent)*100)>10?'teal':''}">${Number(a.sent)>0?(Number(a.replied)/Number(a.sent)*100).toFixed(1)+'%':'—'}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>
+
+    <div class="section-label mt-16">Follow-ups</div>
+    <div class="kpi-row">
+      <div class="kpi amber"><div class="num">${d.followUps.pending}</div><div class="lbl">Pending</div></div>
+      <div class="kpi teal"><div class="num">${d.followUps.sent}</div><div class="lbl">Sent</div></div>
+      <div class="kpi"><div class="num">${d.followUps.cancelled}</div><div class="lbl">Cancelled</div></div>
+    </div>`;
+}
+
+/* ═══════════════ DEALS ═══════════════ */
+async function pgDeals(el){
+  const d=await api('/deals');
+  const t=d.totals;
+  el.innerHTML=`
+    <div class="flex-between mb-16">
+      <div class="page-title" style="margin:0">Deals</div>
+      <button class="btn primary" onclick="promptNewDeal()">+ New Deal</button>
+    </div>
+    <div class="kpi-row mb-16">
+      <div class="kpi amber"><div class="num">${t.total}</div><div class="lbl">Total</div></div>
+      <div class="kpi blue"><div class="num">${Number(t.pipeline_value||0).toLocaleString()}</div><div class="lbl">Pipeline (UAH)</div></div>
+      <div class="kpi teal"><div class="num">${Number(t.won_value||0).toLocaleString()}</div><div class="lbl">Won (UAH)</div></div>
+      <div class="kpi teal"><div class="num">${t.won_count}</div><div class="lbl">Won Deals</div></div>
+    </div>
+    <div class="card"><div class="card-body flush">
+      <table class="tbl"><thead><tr><th>Lead</th><th>Title</th><th>Value</th><th>Stage</th><th>Created</th><th></th></tr></thead><tbody>
+      ${d.items.map(dl=>`<tr>
+        <td><strong>${esc(dl.lead_name||'—')}</strong><br><span class="dim" style="font-size:10px">${esc(dl.lead_headline||'')}</span></td>
+        <td>${esc(dl.title)}</td>
+        <td class="mono">${dl.value} ${dl.currency}</td>
+        <td><select onchange="updateDeal(${dl.id},this.value)" style="font-size:11px;padding:2px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px">
+          ${['qualification','proposal','negotiation','closed_won','closed_lost'].map(s=>`<option value="${s}" ${dl.stage===s?'selected':''}>${s}</option>`).join('')}
+        </select></td>
+        <td class="mono dim">${fmtDate(dl.created_at)}</td>
+        <td><button class="btn sm ghost" onclick="openLeadDetail(${dl.lead_id})">Lead</button></td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+async function updateDeal(id,stage){
+  const body={stage};
+  if(stage==='closed_won'||stage==='closed_lost')body.closed_at=new Date().toISOString();
+  await api('/deals/'+id,{method:'PATCH',body});
+  toast('Deal → '+stage);pgDeals(vp());
+}
+function promptNewDeal(){
+  const leadId=prompt('Lead ID:');if(!leadId)return;
+  const title=prompt('Deal title:');if(!title)return;
+  const value=prompt('Value (UAH):','4999');
+  api('/deals',{method:'POST',body:{lead_id:parseInt(leadId),title,value:parseFloat(value||'0')}}).then(()=>{toast('Deal created');pgDeals(vp());});
+}
+
+/* ═══════════════ FOLLOW-UPS ═══════════════ */
+async function pgFollowUps(el){
+  const [pending,sent]=await Promise.all([api('/follow-ups?status=pending'),api('/follow-ups?status=sent')]);
+  el.innerHTML=`
+    <div class="page-title">Follow-ups</div>
+    <div class="section-label">Pending (${pending.items.length})</div>
+    <div class="card mb-16"><div class="card-body flush" style="max-height:40vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Lead</th><th>Step</th><th>Scheduled</th><th></th></tr></thead><tbody>
+      ${pending.items.map(f=>`<tr>
+        <td><strong>${esc(f.lead_name||'—')}</strong><br><span class="dim" style="font-size:10px">${esc(f.lead_headline||'')}</span></td>
+        <td class="mono">#${f.step}</td>
+        <td class="mono dim">${fmtFull(f.scheduled_for)}</td>
+        <td><button class="btn sm danger" onclick="cancelFollowUp(${f.id})">Cancel</button></td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>
+    <div class="section-label">Sent (${sent.items.length})</div>
+    <div class="card"><div class="card-body flush" style="max-height:40vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Lead</th><th>Step</th><th>Sent</th><th>Message</th></tr></thead><tbody>
+      ${sent.items.map(f=>`<tr>
+        <td><strong>${esc(f.lead_name||'—')}</strong></td>
+        <td class="mono">#${f.step}</td>
+        <td class="mono dim">${fmtFull(f.sent_at)}</td>
+        <td class="trunc dim">${esc((f.message_text||'').slice(0,100))}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div></div>`;
+}
+async function cancelFollowUp(id){
+  await api('/follow-ups/'+id,{method:'PATCH',body:{status:'cancelled'}});
+  toast('Follow-up cancelled');pgFollowUps(vp());
 }
 
 /* ── INIT ── */

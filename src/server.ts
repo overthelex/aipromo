@@ -72,7 +72,7 @@ app.get("/health", async (_req, res) => {
 });
 
 // SPA fallback
-const PAGES = ["dashboard", "leads", "conversations", "messages", "outreach", "campaigns", "posts", "search", "sync", "activity"];
+const PAGES = ["dashboard", "leads", "conversations", "messages", "outreach", "campaigns", "posts", "search", "sync", "activity", "analytics", "pipeline", "deals", "follow-ups"];
 for (const p of PAGES) {
   app.get(`/${p}`, (_req, res) => {
     res.sendFile(join(__dirname, "web/public/index.html"));
@@ -116,6 +116,20 @@ app.post("/webhook/message", async (req, res) => {
           unread_count = CASE WHEN ${isSender} THEN 0 ELSE conversations.unread_count + 1 END,
           status = CASE WHEN ${isSender} THEN conversations.status ELSE 'new' END,
           synced_at = NOW()
+      `;
+    }
+
+    // Auto-update lead status to 'responded' on incoming message
+    if (!isSender && senderId) {
+      await sql`
+        UPDATE leads SET status = 'responded'
+        WHERE linkedin_id = ${senderId} AND account_id = ${accountId} AND status = 'contacted'
+      `;
+      // Cancel pending follow-ups for this lead
+      await sql`
+        UPDATE follow_ups SET status = 'cancelled'
+        WHERE account_id = ${accountId} AND status = 'pending'
+          AND lead_id IN (SELECT id FROM leads WHERE linkedin_id = ${senderId} AND account_id = ${accountId})
       `;
     }
 

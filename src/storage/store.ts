@@ -42,6 +42,7 @@ export async function initDatabase(): Promise<void> {
       location TEXT NOT NULL DEFAULT '',
       profile_url TEXT NOT NULL DEFAULT '',
       tags TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'prospect',
       imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       source TEXT NOT NULL DEFAULT 'connection',
       UNIQUE(account_id, linkedin_id)
@@ -209,6 +210,57 @@ export async function initDatabase(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_outreach_queue_campaign ON outreach_queue(campaign_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_leads_account_id ON leads(account_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_posts_account_id ON posts(account_id)`;
+
+  // --- Lead pipeline status ---
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'prospect'`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)`;
+
+  // --- Follow-up sequences ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS follow_ups (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER REFERENCES leads(id),
+      account_id TEXT NOT NULL DEFAULT '',
+      campaign_id INTEGER,
+      step INTEGER NOT NULL DEFAULT 1,
+      scheduled_for TIMESTAMPTZ NOT NULL,
+      message_text TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      sent_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_due ON follow_ups(status, scheduled_for)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_lead ON follow_ups(lead_id)`;
+
+  // --- Lead notes ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS lead_notes (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER REFERENCES leads(id),
+      author TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // --- Deals ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS deals (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER REFERENCES leads(id),
+      account_id TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL DEFAULT '',
+      value NUMERIC NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT 'UAH',
+      stage TEXT NOT NULL DEFAULT 'qualification',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      closed_at TIMESTAMPTZ
+    )
+  `;
+
+  // --- Outreach angle tracking ---
+  await sql`ALTER TABLE outreach_queue ADD COLUMN IF NOT EXISTS message_angle TEXT NOT NULL DEFAULT ''`;
 }
 
 export async function closeDatabase(): Promise<void> {

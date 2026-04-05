@@ -461,6 +461,182 @@ apiRouter.get("/drafts", async (_req, res) => {
   res.json({ items: rows });
 });
 
+// --- Lead Status ---
+apiRouter.patch("/leads/:id/status", async (req, res) => {
+  const { status } = req.body;
+  const valid = ['prospect','contacted','responded','interested','demo','customer','rejected'];
+  if (!valid.includes(status)) return res.status(400).json({ error: `Invalid status. Valid: ${valid.join(', ')}` });
+  await sql`UPDATE leads SET status = ${status} WHERE id = ${req.params.id}`;
+  // If rejected/customer → cancel pending follow-ups
+  if (status === 'rejected' || status === 'customer') {
+    await sql`UPDATE follow_ups SET status = 'cancelled' WHERE lead_id = ${parseInt(req.params.id)} AND status = 'pending'`;
+  }
+  broadcast("lead_status", { leadId: req.params.id, status });
+  res.json({ ok: true });
+});
+
+// --- Lead Pipeline ---
+apiRouter.get("/pipeline", async (_req, res) => {
+  const rows = await sql`
+    SELECT status, COUNT(*) as count FROM leads
+    WHERE status != 'prospect' OR tags LIKE '%campaign-%'
+    GROUP BY status ORDER BY
+      CASE status
+        WHEN 'prospect' THEN 1 WHEN 'contacted' THEN 2 WHEN 'responded' THEN 3
+        WHEN 'interested' THEN 4 WHEN 'demo' THEN 5 WHEN 'customer' THEN 6 WHEN 'rejected' THEN 7
+      END
+  `;
+  res.json({ stages: rows });
+});
+
+// --- Lead Detail & Timeline ---
+apiRouter.get("/leads/:id", async (req, res) => {
+  const [lead] = await sql`SELECT * FROM leads WHERE id = ${req.params.id}`;
+  if (!lead) return res.status(404).json({ error: "Lead not found" });
+
+  const messages = await sql`
+    SELECT m.text, m.is_sender, m.message_type, m.timestamp, 'message' as event_type
+    FROM messages m
+    JOIN conversations c ON m.chat_id = c.chat_id
+    WHERE c.attendee_provider_id = ${lead.linkedin_id} AND c.account_id = ${lead.account_id}
+    ORDER BY m.timestamp DESC LIMIT 50
+  `;
+  const outreach = await sql`
+    SELECT message_text as text, status, sent_at as timestamp, message_angle, 'outreach' as event_type
+    FROM outreach_queue WHERE lead_id = ${req.params.id}
+    ORDER BY scheduled_at DESC
+  `;
+  const notes = await sql`SELECT * FROM lead_notes WHERE lead_id = ${req.params.id} ORDER BY created_at DESC`;
+  const followUps = await sql`SELECT * FROM follow_ups WHERE lead_id = ${req.params.id} ORDER BY scheduled_for`;
+  const deals = await sql`SELECT * FROM deals WHERE lead_id = ${req.params.id} ORDER BY created_at DESC`;
+
+  res.json({ lead, messages, outreach, notes, followUps, deals });
+});
+
+// --- Lead Notes ---
+apiRouter.post("/leads/:id/notes", async (req, res) => {
+  const { note, author } = req.body;
+  if (!note) return res.status(400).json({ error: "note required" });
+  const [created] = await sql`
+    INSERT INTO lead_notes (lead_id, author, note) VALUES (${req.params.id}, ${author || ''}, ${note}) RETURNING *
+  `;
+  res.json(created);
+});
+
+// --- Follow-ups ---
+apiRouter.get("/follow-ups", async (req, res) => {
+  const status = req.query.status as string || 'pending';
+  const rows = await sql`
+    SELECT f.*, l.name as lead_name, l.headline as lead_headline
+    FROM follow_ups f LEFT JOIN leads l ON f.lead_id = l.id
+    WHERE f.status = ${status}
+    ORDER BY f.scheduled_for ASC LIMIT 200
+  `;
+  res.json({ items: rows });
+});
+
+apiRouter.patch("/follow-ups/:id", async (req, res) => {
+  const { status } = req.body;
+  await sql`UPDATE follow_ups SET status = ${status} WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
+// --- Deals ---
+apiRouter.get("/deals", async (_req, res) => {
+  const rows = await sql`
+    SELECT d.*, l.name as lead_name, l.headline as lead_headline
+    FROM deals d LEFT JOIN leads l ON d.lead_id = l.id
+    ORDER BY d.created_at DESC
+  `;
+  const [totals] = await sql`
+    SELECT
+      COUNT(*) as total,
+      SUM(value) FILTER (WHERE stage != 'closed_lost') as pipeline_value,
+      SUM(value) FILTER (WHERE stage = 'closed_won') as won_value,
+      COUNT(*) FILTER (WHERE stage = 'closed_won') as won_count
+    FROM deals
+  `;
+  res.json({ items: rows, totals });
+});
+
+apiRouter.post("/deals", async (req, res) => {
+  const { lead_id, account_id, title, value, currency, stage } = req.body;
+  const [deal] = await sql`
+    INSERT INTO deals (lead_id, account_id, title, value, currency, stage)
+    VALUES (${lead_id}, ${account_id || ''}, ${title || ''}, ${value || 0}, ${currency || 'UAH'}, ${stage || 'qualification'})
+    RETURNING *
+  `;
+  res.json(deal);
+});
+
+apiRouter.patch("/deals/:id", async (req, res) => {
+  const { stage, value, closed_at } = req.body;
+  if (stage) await sql`UPDATE deals SET stage = ${stage} ${closed_at ? sql`, closed_at = ${closed_at}` : sql``} WHERE id = ${req.params.id}`;
+  if (value !== undefined) await sql`UPDATE deals SET value = ${value} WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
+// --- Analytics ---
+apiRouter.get("/analytics", async (_req, res) => {
+  // Funnel
+  const [funnel] = await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE status != 'prospect') as total_in_pipeline,
+      COUNT(*) FILTER (WHERE status = 'contacted') as contacted,
+      COUNT(*) FILTER (WHERE status = 'responded') as responded,
+      COUNT(*) FILTER (WHERE status = 'interested') as interested,
+      COUNT(*) FILTER (WHERE status = 'demo') as demo,
+      COUNT(*) FILTER (WHERE status = 'customer') as customer,
+      COUNT(*) FILTER (WHERE status = 'rejected') as rejected
+    FROM leads WHERE tags LIKE '%campaign-%'
+  `;
+
+  // Reply rate
+  const [outreachStats] = await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'sent') as total_sent,
+      COUNT(*) FILTER (WHERE status = 'failed') as total_failed
+    FROM outreach_queue
+  `;
+  const [replied] = await sql`
+    SELECT COUNT(DISTINCT oq.lead_id) as count
+    FROM outreach_queue oq
+    JOIN leads l ON oq.lead_id = l.id
+    WHERE oq.status = 'sent' AND l.status IN ('responded','interested','demo','customer')
+  `;
+  const replyRate = Number(outreachStats.total_sent) > 0
+    ? (Number(replied.count) / Number(outreachStats.total_sent) * 100).toFixed(1)
+    : 0;
+
+  // By angle
+  const angleStats = await sql`
+    SELECT oq.message_angle as angle,
+      COUNT(*) as sent,
+      COUNT(*) FILTER (WHERE l.status IN ('responded','interested','demo','customer')) as replied
+    FROM outreach_queue oq
+    JOIN leads l ON oq.lead_id = l.id
+    WHERE oq.status = 'sent' AND oq.message_angle != ''
+    GROUP BY oq.message_angle
+  `;
+
+  // Follow-ups
+  const [fuStats] = await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'pending') as pending,
+      COUNT(*) FILTER (WHERE status = 'sent') as sent,
+      COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled
+    FROM follow_ups
+  `;
+
+  res.json({
+    funnel,
+    outreach: { sent: Number(outreachStats.total_sent), failed: Number(outreachStats.total_failed), replyRate: Number(replyRate) },
+    replied: Number(replied.count),
+    angleStats,
+    followUps: fuStats,
+  });
+});
+
 // --- Config ---
 apiRouter.get("/config", async (_req, res) => {
   res.json({

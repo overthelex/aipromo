@@ -115,6 +115,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   searched: number;
   messaged: number;
   replied: number;
+  followUps: number;
 }> {
   const unipile = new UnipileService(opts.accountAlias);
   const accountId = unipile.accountId;
@@ -227,8 +228,8 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     } else {
       // Reserve slot in outreach_queue BEFORE sending (idempotency)
       const [queued] = await sql`
-        INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status)
-        VALUES (${campaign.id}, ${lead.id}, ${message}, 'pending')
+        INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, message_angle)
+        VALUES (${campaign.id}, ${lead.id}, ${message}, 'pending', ${angle})
         RETURNING id
       `;
       try {
@@ -237,6 +238,18 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         sentCount++;
 
         await sql`UPDATE outreach_queue SET status = 'sent', sent_at = NOW() WHERE id = ${queued.id}`;
+
+        // Update lead status to 'contacted'
+        await sql`UPDATE leads SET status = 'contacted' WHERE id = ${lead.id} AND status = 'prospect'`;
+
+        // Schedule follow-ups (day+3, day+5, day+7)
+        for (const dayOffset of [3, 5, 7]) {
+          await sql`
+            INSERT INTO follow_ups (lead_id, account_id, campaign_id, step, scheduled_for, status)
+            VALUES (${lead.id}, ${accountId}, ${campaign.id}, ${dayOffset === 3 ? 1 : dayOffset === 5 ? 2 : 3},
+              NOW() + ${dayOffset + ' days'}::interval, 'pending')
+          `;
+        }
 
         await sql`
           INSERT INTO messages (conversation_id, message_id, chat_id, sender_id, text, is_sender, message_type, timestamp, seen)
@@ -259,6 +272,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
               await incrementDailyCount(accountId, "invitation");
               sentCount++;
               await sql`UPDATE outreach_queue SET status = 'sent', message_text = ${note}, sent_at = NOW() WHERE id = ${queued.id}`;
+              await sql`UPDATE leads SET status = 'contacted' WHERE id = ${lead.id} AND status = 'prospect'`;
               console.log(chalk.yellow(`  → ${profile.name} [invitation + note]`));
               invSent = true;
             } catch (invErr: any) {
@@ -369,9 +383,19 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
 
   console.log(chalk.bold(`\n  Replies: ${opts.dryRun ? "preview mode" : repliedCount + " sent"}`));
 
+  // --- Phase 4: Process due follow-ups ---
+  let followUpCount = 0;
+  if (!opts.dryRun) {
+    console.log(chalk.bold("\nPhase 4: Processing follow-ups...\n"));
+    const { processDueFollowUps } = await import("../core/follow-ups.js");
+    followUpCount = await processDueFollowUps(opts.accountAlias);
+    console.log(chalk.bold(`\n  Follow-ups: ${followUpCount} sent`));
+  }
+
   return {
     searched: searchResults.length,
     messaged: opts.dryRun ? leadsToMessage.length : sentCount,
     replied: repliedCount,
+    followUps: followUpCount,
   };
 }
