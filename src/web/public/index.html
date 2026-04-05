@@ -804,7 +804,7 @@ async function loadMsgs(filter){
                 <span class="mono dim" style="font-size:10px">${fmtFull(m.timestamp)}</span>
               </div>
               <div style="font-size:12px;line-height:1.55;color:var(--text2);white-space:pre-wrap;max-height:${i===0?'none':'120px'};overflow:hidden">${esc(m.text)}</div>
-              ${m.text?.length>300&&i>0?'<div style="font-size:10px;color:var(--text3);cursor:pointer;margin-top:4px" onclick="this.previousElementSibling.style.maxHeight=this.previousElementSibling.style.maxHeight===\'none\'?\'120px\':\'none\'">[${t('msg_show_more')}]</div>':''}
+              ${m.text?.length>300&&i>0?`<div style="font-size:10px;color:var(--text3);cursor:pointer;margin-top:4px" onclick="this.previousElementSibling.style.maxHeight=this.previousElementSibling.style.maxHeight==='none'?'120px':'none'">[${t('msg_show_more')}]</div>`:''}
             </div>
           `).join('')}
         </div>
@@ -1158,7 +1158,7 @@ async function openLeadDetail(id){
 
     <div class="section-label">${t('ld_notes')}</div>
     <div style="margin-bottom:8px">
-      ${d.notes.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="dim">${fmtFull(n.created_at)}</span> ${esc(n.note)}</div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_notes')}</div>'}
+      ${d.notes.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="dim">${fmtFull(n.created_at)}</span> ${esc(n.note)}</div>`).join('')||`<div class="dim" style="font-size:12px">—</div>`}
     </div>
     <div class="flex mb-8"><input id="ld-note" placeholder="${t('ld_add_note')}" style="flex:1;font-size:12px"><button class="btn sm" onclick="addNote(${l.id})">${t('ld_add')}</button></div>
 
@@ -1168,13 +1168,13 @@ async function openLeadDetail(id){
       <span class="dim">${fmtFull(o.timestamp)}</span>
       ${o.message_angle?'<span class="tag">'+o.message_angle+'</span>':''}
       <div style="color:var(--text2);margin-top:4px">${esc((o.text||'').slice(0,120))}</div>
-    </div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_outreach')}</div>'}
+    </div>`).join('')||`<div class="dim" style="font-size:12px">—</div>`}
 
     <div class="section-label">${t('ld_followups')}</div>
     ${d.followUps.map(f=>`<div style="padding:4px 0;font-size:12px">
       <span class="tag ${f.status==='pending'?'amber':f.status==='sent'?'teal':''}">${f.status}</span>
       Step ${f.step} — ${fmtFull(f.scheduled_for)}
-    </div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_followups')}</div>'}
+    </div>`).join('')||`<div class="dim" style="font-size:12px">—</div>`}
 
     <div class="section-label">${t('ld_messages')}</div>
     <div style="max-height:200px;overflow:auto">
@@ -1182,11 +1182,11 @@ async function openLeadDetail(id){
       <span class="tag ${m.is_sender?'amber':'teal'}">${m.is_sender?'OUT':'IN'}</span>
       <span class="dim">${fmtFull(m.timestamp)}</span>
       <div style="color:var(--text2);margin-top:2px">${esc((m.text||'').slice(0,150))}</div>
-    </div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_messages')}</div>'}
+    </div>`).join('')||`<div class="dim" style="font-size:12px">—</div>`}
     </div>
 
     <div class="section-label">${t('ld_deals')}</div>
-    ${d.deals.map(dl=>`<div style="font-size:12px"><strong>${esc(dl.title)}</strong> — ${dl.value} ${dl.currency} (${dl.stage})</div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_deals')}</div>'}
+    ${d.deals.map(dl=>`<div style="font-size:12px"><strong>${esc(dl.title)}</strong> — ${dl.value} ${dl.currency} (${dl.stage})</div>`).join('')||`<div class="dim" style="font-size:12px">—</div>`}
     <button class="btn sm mt-16" onclick="createDeal(${l.id},'${l.account_id}')">${t('ld_new_deal')}</button>
   `);
 }
