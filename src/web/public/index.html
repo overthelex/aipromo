@@ -446,6 +446,7 @@ function toggleLang(){
   lang = lang === 'en' ? 'ua' : 'en';
   localStorage.setItem('lang', lang);
   applyLang();
+  render();
 }
 
 /* ── WebSocket ── */
@@ -556,7 +557,7 @@ async function pgDash(el){
   else if(conv===0)navConv.querySelector('.dot')?.remove();
 
   el.innerHTML=`
-    <div class="page-title">Dashboard</div>
+    <div class="page-title">${t('dashboard')}</div>
     <div class="kpi-row">
       <div class="kpi amber" style="cursor:pointer" onclick="navigate('leads')"><div class="num">${s.leads}</div><div class="lbl">${t('leads')}</div></div>
       <div class="kpi teal" style="cursor:pointer" onclick="navigate('conversations')"><div class="num">${s.conversations}</div><div class="lbl">${t('conversations')}</div></div>
@@ -569,7 +570,7 @@ async function pgDash(el){
       <div class="kpi blue" style="cursor:pointer" onclick="navigate('outreach')"><div class="num">${s.sentMessages}</div><div class="lbl">${t('outreachSent')}</div></div>
       <div class="kpi ${conv?'red':''}" style="cursor:pointer" onclick="navigate('conversations');setTimeout(()=>loadConv(true),100)"><div class="num">${conv}</div><div class="lbl">${t('unread')}</div></div>
     </div>
-    <div class="section-label" style="cursor:pointer" onclick="navigate('pipeline')">Pipeline →</div>
+    <div class="section-label" style="cursor:pointer" onclick="navigate('pipeline')">${t('pipeline')} →</div>
     <div id="dash-pipeline" class="mb-16"></div>
     <div class="section-label">${t('accounts')}</div>
     <div class="card"><div class="card-body flush">
@@ -965,7 +966,7 @@ async function createCampaign(){
 /* ═══════════════ POSTS ═══════════════ */
 async function pgPosts(el){
   el.innerHTML=`
-    <div class="page-title">Posts</div>
+    <div class="page-title">${t('posts')}</div>
     <div class="tabs">
       <div class="tab active" onclick="loadPostsTab(this,'company')">Company</div>
       <div class="tab" onclick="loadPostsTab(this,'personal')">Personal</div>
