@@ -255,7 +255,8 @@
       <span class="clock" id="clock"></span>
       <span class="sep" style="width:1px;height:20px;background:var(--border)"></span>
       <span id="user-info" style="font-size:11px;color:var(--text3)"></span>
-      <button onclick="logout()" style="font-size:11px;padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:4px;cursor:pointer">Logout</button>
+      <button onclick="logout()" id="btn-logout" style="font-size:11px;padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:4px;cursor:pointer">Logout</button>
+      <button onclick="toggleLang()" id="btn-lang" style="font-size:10px;padding:3px 6px;background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:4px;cursor:pointer;font-family:var(--mono);letter-spacing:0.5px">EN|UA</button>
     </div>
   </header>
 
@@ -314,9 +315,141 @@
 
 <script>
 const A='/api';
+/* ── i18n ── */
+let lang=localStorage.getItem('lang')||'en';
+const i18n={
+  en:{leads:'Leads',conversations:'Conversations',messages:'Messages',posts:'Posts',sentToday:'Sent Today',campaignLeads:'Campaign Leads',outreachSent:'Outreach Sent',unread:'Unread',accounts:'Accounts',alias:'Alias',name:'Name',id:'ID'},
+  ua:{leads:'Ліди',conversations:'Переписки',messages:'Повідомлення',posts:'Пости',sentToday:'Відправлено сьогодні',campaignLeads:'Ліди кампанії',outreachSent:'Розсилка відправлена',unread:'Непрочитані',accounts:'Акаунти',alias:'Псевдонім',name:"Ім'я",id:'ID'}
+};
+function t(k){return (i18n[lang]&&i18n[lang][k])||k;}
 const PAGES=['dashboard','leads','conversations','messages','outreach','campaigns','posts','search','sync','activity','analytics','pipeline','deals','follow-ups'];
 function pageFromPath(){const p=window.location.pathname.replace(/^\//,'');return PAGES.includes(p)?p:'dashboard';}
 let page=pageFromPath();
+
+/* ── i18n ── */
+const i18n = {
+  en: {
+    dashboard:'Dashboard', leads:'Leads', conversations:'Conversations', messages:'All Messages',
+    outreach:'Outreach Queue', campaigns:'Campaigns', posts:'Posts', search:'Search',
+    pipeline:'Pipeline', analytics:'Analytics', deals:'Deals', 'follow-ups':'Follow-ups',
+    sync:'Sync', activity:'Activity Log', logout:'Logout',
+    conv_all:'All', conv_unread:'Unread', conv_select:'Select a conversation',
+    conv_new:'new', conv_conversation:'Conversation', conv_ai_draft:'AI Draft',
+    conv_placeholder:'Type reply...', conv_send:'Send', conv_sending:'Sending...',
+    conv_sent:'Sent', conv_generating:'Generating...', conv_you:'You:',
+    pl_title:'Lead Pipeline', pl_detail:'Detail',
+    st_prospect:'prospect', st_contacted:'contacted', st_responded:'responded',
+    st_interested:'interested', st_demo:'demo', st_customer:'customer', st_rejected:'rejected',
+    an_title:'Analytics', an_funnel:'Funnel', an_outreach_perf:'Outreach Performance',
+    an_reply_rate:'Reply Rate', an_perf_angle:'Performance by Message Angle',
+    an_angle:'Angle', an_rate:'Rate', an_replied:'Replied',
+    ld_notes:'Notes', ld_no_notes:'No notes', ld_add_note:'Add note...',
+    ld_add:'Add', ld_outreach:'Outreach', ld_no_outreach:'No outreach',
+    ld_followups:'Follow-ups', ld_no_followups:'No follow-ups',
+    ld_messages:'Messages (last 10)', ld_no_messages:'No messages',
+    ld_deals:'Deals', ld_no_deals:'No deals', ld_new_deal:'+ New Deal',
+    'leads.search':'Search', 'leads.searchPh':'Name, headline, company...', 'leads.tag':'Tag', 'leads.tagPh':'Filter tag',
+    'leads.limit':'Limit', 'leads.account':'Account', 'leads.all':'All', 'leads.load':'Load',
+    'leads.name':'Name', 'leads.headline':'Headline', 'leads.company':'Company', 'leads.location':'Location',
+    'leads.tags':'Tags', 'leads.source':'Source', 'leads.added':'Added', 'leads.shown':'shown', 'leads.total':'total',
+    'leads.searchLinkedin':'+ Search LinkedIn',
+    'search.title':'Search LinkedIn', 'search.keywords':'Keywords', 'search.jobTitle':'Title',
+    'search.locationId':'Location ID', 'search.tag':'Tag', 'search.saveToDB':'Save to DB',
+    'search.btn':'Search', 'search.found':'Found', 'search.name':'Name', 'search.headline':'Headline',
+    'search.location':'Location', 'search.distance':'Distance', 'search.searching':'Searching...',
+    'search.limit':'Limit', 'search.account':'Account', 'search.error':'Error',
+    deals_title:'Deals', deals_new:'+ New Deal', deals_total:'Total',
+    deals_pipeline:'Pipeline (UAH)', deals_won:'Won (UAH)', deals_won_deals:'Won Deals',
+    deals_lead:'Lead', deals_col_title:'Title', deals_value:'Value', deals_stage:'Stage', deals_created:'Created',
+    stage_qualification:'qualification', stage_proposal:'proposal', stage_negotiation:'negotiation',
+    stage_closed_won:'closed_won', stage_closed_lost:'closed_lost',
+    deals_prompt_lead:'Lead ID:', deals_prompt_title:'Deal title:', deals_prompt_value:'Value (UAH):',
+    fu_title:'Follow-ups', fu_pending:'Pending', fu_sent:'Sent',
+    fu_lead:'Lead', fu_step:'Step', fu_scheduled:'Scheduled', fu_message:'Message', fu_cancel:'Cancel',
+    sync_title:'Sync Data', sync_account:'Account',
+    sync_leads:'Sync Leads', sync_conversations:'Sync Conversations',
+    sync_posts:'Sync Posts', sync_company_posts:'Sync Company Posts', sync_syncing:'Syncing',
+    act_title:'Activity & Config', act_daily:'Daily Activity', act_config:'System Config',
+    act_date:'Date', act_account:'Account', act_action:'Action', act_count:'Count',
+    act_model:'Model', act_default_account:'Default Account', act_limits:'Rate Limits', act_persona:'Persona'
+  },
+  ua: {
+    dashboard:'Панель', leads:'Ліди', conversations:'Переписки', messages:'Повідомлення',
+    outreach:'Розсилка', campaigns:'Кампанії', posts:'Пости', search:'Пошук',
+    pipeline:'Воронка', analytics:'Аналітика', deals:'Угоди', 'follow-ups':'Фоллоу-апи',
+    sync:'Синхронізація', activity:'Активність', logout:'Вийти',
+    conv_all:'Всі', conv_unread:'Непрочитані', conv_select:'Оберіть переписку',
+    conv_new:'нових', conv_conversation:'Переписка', conv_ai_draft:'AI Чернетка',
+    conv_placeholder:'Введіть відповідь...', conv_send:'Відправити', conv_sending:'Відправляю...',
+    conv_sent:'Відправлено', conv_generating:'Генерую...', conv_you:'Ви:',
+    pl_title:'Воронка лідів', pl_detail:'Деталі',
+    st_prospect:'Потенційний', st_contacted:'Контактований', st_responded:'Відповів',
+    st_interested:'Зацікавлений', st_demo:'Демо', st_customer:'Клієнт', st_rejected:'Відхилений',
+    an_title:'Аналітика', an_funnel:'Воронка', an_outreach_perf:'Ефективність розсилки',
+    an_reply_rate:'Відсоток відповідей', an_perf_angle:'Ефективність за ракурсом',
+    an_angle:'Ракурс', an_rate:'Відсоток', an_replied:'Відповіли',
+    ld_notes:'Нотатки', ld_no_notes:'Немає нотаток', ld_add_note:'Додати нотатку...',
+    ld_add:'Додати', ld_outreach:'Розсилка', ld_no_outreach:'Немає розсилок',
+    ld_followups:'Фоллоу-апи', ld_no_followups:'Немає фоллоу-апів',
+    ld_messages:'Повідомлення (останні 10)', ld_no_messages:'Немає повідомлень',
+    ld_deals:'Угоди', ld_no_deals:'Немає угод', ld_new_deal:'+ Нова угода',
+    'leads.search':'Пошук', 'leads.searchPh':'Пошук за ім\'ям, посадою, компанією...', 'leads.tag':'Тег', 'leads.tagPh':'Фільтр тегів',
+    'leads.limit':'Ліміт', 'leads.account':'Акаунт', 'leads.all':'Всі', 'leads.load':'Завантажити',
+    'leads.name':'Ім\'я', 'leads.headline':'Посада', 'leads.company':'Компанія', 'leads.location':'Місце',
+    'leads.tags':'Теги', 'leads.source':'Джерело', 'leads.added':'Додано', 'leads.shown':'показано', 'leads.total':'всього',
+    'leads.searchLinkedin':'+ Пошук лідів у LinkedIn',
+    'search.title':'Пошук лідів у LinkedIn', 'search.keywords':'Ключові слова', 'search.jobTitle':'Посада',
+    'search.locationId':'ID локації', 'search.tag':'Тег', 'search.saveToDB':'Зберегти в БД',
+    'search.btn':'Шукати', 'search.found':'Знайдено', 'search.name':'Ім\'я', 'search.headline':'Посада',
+    'search.location':'Місце', 'search.distance':'Відстань', 'search.searching':'Шукаю...',
+    'search.limit':'Ліміт', 'search.account':'Акаунт', 'search.error':'Помилка',
+    ot_title:'Хронологія розсилки', ot_sent:'Відправлено', ot_failed:'Невдало', ot_pending:'Очікують',
+    ot_upcoming:'Заплановані', ot_past:'Минуле — Відправлені та спроби',
+    ot_future:'Заплановані — Ліди для розсилки', ot_no_upcoming:'Немає запланованих лідів',
+    th_status:'Статус', th_lead:'Лід', th_campaign:'Кампанія', th_message:'Повідомлення',
+    th_date:'Дата', th_location:'Місце', th_tags:'Теги',
+    cp_title:'Кампанії', cp_new_btn:'+ Нова кампанія', cp_active:'Активні кампанії',
+    cp_run_day:'Запустити день кампанії', cp_14day:'14-денний план', cp_dry:'Тестовий запуск',
+    cp_execute:'Виконати', cp_account:'Акаунт', cp_day:'День', cp_leads:'Ліди',
+    cp_msgs:'Повід.', cp_new:'Нова кампанія', cp_name_ph:'Назва кампанії',
+    cp_tpl_ph:'Шаблон повідомлення...', cp_target_tags:'Цільові теги', cp_create:'Створити',
+    deals_title:'Угоди', deals_new:'+ Нова угода', deals_total:'Всього',
+    deals_pipeline:'В воронці (грн)', deals_won:'Виграно (грн)', deals_won_deals:'Виграних угод',
+    deals_lead:'Лід', deals_col_title:'Назва', deals_value:'Сума', deals_stage:'Етап', deals_created:'Створено',
+    stage_qualification:'Кваліфікація', stage_proposal:'Пропозиція', stage_negotiation:'Переговори',
+    stage_closed_won:'Виграно', stage_closed_lost:'Програно',
+    deals_prompt_lead:'ID ліда:', deals_prompt_title:'Назва угоди:', deals_prompt_value:'Сума (грн):',
+    fu_title:'Фоллоу-апи', fu_pending:'Очікують', fu_sent:'Відправлені',
+    fu_lead:'Лід', fu_step:'Крок', fu_scheduled:'Заплановано', fu_message:'Повідомлення', fu_cancel:'Скасувати',
+    sync_title:'Синхронізація даних', sync_account:'Акаунт',
+    sync_leads:'Синхронізувати ліди', sync_conversations:'Синхронізувати переписки',
+    sync_posts:'Синхронізувати пости', sync_company_posts:'Синхронізувати пости компанії', sync_syncing:'Синхронізація',
+    act_title:'Активність та налаштування', act_daily:'Щоденна активність', act_config:'Конфігурація системи',
+    act_date:'Дата', act_account:'Акаунт', act_action:'Дія', act_count:'Кількість',
+    act_model:'Модель', act_default_account:'Акаунт за замовч.', act_limits:'Ліміти', act_persona:'Персона'
+  }
+};
+let lang = localStorage.getItem('lang') || 'ua';
+function t(key){ return (i18n[lang] && i18n[lang][key]) || key; }
+function applyLang(){
+  document.querySelectorAll('.rail a[data-p]').forEach(a=>{
+    const k = a.getAttribute('data-p');
+    if(i18n[lang][k]) a.setAttribute('title', i18n[lang][k]);
+  });
+  const crumbEl = document.getElementById('crumb');
+  if(crumbEl) crumbEl.innerHTML = '<b>' + t(page) + '</b>';
+  const logoutBtn = document.getElementById('btn-logout');
+  if(logoutBtn) logoutBtn.textContent = t('logout');
+  const langBtn = document.getElementById('btn-lang');
+  if(langBtn){
+    langBtn.textContent = lang === 'en' ? 'EN|ua' : 'en|UA';
+  }
+}
+function toggleLang(){
+  lang = lang === 'en' ? 'ua' : 'en';
+  localStorage.setItem('lang', lang);
+  applyLang();
+}
 
 /* ── WebSocket ── */
 let ws=null;
@@ -401,7 +534,7 @@ function navigate(p, pushState=true){
   if(pushState) history.pushState(null,'','/'+p);
   document.querySelectorAll('.rail a').forEach(x=>x.classList.remove('active'));
   document.querySelector(`.rail a[data-p="${p}"]`)?.classList.add('active');
-  $('crumb').innerHTML='<b>'+p.charAt(0).toUpperCase()+p.slice(1)+'</b>';
+  $('crumb').innerHTML='<b>'+t(p)+'</b>';
 
   render();
 }
@@ -428,22 +561,22 @@ async function pgDash(el){
   el.innerHTML=`
     <div class="page-title">Dashboard</div>
     <div class="kpi-row">
-      <div class="kpi amber" style="cursor:pointer" onclick="navigate('leads')"><div class="num">${s.leads}</div><div class="lbl">Leads</div></div>
-      <div class="kpi teal" style="cursor:pointer" onclick="navigate('conversations')"><div class="num">${s.conversations}</div><div class="lbl">Conversations</div></div>
-      <div class="kpi blue" style="cursor:pointer" onclick="navigate('messages')"><div class="num">${s.messages}</div><div class="lbl">Messages</div></div>
-      <div class="kpi" style="cursor:pointer" onclick="navigate('posts')"><div class="num">${s.posts}</div><div class="lbl">Posts</div></div>
+      <div class="kpi amber" style="cursor:pointer" onclick="navigate('leads')"><div class="num">${s.leads}</div><div class="lbl">${t('leads')}</div></div>
+      <div class="kpi teal" style="cursor:pointer" onclick="navigate('conversations')"><div class="num">${s.conversations}</div><div class="lbl">${t('conversations')}</div></div>
+      <div class="kpi blue" style="cursor:pointer" onclick="navigate('messages')"><div class="num">${s.messages}</div><div class="lbl">${t('messages')}</div></div>
+      <div class="kpi" style="cursor:pointer" onclick="navigate('posts')"><div class="num">${s.posts}</div><div class="lbl">${t('posts')}</div></div>
     </div>
     <div class="kpi-row">
-      <div class="kpi teal" style="cursor:pointer" onclick="navigate('messages');setTimeout(()=>loadMsgs('sent=true'),100)"><div class="num">${s.sentToday}</div><div class="lbl">Sent Today</div></div>
-      <div class="kpi amber" style="cursor:pointer" onclick="navigate('leads');setTimeout(()=>{$('l-tag').value='campaign';loadLeads()},100)"><div class="num">${s.campaignLeads}</div><div class="lbl">Campaign Leads</div></div>
-      <div class="kpi blue" style="cursor:pointer" onclick="navigate('outreach')"><div class="num">${s.sentMessages}</div><div class="lbl">Outreach Sent</div></div>
-      <div class="kpi ${conv?'red':''}" style="cursor:pointer" onclick="navigate('conversations');setTimeout(()=>loadConv(true),100)"><div class="num">${conv}</div><div class="lbl">Unread</div></div>
+      <div class="kpi teal" style="cursor:pointer" onclick="navigate('messages');setTimeout(()=>loadMsgs('sent=true'),100)"><div class="num">${s.sentToday}</div><div class="lbl">${t('sentToday')}</div></div>
+      <div class="kpi amber" style="cursor:pointer" onclick="navigate('leads');setTimeout(()=>{$('l-tag').value='campaign';loadLeads()},100)"><div class="num">${s.campaignLeads}</div><div class="lbl">${t('campaignLeads')}</div></div>
+      <div class="kpi blue" style="cursor:pointer" onclick="navigate('outreach')"><div class="num">${s.sentMessages}</div><div class="lbl">${t('outreachSent')}</div></div>
+      <div class="kpi ${conv?'red':''}" style="cursor:pointer" onclick="navigate('conversations');setTimeout(()=>loadConv(true),100)"><div class="num">${conv}</div><div class="lbl">${t('unread')}</div></div>
     </div>
     <div class="section-label" style="cursor:pointer" onclick="navigate('pipeline')">Pipeline →</div>
     <div id="dash-pipeline" class="mb-16"></div>
-    <div class="section-label">Accounts</div>
+    <div class="section-label">${t('accounts')}</div>
     <div class="card"><div class="card-body flush">
-      <table class="tbl"><thead><tr><th>Alias</th><th>Name</th><th>ID</th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>${t('alias')}</th><th>${t('name')}</th><th>${t('id')}</th></tr></thead><tbody>
       ${s.accounts.map(a=>`<tr><td><span class="tag amber">${a.alias}</span></td><td>${a.name}</td><td class="mono dim">${a.id}</td></tr>`).join('')}
       </tbody></table>
     </div></div>`;
@@ -451,7 +584,7 @@ async function pgDash(el){
   const pl=await api('/pipeline');
   const colors={prospect:'',contacted:'amber',responded:'teal',interested:'blue',demo:'blue',customer:'teal',rejected:'red'};
   $('dash-pipeline').innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap">${pl.stages.map(s=>
-    `<div class="kpi ${colors[s.status]||''}" style="cursor:pointer;padding:10px 14px;min-width:100px" onclick="navigate('pipeline')"><div class="num" style="font-size:18px">${s.count}</div><div class="lbl">${s.status}</div></div>`
+    `<div class="kpi ${colors[s.status]||''}" style="cursor:pointer;padding:10px 14px;min-width:100px" onclick="navigate('pipeline')"><div class="num" style="font-size:18px">${s.count}</div><div class="lbl">${t('st_'+s.status)}</div></div>`
   ).join('')}</div>`;
 }
 
@@ -459,17 +592,17 @@ async function pgDash(el){
 async function pgLeads(el){
   el.innerHTML=`
     <div class="flex-between mb-16">
-      <div class="page-title" style="margin:0">Leads</div>
-      <div class="btn-group"><button class="btn sm" onclick="navigate('search')">+ Search LinkedIn</button></div>
+      <div class="page-title" style="margin:0">${t('leads')}</div>
+      <div class="btn-group"><button class="btn sm" onclick="navigate('search')">${t('leads.searchLinkedin')}</button></div>
     </div>
     <div class="input-row mb-16">
-      <div class="field"><label>Search</label><input type="search" id="l-q" placeholder="Name, headline, company..."></div>
-      <div class="field" style="max-width:140px"><label>Tag</label><input type="text" id="l-tag" placeholder="Filter tag"></div>
-      <div class="field" style="max-width:100px"><label>Limit</label><input type="number" id="l-lim" value="100"></div>
-      <div class="field" style="max-width:140px"><label>Account</label>
-        <select id="l-acc"><option value="">All</option><option value="ihor">Ihor</option><option value="vladimir">Vladimir</option></select>
+      <div class="field"><label>${t('leads.search')}</label><input type="search" id="l-q" placeholder="${t('leads.searchPh')}"></div>
+      <div class="field" style="max-width:140px"><label>${t('leads.tag')}</label><input type="text" id="l-tag" placeholder="${t('leads.tagPh')}"></div>
+      <div class="field" style="max-width:100px"><label>${t('leads.limit')}</label><input type="number" id="l-lim" value="100"></div>
+      <div class="field" style="max-width:140px"><label>${t('leads.account')}</label>
+        <select id="l-acc"><option value="">${t('leads.all')}</option><option value="ihor">Ihor</option><option value="vladimir">Vladimir</option></select>
       </div>
-      <div class="field"><label>&nbsp;</label><button class="btn primary" onclick="loadLeads()">Load</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn primary" onclick="loadLeads()">${t('leads.load')}</button></div>
     </div>
     <div id="leads-tbl"></div>`;
   await loadLeads();
@@ -481,9 +614,9 @@ async function loadLeads(){
   if($('l-acc').value)p.set('account',$('l-acc').value);
   const d=await api('/leads?'+p);
   $('leads-tbl').innerHTML=`
-    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${d.items.length} shown / ${d.total} total</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${d.items.length} ${t('leads.shown')} / ${d.total} ${t('leads.total')}</div>
     <div class="card"><div class="card-body flush" style="max-height:65vh;overflow:auto">
-      <table class="tbl"><thead><tr><th>Name</th><th>Headline</th><th>Company</th><th>Location</th><th>Tags</th><th>Source</th><th>Added</th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>${t('leads.name')}</th><th>${t('leads.headline')}</th><th>${t('leads.company')}</th><th>${t('leads.location')}</th><th>${t('leads.tags')}</th><th>${t('leads.source')}</th><th>${t('leads.added')}</th></tr></thead><tbody>
       ${d.items.map(l=>`<tr>
         <td><strong>${esc(l.name)}</strong></td>
         <td class="trunc msg-preview">${esc(l.headline)}</td>
@@ -501,16 +634,16 @@ async function loadLeads(){
 async function pgConv(el){
   el.innerHTML=`
     <div class="flex-between mb-16">
-      <div class="page-title" style="margin:0">Conversations</div>
+      <div class="page-title" style="margin:0">${t('conversations')}</div>
       <div class="btn-group">
-        <button class="btn sm" id="conv-all" onclick="loadConv(false)">All</button>
-        <button class="btn sm danger" id="conv-unr" onclick="loadConv(true)">Unread</button>
+        <button class="btn sm" id="conv-all" onclick="loadConv(false)">${t('conv_all')}</button>
+        <button class="btn sm danger" id="conv-unr" onclick="loadConv(true)">${t('conv_unread')}</button>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:380px 1fr;gap:16px;height:calc(100vh - 120px);">
       <div id="conv-list" style="overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)"></div>
       <div id="conv-thread" style="display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden">
-        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px">Select a conversation</div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px">${t('conv_select')}</div>
       </div>
     </div>`;
   await loadConv(false);
@@ -531,8 +664,8 @@ async function loadConv(unread,silent){
     const isActive=window._activeChat===c.chat_id;
     return `<div class="conv-item${isActive?' conv-active':''}${unr?' conv-unread':''}" data-chat="${c.chat_id}" onclick="selectConv('${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}','${c.account_id||''}')">
       <div class="flex-between"><strong style="font-size:12px">${displayName}</strong><span class="mono dim" style="font-size:10px">${ago(c.last_message_at)}</span></div>
-      <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.last_message_is_sender?'<span style="color:var(--amber)">You:</span> ':''}${esc(preview)}</div>
-      ${c.content_type?`<span class="tag" style="margin-top:4px;font-size:9px">${c.content_type}</span>`:''} ${unr?`<span class="tag red" style="margin-top:4px">${c.unread_count} new</span>`:''}
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.last_message_is_sender?'<span style="color:var(--amber)">'+t('conv_you')+'</span> ':''}${esc(preview)}</div>
+      ${c.content_type?`<span class="tag" style="margin-top:4px;font-size:9px">${c.content_type}</span>`:''} ${unr?`<span class="tag red" style="margin-top:4px">${c.unread_count} ${t('conv_new')}</span>`:''}
     </div>`;
   }).join('');
 }
@@ -550,7 +683,7 @@ async function openThread(chatId,name){
     api(`/conversations/${chatId}/read`,{method:'POST',body:{}})
   ]);
   $('conv-thread').innerHTML=`
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px">${name||'Conversation'}</div>
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px">${name||t('conv_conversation')}</div>
     <div class="thread" id="thread-msgs" style="flex:1">
       ${d.items.map(m=>`
         <div class="bubble ${m.is_sender?'out':'in'}">
@@ -565,12 +698,12 @@ async function openThread(chatId,name){
           <option value="ihor">Ihor</option>
           <option value="vladimir">Vladimir</option>
         </select>
-        <button class="btn sm" onclick="aiDraft('${chatId}')">AI Draft</button>
+        <button class="btn sm" onclick="aiDraft('${chatId}')">${t('conv_ai_draft')}</button>
       </div>
-      <textarea id="reply-box" placeholder="Type reply..." rows="2"></textarea>
-      <div class="flex mt-16"><button class="btn teal" onclick="sendReply('${chatId}','${esc(name)}')">Send</button></div>
+      <textarea id="reply-box" placeholder="${t('conv_placeholder')}" rows="2"></textarea>
+      <div class="flex mt-16"><button class="btn teal" onclick="sendReply('${chatId}','${esc(name)}')">${t('conv_send')}</button></div>
     </div>`;
-  const t=$('thread-msgs');t.scrollTop=t.scrollHeight;
+  const thr=$('thread-msgs');thr.scrollTop=thr.scrollHeight;
   // Auto-select account based on conversation owner
   const accSel=$('reply-account');
   if(accSel&&window._activeChatAccount){
@@ -580,7 +713,7 @@ async function openThread(chatId,name){
   }
 }
 async function aiDraft(chatId){
-  $('reply-box').value='Generating...';
+  $('reply-box').value=t('conv_generating');
   const acc=$('reply-account')?.value||'ihor';
   const r=await api(`/conversations/${chatId}/ai-reply`,{method:'POST',body:{account:acc}});
   $('reply-box').value=r.draft||r.error||'';
@@ -588,23 +721,23 @@ async function aiDraft(chatId){
 let _sending=false;
 async function sendReply(chatId,name){
   if(_sending)return;
-  const t=$('reply-box').value;if(!t)return;
+  const txt=$('reply-box').value;if(!txt)return;
   const acc=$('reply-account')?.value||'ihor';
   _sending=true;
   _wsPaused=true;
   const btn=document.querySelector('[onclick*="sendReply"]');
-  if(btn){btn.disabled=true;btn.textContent='Sending...';}
+  if(btn){btn.disabled=true;btn.textContent=t('conv_sending');}
   try{
-    const r=await api(`/conversations/${chatId}/reply`,{method:'POST',body:{text:t,account:acc}});
+    const r=await api(`/conversations/${chatId}/reply`,{method:'POST',body:{text:txt,account:acc}});
     if(r.ok){
-      toast('Sent');
+      toast(t('conv_sent'));
       $('reply-box').value='';
       await openThread(chatId,name);
     }else{toast(r.error,false);}
   }finally{
     _sending=false;
     setTimeout(()=>{_wsPaused=false;},2000); // resume WS after 2s
-    if(btn){btn.disabled=false;btn.textContent='Send';}
+    if(btn){btn.disabled=false;btn.textContent=t('conv_send');}
   }
 }
 
@@ -612,15 +745,15 @@ async function sendReply(chatId,name){
 async function pgMsgs(el){
   el.innerHTML=`
     <div class="flex-between mb-16">
-      <div class="page-title" style="margin:0">Messages</div>
+      <div class="page-title" style="margin:0">${t('msg_title')}</div>
       <div class="btn-group" style="flex-wrap:wrap">
-        <button class="btn sm msg-filter-btn active" data-f="" onclick="setMsgFilter(this,'')">All</button>
-        <button class="btn sm msg-filter-btn" data-f="sent=true" onclick="setMsgFilter(this,'sent=true')">Sent</button>
-        <button class="btn sm msg-filter-btn" data-f="sent=false" onclick="setMsgFilter(this,'sent=false')">Received</button>
-        <button class="btn sm msg-filter-btn" data-f="type=MESSAGE" onclick="setMsgFilter(this,'type=MESSAGE')">Direct</button>
+        <button class="btn sm msg-filter-btn active" data-f="" onclick="setMsgFilter(this,'')">${t('msg_all')}</button>
+        <button class="btn sm msg-filter-btn" data-f="sent=true" onclick="setMsgFilter(this,'sent=true')">${t('msg_sent')}</button>
+        <button class="btn sm msg-filter-btn" data-f="sent=false" onclick="setMsgFilter(this,'sent=false')">${t('msg_received')}</button>
+        <button class="btn sm msg-filter-btn" data-f="type=MESSAGE" onclick="setMsgFilter(this,'type=MESSAGE')">${t('msg_direct')}</button>
         <button class="btn sm msg-filter-btn" data-f="type=INMAIL" onclick="setMsgFilter(this,'type=INMAIL')">InMail</button>
-        <button class="btn sm msg-filter-btn" data-f="type=INMAIL_ACCEPT" onclick="setMsgFilter(this,'type=INMAIL_ACCEPT')">Accepted</button>
-        <button class="btn sm msg-filter-btn" data-f="type=INMAIL_DECLINE" onclick="setMsgFilter(this,'type=INMAIL_DECLINE')">Declined</button>
+        <button class="btn sm msg-filter-btn" data-f="type=INMAIL_ACCEPT" onclick="setMsgFilter(this,'type=INMAIL_ACCEPT')">${t('msg_accepted')}</button>
+        <button class="btn sm msg-filter-btn" data-f="type=INMAIL_DECLINE" onclick="setMsgFilter(this,'type=INMAIL_DECLINE')">${t('msg_declined')}</button>
       </div>
     </div>
     <div id="msgs-tbl" style="max-height:calc(100vh - 130px);overflow-y:auto"></div>`;
@@ -648,18 +781,18 @@ async function loadMsgs(filter){
   });
   // Each thread: msgs are DESC from API, reverse for display
   $('msgs-tbl').innerHTML=`
-    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">${d.items.length} messages in ${sorted.length} threads</div>
-    ${sorted.map(([chatId,t])=>{
-      const msgs=t.msgs.slice().reverse(); // oldest first
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">${d.items.length} ${t('msg_in')} ${sorted.length} ${t('msg_threads')}</div>
+    ${sorted.map(([chatId,th])=>{
+      const msgs=th.msgs.slice().reverse(); // oldest first
       const first=msgs[0];
       const last=msgs[msgs.length-1];
       const expanded=msgs.length<=3;
       return `
       <div class="card mb-8">
         <div class="card-head" style="cursor:pointer" onclick="toggleThread(this)">
-          <span class="tag ${first.is_sender?'amber':'teal'}">${first.is_sender?(t.sender||'OUT'):'IN'}</span>
-          <strong>${esc(t.contact)}</strong>
-          <span style="color:var(--text3);font-size:11px;margin-left:4px">${msgs.length} msg${msgs.length>1?'s':''}</span>
+          <span class="tag ${first.is_sender?'amber':'teal'}">${first.is_sender?(th.sender||'OUT'):'IN'}</span>
+          <strong>${esc(th.contact)}</strong>
+          <span style="color:var(--text3);font-size:11px;margin-left:4px">${msgs.length} ${t('msg_msgs')}</span>
           <span class="badge" style="background:var(--surface2);margin-left:auto">${first.message_type||''}</span>
           <span class="mono dim" style="font-size:10px;margin-left:8px">${ago(last.timestamp)}</span>
           <span class="thread-chevron" style="margin-left:8px;color:var(--text3);font-size:10px">${expanded?'▼':'▶'}</span>
@@ -669,12 +802,12 @@ async function loadMsgs(filter){
             <div style="padding:8px 16px;border-top:1px solid var(--border);${i===0?'border-top:none':''}">
               <div class="flex-between" style="margin-bottom:4px">
                 <span style="font-size:11px;font-weight:600;${m.is_sender?'color:var(--amber)':'color:var(--teal)'}">
-                  ${m.is_sender?(m.sender_name||'You'):esc(t.contact)}
+                  ${m.is_sender?(m.sender_name||'You'):esc(th.contact)}
                 </span>
                 <span class="mono dim" style="font-size:10px">${fmtFull(m.timestamp)}</span>
               </div>
               <div style="font-size:12px;line-height:1.55;color:var(--text2);white-space:pre-wrap;max-height:${i===0?'none':'120px'};overflow:hidden">${esc(m.text)}</div>
-              ${m.text?.length>300&&i>0?'<div style="font-size:10px;color:var(--text3);cursor:pointer;margin-top:4px" onclick="this.previousElementSibling.style.maxHeight=this.previousElementSibling.style.maxHeight===\'none\'?\'120px\':\'none\'">[show more]</div>':''}
+              ${m.text?.length>300&&i>0?'<div style="font-size:10px;color:var(--text3);cursor:pointer;margin-top:4px" onclick="this.previousElementSibling.style.maxHeight=this.previousElementSibling.style.maxHeight===\'none\'?\'120px\':\'none\'">[${t('msg_show_more')}]</div>':''}
             </div>
           `).join('')}
         </div>
@@ -692,7 +825,7 @@ function toggleThread(head){
 async function pgOutreach(el){
   el.innerHTML=`
     <div class="flex-between mb-16">
-      <div class="page-title" style="margin:0">Outreach Timeline</div>
+      <div class="page-title" style="margin:0">${t('ot_title')}</div>
       <div class="flex gap-16">
         <select id="ot-acc" onchange="loadTimeline()" style="font-size:12px;width:auto;padding:4px 8px">
           <option value="ihor">Ihor</option>
@@ -709,17 +842,17 @@ async function loadTimeline(){
   const s=d.stats;
   $('outreach-tbl').innerHTML=`
     <div class="kpi-row mb-16">
-      <div class="kpi teal"><div class="num">${s.sent}</div><div class="lbl">Sent</div></div>
-      <div class="kpi red"><div class="num">${s.failed}</div><div class="lbl">Failed</div></div>
-      <div class="kpi amber"><div class="num">${s.pending}</div><div class="lbl">Pending</div></div>
-      <div class="kpi blue"><div class="num">${s.upcoming}</div><div class="lbl">Upcoming</div></div>
+      <div class="kpi teal"><div class="num">${s.sent}</div><div class="lbl">${t('ot_sent')}</div></div>
+      <div class="kpi red"><div class="num">${s.failed}</div><div class="lbl">${t('ot_failed')}</div></div>
+      <div class="kpi amber"><div class="num">${s.pending}</div><div class="lbl">${t('ot_pending')}</div></div>
+      <div class="kpi blue"><div class="num">${s.upcoming}</div><div class="lbl">${t('ot_upcoming')}</div></div>
     </div>
 
     ${d.past.length?`
-    <div class="section-label">Past — Sent & Attempted</div>
+    <div class="section-label">${t('ot_past')}</div>
     <div class="card mb-16"><div class="card-body flush" style="max-height:45vh;overflow:auto">
       <table class="tbl" style="table-layout:fixed"><thead><tr>
-        <th style="width:70px">Status</th><th style="width:170px">Lead</th><th style="width:100px">Campaign</th><th>Message</th><th style="width:130px">Date</th>
+        <th style="width:70px">${t('th_status')}</th><th style="width:170px">${t('th_lead')}</th><th style="width:100px">${t('th_campaign')}</th><th>${t('th_message')}</th><th style="width:130px">${t('th_date')}</th>
       </tr></thead><tbody>
       ${d.past.map(o=>`<tr>
         <td><span class="status-dot ${o.status==='sent'?'green':o.status==='failed'?'red':'amber'}"></span><span style="font-size:11px">${o.status}</span></td>
@@ -735,10 +868,10 @@ async function loadTimeline(){
     </div></div>`:''}
 
     ${d.future.length?`
-    <div class="section-label">Upcoming — Eligible Leads (not yet contacted)</div>
+    <div class="section-label">${t('ot_future')}</div>
     <div class="card"><div class="card-body flush" style="max-height:40vh;overflow:auto">
       <table class="tbl" style="table-layout:fixed"><thead><tr>
-        <th style="width:70px">Status</th><th style="width:170px">Lead</th><th>Headline</th><th style="width:130px">Location</th><th style="width:130px">Tags</th>
+        <th style="width:70px">${t('th_status')}</th><th style="width:170px">${t('th_lead')}</th><th>Headline</th><th style="width:130px">${t('th_location')}</th><th style="width:130px">${t('th_tags')}</th>
       </tr></thead><tbody>
       ${d.future.map(l=>`<tr>
         <td><span class="status-dot amber"></span><span style="font-size:11px;color:var(--amber)">queued</span></td>
@@ -750,7 +883,7 @@ async function loadTimeline(){
       </tbody></table>
     </div></div>`:`
     <div class="card"><div class="card-body" style="color:var(--text3);text-align:center;padding:30px">
-      No upcoming leads — run a campaign day to search for new leads
+      ${t('ot_no_upcoming')}
     </div></div>`}
   `;
 }
@@ -760,10 +893,10 @@ async function pgCamp(el){
   const [camps,status]=await Promise.all([api('/campaigns'),api('/campaign/status')]);
   el.innerHTML=`
     <div class="flex-between mb-16">
-      <div class="page-title" style="margin:0">Campaigns</div>
-      <button class="btn primary" onclick="showNewCampaign()">+ New Campaign</button>
+      <div class="page-title" style="margin:0">${t('cp_title')}</div>
+      <button class="btn primary" onclick="showNewCampaign()">${t('cp_new_btn')}</button>
     </div>
-    <div class="section-label">Active Campaigns</div>
+    <div class="section-label">${t('cp_active')}</div>
     <div class="card"><div class="card-body flush">
       <table class="tbl"><thead><tr><th>Name</th><th>Status</th><th>Tags</th><th>Sent</th><th>Failed</th><th>Pending</th><th>Total</th><th>Created</th><th></th></tr></thead><tbody>
       ${camps.items.map(c=>`<tr>
@@ -776,7 +909,7 @@ async function pgCamp(el){
       </tr>`).join('')}
       </tbody></table>
     </div></div>
-    <div class="section-label mt-16">Registry Access 2W — Run Day</div>
+    <div class="section-label mt-16">${t('cp_run_day')}</div>
     <div class="card"><div class="card-body">
       <div class="kpi-row mb-16">
         ${status.accounts.map(a=>`
@@ -785,17 +918,17 @@ async function pgCamp(el){
         `).join('')}
       </div>
       <div class="input-row mb-16">
-        <div class="field" style="max-width:160px"><label>Account</label>
+        <div class="field" style="max-width:160px"><label>${t('search.account')}</label>
           <select id="cr-acc">${status.accounts.map(a=>`<option value="${a.account.alias}">${a.account.name}</option>`).join('')}</select>
         </div>
-        <div class="field" style="max-width:80px"><label>Day</label><input type="number" id="cr-day" value="1" min="1" max="14"></div>
-        <div class="field" style="max-width:80px"><label>Leads</label><input type="number" id="cr-leads" value="40"></div>
-        <div class="field" style="max-width:80px"><label>Msgs</label><input type="number" id="cr-msgs" value="40"></div>
-        <div class="field"><label>&nbsp;</label><div class="btn-group"><button class="btn" onclick="runDay(true)">Dry Run</button><button class="btn primary" onclick="runDay(false)">Execute</button></div></div>
+        <div class="field" style="max-width:80px"><label>${t('cp_day')}</label><input type="number" id="cr-day" value="1" min="1" max="14"></div>
+        <div class="field" style="max-width:80px"><label>${t('cp_leads')}</label><input type="number" id="cr-leads" value="40"></div>
+        <div class="field" style="max-width:80px"><label>${t('cp_msgs')}</label><input type="number" id="cr-msgs" value="40"></div>
+        <div class="field"><label>&nbsp;</label><div class="btn-group"><button class="btn" onclick="runDay(true)">${t('cp_dry')}</button><button class="btn primary" onclick="runDay(false)">${t('cp_execute')}</button></div></div>
       </div>
       <div id="cr-result" style="font-family:var(--mono);font-size:11px;color:var(--text3)"></div>
     </div></div>
-    <div class="section-label mt-16">14-Day Plan</div>
+    <div class="section-label mt-16">${t('cp_14day')}</div>
     <div class="card"><div class="card-body flush">
       <table class="tbl"><thead><tr><th>Day</th><th>Keywords</th><th>Title Filter</th></tr></thead><tbody>
       ${status.plan.map((q,i)=>`<tr><td class="mono">${i+1}</td><td>${q.keywords}</td><td class="dim">${q.title}</td></tr>`).join('')}
@@ -814,14 +947,14 @@ async function runDay(dry){
   if(!r.error)toast(dry?'Dry run complete':'Campaign day executed');
 }
 function showNewCampaign(){
-  modal('New Campaign',`
-    <div class="field"><label>Name</label><input type="text" id="nc-name" placeholder="Campaign name"></div>
-    <div class="field"><label>Template</label><textarea id="nc-tpl" placeholder="Message template..."></textarea></div>
-    <div class="field"><label>Target Tags</label><input type="text" id="nc-tags" placeholder="e.g. legaltech-executive-ua"></div>
+  modal(t('cp_new'),`
+    <div class="field"><label>Name</label><input type="text" id="nc-name" placeholder="${t('cp_name_ph')}"></div>
+    <div class="field"><label>Template</label><textarea id="nc-tpl" placeholder="${t('cp_tpl_ph')}"></textarea></div>
+    <div class="field"><label>${t('cp_target_tags')}</label><input type="text" id="nc-tags" placeholder="e.g. legaltech-executive-ua"></div>
     <div class="field"><label>Account</label>
       <select id="nc-acc"><option value="ihor">Ihor</option><option value="vladimir">Vladimir</option></select>
     </div>
-    <button class="btn primary" onclick="createCampaign()">Create</button>
+    <button class="btn primary" onclick="createCampaign()">${t('cp_create')}</button>
   `);
 }
 async function createCampaign(){
@@ -869,38 +1002,38 @@ async function loadPostsView(type){
 /* ═══════════════ SEARCH ═══════════════ */
 async function pgSearch(el){
   el.innerHTML=`
-    <div class="page-title">Search LinkedIn</div>
+    <div class="page-title">${t('search.title')}</div>
     <div class="card"><div class="card-body">
       <div class="input-row mb-16">
-        <div class="field"><label>Keywords</label><input type="text" id="sq" placeholder="legaltech lawyer адвокат"></div>
-        <div class="field"><label>Title</label><input type="text" id="st" placeholder="CEO OR Partner OR Director"></div>
+        <div class="field"><label>${t('search.keywords')}</label><input type="text" id="sq" placeholder="legaltech lawyer адвокат"></div>
+        <div class="field"><label>${t('search.jobTitle')}</label><input type="text" id="st" placeholder="CEO OR Partner OR Director"></div>
       </div>
       <div class="input-row mb-16">
-        <div class="field" style="max-width:160px"><label>Location ID</label><input type="text" id="sloc" value="102264497"></div>
-        <div class="field" style="max-width:100px"><label>Limit</label><input type="number" id="slim" value="25"></div>
-        <div class="field" style="max-width:120px"><label>Tag</label><input type="text" id="stag" value="search"></div>
-        <div class="field" style="max-width:160px"><label>Account</label>
+        <div class="field" style="max-width:160px"><label>${t('search.locationId')}</label><input type="text" id="sloc" value="102264497"></div>
+        <div class="field" style="max-width:100px"><label>${t('search.limit')}</label><input type="number" id="slim" value="25"></div>
+        <div class="field" style="max-width:120px"><label>${t('search.tag')}</label><input type="text" id="stag" value="search"></div>
+        <div class="field" style="max-width:160px"><label>${t('search.account')}</label>
           <select id="sacc"><option value="ihor">Ihor</option><option value="vladimir">Vladimir</option></select>
         </div>
         <div class="field"><label>&nbsp;</label>
-          <label class="check-label"><input type="checkbox" id="ssave"> Save to DB</label>
+          <label class="check-label"><input type="checkbox" id="ssave"> ${t('search.saveToDB')}</label>
         </div>
-        <div class="field"><label>&nbsp;</label><button class="btn primary" onclick="runSearchFn()">Search</button></div>
+        <div class="field"><label>&nbsp;</label><button class="btn primary" onclick="runSearchFn()">${t('search.btn')}</button></div>
       </div>
       <div id="search-status" style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:12px"></div>
     </div></div>
     <div id="search-res"></div>`;
 }
 async function runSearchFn(){
-  $('search-status').textContent='Searching...';
+  $('search-status').textContent=t('search.searching');
   const r=await api('/search',{method:'POST',body:{
     account:$('sacc').value,keywords:$('sq').value,location:$('sloc').value,title:$('st').value,
     limit:+$('slim').value,save:$('ssave').checked,tag:$('stag').value
   }});
-  $('search-status').textContent=r.error?'Error: '+r.error:`Found ${r.count} leads`;
+  $('search-status').textContent=r.error?t('search.error')+': '+r.error:`${t('search.found')} ${r.count} ${t('leads')}`;
   if(r.items)$('search-res').innerHTML=`
     <div class="card"><div class="card-body flush" style="max-height:60vh;overflow:auto">
-      <table class="tbl"><thead><tr><th>Name</th><th>Headline</th><th>Location</th><th>Distance</th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>${t('search.name')}</th><th>${t('search.headline')}</th><th>${t('search.location')}</th><th>${t('search.distance')}</th></tr></thead><tbody>
       ${r.items.map(l=>`<tr>
         <td><strong>${esc(l.name)}</strong></td>
         <td class="msg-preview">${esc(l.headline)}</td>
@@ -916,22 +1049,22 @@ async function runSearchFn(){
 /* ═══════════════ SYNC ═══════════════ */
 async function pgSync(el){
   el.innerHTML=`
-    <div class="page-title">Sync Data</div>
+    <div class="page-title">${t('sync_title')}</div>
     <div class="card"><div class="card-body">
-      <div class="field" style="max-width:200px"><label>Account</label>
+      <div class="field" style="max-width:200px"><label>${t('sync_account')}</label>
         <select id="sync-acc"><option value="ihor">Ihor Kyrychenko</option><option value="vladimir">Vladimir Ovcharov</option></select>
       </div>
       <div class="btn-group mt-16" style="flex-wrap:wrap">
-        <button class="btn" onclick="doSync('leads')">Sync Leads</button>
-        <button class="btn" onclick="doSync('conversations')">Sync Conversations</button>
-        <button class="btn" onclick="doSync('posts')">Sync Posts</button>
-        <button class="btn" onclick="doSync('company-posts')">Sync Company Posts</button>
+        <button class="btn" onclick="doSync('leads')">${t('sync_leads')}</button>
+        <button class="btn" onclick="doSync('conversations')">${t('sync_conversations')}</button>
+        <button class="btn" onclick="doSync('posts')">${t('sync_posts')}</button>
+        <button class="btn" onclick="doSync('company-posts')">${t('sync_company_posts')}</button>
       </div>
       <div id="sync-out" style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:16px;white-space:pre-wrap"></div>
     </div></div>`;
 }
 async function doSync(type){
-  $('sync-out').textContent=`Syncing ${type}...`;
+  $('sync-out').textContent=`${t('sync_syncing')} ${type}...`;
   const r=await api('/sync',{method:'POST',body:{type,account:$('sync-acc').value}});
   $('sync-out').textContent=r.error?'Error: '+r.error:'Done: '+JSON.stringify(r,null,2);
   if(!r.error)toast(`${type} synced`);
@@ -942,10 +1075,10 @@ async function pgActivity(el){
   const d=await api('/activity');
   const cfg=await api('/config');
   el.innerHTML=`
-    <div class="page-title">Activity & Config</div>
-    <div class="section-label">Daily Activity</div>
+    <div class="page-title">${t('act_title')}</div>
+    <div class="section-label">${t('act_daily')}</div>
     <div class="card"><div class="card-body flush" style="max-height:40vh;overflow:auto">
-      <table class="tbl"><thead><tr><th>Date</th><th>Account</th><th>Action</th><th>Count</th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>${t('act_date')}</th><th>${t('act_account')}</th><th>${t('act_action')}</th><th>${t('act_count')}</th></tr></thead><tbody>
       ${d.items.map(a=>`<tr>
         <td class="mono">${fmtDate(a.date)}</td>
         <td class="mono dim">${a.account_id?.slice(0,12)||'—'}</td>
@@ -954,18 +1087,18 @@ async function pgActivity(el){
       </tr>`).join('')}
       </tbody></table>
     </div></div>
-    <div class="section-label mt-16">System Config</div>
+    <div class="section-label mt-16">${t('act_config')}</div>
     <div class="card"><div class="card-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px">
         <div>
-          <div class="dim mb-8">Model</div><div class="mono">${cfg.model}</div>
-          <div class="dim mb-8 mt-16">Default Account</div><div class="mono">${cfg.defaultAccount}</div>
+          <div class="dim mb-8">${t('act_model')}</div><div class="mono">${cfg.model}</div>
+          <div class="dim mb-8 mt-16">${t('act_default_account')}</div><div class="mono">${cfg.defaultAccount}</div>
         </div>
         <div>
-          <div class="dim mb-8">Rate Limits</div>
+          <div class="dim mb-8">${t('act_limits')}</div>
           <div class="mono">${cfg.limits.messagesPerDay} msgs/day, ${cfg.limits.invitationsPerDay} invites/day</div>
           <div class="mono">${cfg.limits.delay} delay, ${cfg.limits.businessHours}</div>
-          <div class="dim mb-8 mt-16">Persona</div>
+          <div class="dim mb-8 mt-16">${t('act_persona')}</div>
           <div class="mono">${cfg.persona.name} — ${cfg.persona.objective}</div>
         </div>
       </div>
@@ -977,12 +1110,12 @@ async function pgPipeline(el){
   const d=await api('/pipeline');
   const colors={prospect:'',contacted:'amber',responded:'teal',interested:'blue',demo:'blue',customer:'teal',rejected:'red'};
   el.innerHTML=`
-    <div class="page-title">Lead Pipeline</div>
+    <div class="page-title">${t('pl_title')}</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       ${d.stages.map(s=>`
         <div class="kpi ${colors[s.status]||''}" style="cursor:pointer;min-width:130px" onclick="navigate('leads');setTimeout(()=>{$('l-q').value='';loadLeadsWithStatus('${s.status}')},100)">
           <div class="num">${s.count}</div>
-          <div class="lbl">${s.status}</div>
+          <div class="lbl">${t('st_'+s.status)}</div>
         </div>
       `).join('')}
     </div>
@@ -994,12 +1127,12 @@ async function pgPipeline(el){
       <table class="tbl"><thead><tr><th>Status</th><th>Name</th><th>Headline</th><th>Tags</th><th></th></tr></thead><tbody>
       ${leads.items.map(l=>`<tr>
         <td><select onchange="updateLeadStatus(${l.id},this.value)" style="font-size:11px;padding:2px 4px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px">
-          ${['prospect','contacted','responded','interested','demo','customer','rejected'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${s}</option>`).join('')}
+          ${['prospect','contacted','responded','interested','demo','customer','rejected'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${t('st_'+s)}</option>`).join('')}
         </select></td>
         <td><strong style="cursor:pointer" onclick="openLeadDetail(${l.id})">${esc(l.name)}</strong></td>
         <td class="trunc dim">${esc(l.headline)}</td>
         <td>${(l.tags||'').split(',').filter(t=>t).slice(0,3).map(t=>'<span class="tag" style="font-size:9px">'+t+'</span> ').join('')}</td>
-        <td><button class="btn sm ghost" onclick="openLeadDetail(${l.id})">Detail</button></td>
+        <td><button class="btn sm ghost" onclick="openLeadDetail(${l.id})">${t('pl_detail')}</button></td>
       </tr>`).join('')}
       </tbody></table>
     </div></div>`;
@@ -1017,7 +1150,7 @@ async function openLeadDetail(id){
   modal(esc(l.name),`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;margin-bottom:16px">
       <div><span class="dim">Status</span><br><select id="ld-status" style="margin-top:4px;font-size:12px;padding:4px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px" onchange="updateLeadStatus(${l.id},this.value)">
-        ${['prospect','contacted','responded','interested','demo','customer','rejected'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${s}</option>`).join('')}
+        ${['prospect','contacted','responded','interested','demo','customer','rejected'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${t('st_'+s)}</option>`).join('')}
       </select></div>
       <div><span class="dim">Headline</span><br>${esc(l.headline)}</div>
       <div><span class="dim">Company</span><br>${esc(l.company)||'—'}</div>
@@ -1026,38 +1159,38 @@ async function openLeadDetail(id){
       <div><span class="dim">Source</span><br>${l.source}</div>
     </div>
 
-    <div class="section-label">Notes</div>
+    <div class="section-label">${t('ld_notes')}</div>
     <div style="margin-bottom:8px">
-      ${d.notes.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="dim">${fmtFull(n.created_at)}</span> ${esc(n.note)}</div>`).join('')||'<div class="dim" style="font-size:12px">No notes</div>'}
+      ${d.notes.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="dim">${fmtFull(n.created_at)}</span> ${esc(n.note)}</div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_notes')}</div>'}
     </div>
-    <div class="flex mb-8"><input id="ld-note" placeholder="Add note..." style="flex:1;font-size:12px"><button class="btn sm" onclick="addNote(${l.id})">Add</button></div>
+    <div class="flex mb-8"><input id="ld-note" placeholder="${t('ld_add_note')}" style="flex:1;font-size:12px"><button class="btn sm" onclick="addNote(${l.id})">${t('ld_add')}</button></div>
 
-    <div class="section-label">Outreach</div>
+    <div class="section-label">${t('ld_outreach')}</div>
     ${d.outreach.map(o=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
       <span class="tag ${o.status==='sent'?'teal':'red'}">${o.status}</span>
       <span class="dim">${fmtFull(o.timestamp)}</span>
       ${o.message_angle?'<span class="tag">'+o.message_angle+'</span>':''}
       <div style="color:var(--text2);margin-top:4px">${esc((o.text||'').slice(0,120))}</div>
-    </div>`).join('')||'<div class="dim" style="font-size:12px">No outreach</div>'}
+    </div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_outreach')}</div>'}
 
-    <div class="section-label">Follow-ups</div>
+    <div class="section-label">${t('ld_followups')}</div>
     ${d.followUps.map(f=>`<div style="padding:4px 0;font-size:12px">
       <span class="tag ${f.status==='pending'?'amber':f.status==='sent'?'teal':''}">${f.status}</span>
       Step ${f.step} — ${fmtFull(f.scheduled_for)}
-    </div>`).join('')||'<div class="dim" style="font-size:12px">No follow-ups</div>'}
+    </div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_followups')}</div>'}
 
-    <div class="section-label">Messages (last 10)</div>
+    <div class="section-label">${t('ld_messages')}</div>
     <div style="max-height:200px;overflow:auto">
     ${d.messages.slice(0,10).map(m=>`<div style="padding:4px 0;font-size:12px;border-bottom:1px solid var(--border)">
       <span class="tag ${m.is_sender?'amber':'teal'}">${m.is_sender?'OUT':'IN'}</span>
       <span class="dim">${fmtFull(m.timestamp)}</span>
       <div style="color:var(--text2);margin-top:2px">${esc((m.text||'').slice(0,150))}</div>
-    </div>`).join('')||'<div class="dim" style="font-size:12px">No messages</div>'}
+    </div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_messages')}</div>'}
     </div>
 
-    <div class="section-label">Deals</div>
-    ${d.deals.map(dl=>`<div style="font-size:12px"><strong>${esc(dl.title)}</strong> — ${dl.value} ${dl.currency} (${dl.stage})</div>`).join('')||'<div class="dim" style="font-size:12px">No deals</div>'}
-    <button class="btn sm mt-16" onclick="createDeal(${l.id},'${l.account_id}')">+ New Deal</button>
+    <div class="section-label">${t('ld_deals')}</div>
+    ${d.deals.map(dl=>`<div style="font-size:12px"><strong>${esc(dl.title)}</strong> — ${dl.value} ${dl.currency} (${dl.stage})</div>`).join('')||'<div class="dim" style="font-size:12px">${t('ld_no_deals')}</div>'}
+    <button class="btn sm mt-16" onclick="createDeal(${l.id},'${l.account_id}')">${t('ld_new_deal')}</button>
   `);
 }
 async function addNote(leadId){
@@ -1077,28 +1210,28 @@ async function pgAnalytics(el){
   const d=await api('/analytics');
   const f=d.funnel;
   el.innerHTML=`
-    <div class="page-title">Analytics</div>
-    <div class="section-label">Funnel</div>
+    <div class="page-title">${t('an_title')}</div>
+    <div class="section-label">${t('an_funnel')}</div>
     <div class="kpi-row mb-16">
-      <div class="kpi amber"><div class="num">${f.contacted}</div><div class="lbl">Contacted</div></div>
-      <div class="kpi teal"><div class="num">${f.responded}</div><div class="lbl">Responded</div></div>
-      <div class="kpi blue"><div class="num">${f.interested}</div><div class="lbl">Interested</div></div>
-      <div class="kpi blue"><div class="num">${f.demo}</div><div class="lbl">Demo</div></div>
-      <div class="kpi teal"><div class="num">${f.customer}</div><div class="lbl">Customer</div></div>
-      <div class="kpi red"><div class="num">${f.rejected}</div><div class="lbl">Rejected</div></div>
+      <div class="kpi amber"><div class="num">${f.contacted}</div><div class="lbl">${t('st_contacted')}</div></div>
+      <div class="kpi teal"><div class="num">${f.responded}</div><div class="lbl">${t('st_responded')}</div></div>
+      <div class="kpi blue"><div class="num">${f.interested}</div><div class="lbl">${t('st_interested')}</div></div>
+      <div class="kpi blue"><div class="num">${f.demo}</div><div class="lbl">${t('st_demo')}</div></div>
+      <div class="kpi teal"><div class="num">${f.customer}</div><div class="lbl">${t('st_customer')}</div></div>
+      <div class="kpi red"><div class="num">${f.rejected}</div><div class="lbl">${t('st_rejected')}</div></div>
     </div>
 
-    <div class="section-label">Outreach Performance</div>
+    <div class="section-label">${t('an_outreach_perf')}</div>
     <div class="kpi-row mb-16">
       <div class="kpi amber"><div class="num">${d.outreach.sent}</div><div class="lbl">Sent</div></div>
       <div class="kpi red"><div class="num">${d.outreach.failed}</div><div class="lbl">Failed</div></div>
-      <div class="kpi teal"><div class="num">${d.replied}</div><div class="lbl">Replied</div></div>
-      <div class="kpi blue"><div class="num">${d.outreach.replyRate}%</div><div class="lbl">Reply Rate</div></div>
+      <div class="kpi teal"><div class="num">${d.replied}</div><div class="lbl">${t('an_replied')}</div></div>
+      <div class="kpi blue"><div class="num">${d.outreach.replyRate}%</div><div class="lbl">${t('an_reply_rate')}</div></div>
     </div>
 
-    <div class="section-label">Performance by Message Angle</div>
+    <div class="section-label">${t('an_perf_angle')}</div>
     <div class="card"><div class="card-body flush">
-      <table class="tbl"><thead><tr><th>Angle</th><th>Sent</th><th>Replied</th><th>Rate</th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>${t('an_angle')}</th><th>Sent</th><th>${t('an_replied')}</th><th>${t('an_rate')}</th></tr></thead><tbody>
       ${d.angleStats.map(a=>`<tr>
         <td><span class="tag">${a.angle}</span></td>
         <td class="mono">${a.sent}</td>
@@ -1119,29 +1252,29 @@ async function pgAnalytics(el){
 /* ═══════════════ DEALS ═══════════════ */
 async function pgDeals(el){
   const d=await api('/deals');
-  const t=d.totals;
+  const tot=d.totals;
   el.innerHTML=`
     <div class="flex-between mb-16">
-      <div class="page-title" style="margin:0">Deals</div>
-      <button class="btn primary" onclick="promptNewDeal()">+ New Deal</button>
+      <div class="page-title" style="margin:0">${t('deals_title')}</div>
+      <button class="btn primary" onclick="promptNewDeal()">${t('deals_new')}</button>
     </div>
     <div class="kpi-row mb-16">
-      <div class="kpi amber"><div class="num">${t.total}</div><div class="lbl">Total</div></div>
-      <div class="kpi blue"><div class="num">${Number(t.pipeline_value||0).toLocaleString()}</div><div class="lbl">Pipeline (UAH)</div></div>
-      <div class="kpi teal"><div class="num">${Number(t.won_value||0).toLocaleString()}</div><div class="lbl">Won (UAH)</div></div>
-      <div class="kpi teal"><div class="num">${t.won_count}</div><div class="lbl">Won Deals</div></div>
+      <div class="kpi amber"><div class="num">${tot.total}</div><div class="lbl">${t('deals_total')}</div></div>
+      <div class="kpi blue"><div class="num">${Number(tot.pipeline_value||0).toLocaleString()}</div><div class="lbl">${t('deals_pipeline')}</div></div>
+      <div class="kpi teal"><div class="num">${Number(tot.won_value||0).toLocaleString()}</div><div class="lbl">${t('deals_won')}</div></div>
+      <div class="kpi teal"><div class="num">${tot.won_count}</div><div class="lbl">${t('deals_won_deals')}</div></div>
     </div>
     <div class="card"><div class="card-body flush">
-      <table class="tbl"><thead><tr><th>Lead</th><th>Title</th><th>Value</th><th>Stage</th><th>Created</th><th></th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>${t('deals_lead')}</th><th>${t('deals_col_title')}</th><th>${t('deals_value')}</th><th>${t('deals_stage')}</th><th>${t('deals_created')}</th><th></th></tr></thead><tbody>
       ${d.items.map(dl=>`<tr>
         <td><strong>${esc(dl.lead_name||'—')}</strong><br><span class="dim" style="font-size:10px">${esc(dl.lead_headline||'')}</span></td>
         <td>${esc(dl.title)}</td>
         <td class="mono">${dl.value} ${dl.currency}</td>
         <td><select onchange="updateDeal(${dl.id},this.value)" style="font-size:11px;padding:2px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px">
-          ${['qualification','proposal','negotiation','closed_won','closed_lost'].map(s=>`<option value="${s}" ${dl.stage===s?'selected':''}>${s}</option>`).join('')}
+          ${['qualification','proposal','negotiation','closed_won','closed_lost'].map(s=>`<option value="${s}" ${dl.stage===s?'selected':''}>${t('stage_'+s)}</option>`).join('')}
         </select></td>
         <td class="mono dim">${fmtDate(dl.created_at)}</td>
-        <td><button class="btn sm ghost" onclick="openLeadDetail(${dl.lead_id})">Lead</button></td>
+        <td><button class="btn sm ghost" onclick="openLeadDetail(${dl.lead_id})">${t('deals_lead')}</button></td>
       </tr>`).join('')}
       </tbody></table>
     </div></div>`;
@@ -1150,12 +1283,12 @@ async function updateDeal(id,stage){
   const body={stage};
   if(stage==='closed_won'||stage==='closed_lost')body.closed_at=new Date().toISOString();
   await api('/deals/'+id,{method:'PATCH',body});
-  toast('Deal → '+stage);pgDeals(vp());
+  toast(t('deals_title')+' → '+t('stage_'+stage));pgDeals(vp());
 }
 function promptNewDeal(){
-  const leadId=prompt('Lead ID:');if(!leadId)return;
-  const title=prompt('Deal title:');if(!title)return;
-  const value=prompt('Value (UAH):','4999');
+  const leadId=prompt(t('deals_prompt_lead'));if(!leadId)return;
+  const title=prompt(t('deals_prompt_title'));if(!title)return;
+  const value=prompt(t('deals_prompt_value'),'4999');
   api('/deals',{method:'POST',body:{lead_id:parseInt(leadId),title,value:parseFloat(value||'0')}}).then(()=>{toast('Deal created');pgDeals(vp());});
 }
 
@@ -1163,21 +1296,21 @@ function promptNewDeal(){
 async function pgFollowUps(el){
   const [pending,sent]=await Promise.all([api('/follow-ups?status=pending'),api('/follow-ups?status=sent')]);
   el.innerHTML=`
-    <div class="page-title">Follow-ups</div>
-    <div class="section-label">Pending (${pending.items.length})</div>
+    <div class="page-title">${t('fu_title')}</div>
+    <div class="section-label">${t('fu_pending')} (${pending.items.length})</div>
     <div class="card mb-16"><div class="card-body flush" style="max-height:40vh;overflow:auto">
-      <table class="tbl"><thead><tr><th>Lead</th><th>Step</th><th>Scheduled</th><th></th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>${t('fu_lead')}</th><th>${t('fu_step')}</th><th>${t('fu_scheduled')}</th><th></th></tr></thead><tbody>
       ${pending.items.map(f=>`<tr>
         <td><strong>${esc(f.lead_name||'—')}</strong><br><span class="dim" style="font-size:10px">${esc(f.lead_headline||'')}</span></td>
         <td class="mono">#${f.step}</td>
         <td class="mono dim">${fmtFull(f.scheduled_for)}</td>
-        <td><button class="btn sm danger" onclick="cancelFollowUp(${f.id})">Cancel</button></td>
+        <td><button class="btn sm danger" onclick="cancelFollowUp(${f.id})">${t('fu_cancel')}</button></td>
       </tr>`).join('')}
       </tbody></table>
     </div></div>
-    <div class="section-label">Sent (${sent.items.length})</div>
+    <div class="section-label">${t('fu_sent')} (${sent.items.length})</div>
     <div class="card"><div class="card-body flush" style="max-height:40vh;overflow:auto">
-      <table class="tbl"><thead><tr><th>Lead</th><th>Step</th><th>Sent</th><th>Message</th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>${t('fu_lead')}</th><th>${t('fu_step')}</th><th>${t('fu_sent')}</th><th>${t('fu_message')}</th></tr></thead><tbody>
       ${sent.items.map(f=>`<tr>
         <td><strong>${esc(f.lead_name||'—')}</strong></td>
         <td class="mono">#${f.step}</td>
@@ -1189,7 +1322,7 @@ async function pgFollowUps(el){
 }
 async function cancelFollowUp(id){
   await api('/follow-ups/'+id,{method:'PATCH',body:{status:'cancelled'}});
-  toast('Follow-up cancelled');pgFollowUps(vp());
+  toast(t('fu_cancel'));pgFollowUps(vp());
 }
 
 /* ── AUTH ── */
@@ -1208,7 +1341,7 @@ async function checkAuth(){
 checkAuth();
 document.querySelectorAll('.rail a').forEach(x=>x.classList.remove('active'));
 document.querySelector(`.rail a[data-p="${page}"]`)?.classList.add('active');
-$('crumb').innerHTML='<b>'+page.charAt(0).toUpperCase()+page.slice(1)+'</b>';
+applyLang();
 render();
 </script>
 </body>
