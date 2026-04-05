@@ -10,6 +10,40 @@ const JWT_SECRET = appConfig.dashboardApiKey || "aipromo-default-secret";
 const TOKEN_EXPIRY = "7d";
 const COOKIE_NAME = "aipromo_token";
 
+// --- i18n error messages ---
+const messages = {
+  usernamePasswordRequired: {
+    en: "Username and password required",
+    uk: "Ім'я користувача та пароль обов'язкові",
+  },
+  invalidCredentials: {
+    en: "Invalid credentials",
+    uk: "Невірні дані для входу",
+  },
+  notAuthenticated: {
+    en: "Not authenticated",
+    uk: "Не авторизований",
+  },
+  sessionExpired: {
+    en: "Session expired",
+    uk: "Сесія закінчилась",
+  },
+} as const;
+
+type MsgKey = keyof typeof messages;
+
+function getLang(req: Request): "en" | "uk" {
+  const queryLang = (req.query.lang as string) || "";
+  if (queryLang.startsWith("uk")) return "uk";
+  const acceptLang = (req.headers["accept-language"] as string) || "";
+  if (acceptLang.startsWith("uk")) return "uk";
+  return "en";
+}
+
+function t(req: Request, key: MsgKey): string {
+  return messages[key][getLang(req)];
+}
+
 // --- Seed default users ---
 export async function seedUsers() {
   const existing = await sql`SELECT COUNT(*) as count FROM users`;
@@ -42,14 +76,14 @@ function generatePassword(): string {
 // --- Login endpoint ---
 authRouter.post("/login", async (req: Request, res: Response) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: "Username and password required" });
+  if (!username || !password) return res.status(400).json({ error: t(req, "usernamePasswordRequired") });
 
   const users = await sql`SELECT * FROM users WHERE username = ${username}`;
-  if (users.length === 0) return res.status(401).json({ error: "Invalid credentials" });
+  if (users.length === 0) return res.status(401).json({ error: t(req, "invalidCredentials") });
 
   const user = users[0];
   const valid = await bcrypt.compare(password, user.password_hash);
-  if (!valid) return res.status(401).json({ error: "Invalid credentials" });
+  if (!valid) return res.status(401).json({ error: t(req, "invalidCredentials") });
 
   const token = jwt.sign(
     { id: user.id, username: user.username, role: user.role, displayName: user.display_name },
@@ -70,7 +104,7 @@ authRouter.post("/logout", (_req: Request, res: Response) => {
 // --- Current user ---
 authRouter.get("/me", (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (!user) return res.status(401).json({ error: "Not authenticated" });
+  if (!user) return res.status(401).json({ error: t(req, "notAuthenticated") });
   res.json(user);
 });
 
@@ -89,7 +123,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
   // Check JWT cookie
   const token = req.cookies?.[COOKIE_NAME];
-  if (!token) return res.status(401).json({ error: "Not authenticated" });
+  if (!token) return res.status(401).json({ error: t(req, "notAuthenticated") });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
@@ -97,6 +131,6 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     next();
   } catch {
     res.clearCookie(COOKIE_NAME);
-    res.status(401).json({ error: "Session expired" });
+    res.status(401).json({ error: t(req, "sessionExpired") });
   }
 }

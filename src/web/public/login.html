@@ -43,10 +43,26 @@
     .btn:hover { opacity: 0.9; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .error { color: var(--red); font-size: 12px; margin-top: 12px; min-height: 18px; }
+    .lang-toggle {
+      position: absolute; top: 16px; right: 16px; display: flex; gap: 0;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+      border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+    }
+    .lang-toggle button {
+      background: transparent; border: none; color: var(--text3); padding: 4px 10px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+      transition: background 0.15s, color 0.15s;
+    }
+    .lang-toggle button.active { background: var(--amber); color: var(--bg); }
+    .lang-toggle button:not(.active):hover { color: var(--text); }
   </style>
 </head>
 <body>
   <div class="login-card">
+    <div class="lang-toggle">
+      <button id="lang-en" onclick="setLang('en')">EN</button>
+      <button id="lang-ua" onclick="setLang('ua')">UA</button>
+    </div>
     <div class="logo">aipromo</div>
     <div class="subtitle">LinkedIn Lead Automation</div>
     <form id="login-form">
@@ -63,12 +79,58 @@
     </form>
   </div>
   <script>
+    const i18n = {
+      en: {
+        subtitle: 'LinkedIn Lead Automation',
+        username: 'Username',
+        password: 'Password',
+        signIn: 'Sign In',
+        signingIn: 'Signing in...',
+        required: 'Username and password required',
+        invalid: 'Invalid credentials',
+        connError: 'Connection error',
+      },
+      ua: {
+        subtitle: 'Автоматизація лідів LinkedIn',
+        username: "Ім'я користувача",
+        password: 'Пароль',
+        signIn: 'Увійти',
+        signingIn: 'Входжу...',
+        required: "Ім'я користувача та пароль обов'язкові",
+        invalid: 'Невірні дані',
+        connError: "Помилка з'єднання",
+      }
+    };
+
+    let currentLang = localStorage.getItem('lang') || 'ua';
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('lang', lang);
+      applyLang();
+    }
+
+    function applyLang() {
+      const t = i18n[currentLang];
+      document.querySelector('.subtitle').textContent = t.subtitle;
+      document.querySelectorAll('.field label')[0].textContent = t.username;
+      document.querySelectorAll('.field label')[1].textContent = t.password;
+      const btn = document.getElementById('submit-btn');
+      if (!btn.disabled) btn.textContent = t.signIn;
+      document.getElementById('lang-en').classList.toggle('active', currentLang === 'en');
+      document.getElementById('lang-ua').classList.toggle('active', currentLang === 'ua');
+    }
+
+    function t(key) { return i18n[currentLang][key]; }
+
+    applyLang();
+
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('submit-btn');
       const err = document.getElementById('error');
       btn.disabled = true;
-      btn.textContent = 'Signing in...';
+      btn.textContent = t('signingIn');
       err.textContent = '';
 
       try {
@@ -84,13 +146,13 @@
         if (r.ok) {
           window.location.href = '/dashboard';
         } else {
-          err.textContent = data.error || 'Login failed';
+          err.textContent = data.error === 'Invalid credentials' ? t('invalid') : (data.error || t('invalid'));
         }
       } catch (e) {
-        err.textContent = 'Connection error';
+        err.textContent = t('connError');
       }
       btn.disabled = false;
-      btn.textContent = 'Sign In';
+      btn.textContent = t('signIn');
     });
 
     // Redirect if already logged in
