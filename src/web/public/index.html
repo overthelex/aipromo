@@ -865,9 +865,11 @@ async function pgOutreach(el){
     <div id="outreach-tbl" style="max-height:calc(100vh - 120px);overflow-y:auto"></div>`;
   await loadTimeline();
 }
+let _timelineData=null;
 async function loadTimeline(){
   const acc=$('ot-acc')?.value||'ihor';
   const d=await api('/outreach/timeline?account='+acc);
+  _timelineData=d;
   const s=d.stats;
   $('outreach-tbl').innerHTML=`
     <div class="kpi-row mb-16">
@@ -883,14 +885,14 @@ async function loadTimeline(){
       <table class="tbl" style="table-layout:fixed"><thead><tr>
         <th style="width:70px">${t('th_status')}</th><th style="width:170px">${t('th_lead')}</th><th style="width:100px">${t('th_campaign')}</th><th>${t('th_message')}</th><th style="width:130px">${t('th_date')}</th>
       </tr></thead><tbody>
-      ${d.past.map(o=>`<tr>
+      ${d.past.map((o,idx)=>`<tr style="cursor:pointer" onclick="showOutreachDetail('past',${idx})">
         <td><span class="status-dot ${o.status==='sent'?'green':o.status==='failed'?'red':'amber'}"></span><span style="font-size:11px">${o.status}</span></td>
         <td>
           <strong style="font-size:12px">${esc(o.lead_name||'—')}</strong>
           <div class="trunc dim" style="font-size:10px;margin-top:2px">${esc(o.lead_headline||'')}</div>
         </td>
         <td><span class="tag" style="font-size:9px">${esc(o.campaign_name||'')}</span></td>
-        <td class="trunc" style="cursor:pointer;color:var(--text2)" onclick="modal('Message to '+${JSON.stringify(esc(o.lead_name||''))},\`<div style='font-size:12px;line-height:1.6;white-space:pre-wrap;color:var(--text)'>\`+esc(\`${(o.message_text||'').replace(/`/g,"'")}\`)+\`</div>\`)">${esc((o.message_text||'').slice(0,100))}</td>
+        <td class="trunc" style="color:var(--text2)">${esc((o.message_text||'').slice(0,100))}</td>
         <td class="mono dim nowrap" style="font-size:10px">${o.sent_at?fmtFull(o.sent_at):fmtFull(o.scheduled_at)}</td>
       </tr>`).join('')}
       </tbody></table>
@@ -902,12 +904,12 @@ async function loadTimeline(){
       <table class="tbl" style="table-layout:fixed"><thead><tr>
         <th style="width:70px">${t('th_status')}</th><th style="width:170px">${t('th_lead')}</th><th>Headline</th><th style="width:130px">${t('th_location')}</th><th style="width:130px">${t('th_tags')}</th>
       </tr></thead><tbody>
-      ${d.future.map(l=>`<tr>
+      ${d.future.map((l,idx)=>`<tr style="cursor:pointer" onclick="showOutreachDetail('future',${idx})">
         <td><span class="status-dot amber"></span><span style="font-size:11px;color:var(--amber)">queued</span></td>
         <td><strong style="font-size:12px">${esc(l.lead_name||'—')}</strong></td>
         <td class="trunc dim">${esc(l.lead_headline||'')}</td>
         <td class="dim nowrap" style="font-size:11px">${esc(l.lead_location||'')}</td>
-        <td>${(l.lead_tags||'').split(',').filter(t=>t).map(t=>`<span class="tag" style="font-size:9px">${t}</span> `).join('')}</td>
+        <td>${(l.lead_tags||'').split(',').filter(tg=>tg).map(tg=>`<span class="tag" style="font-size:9px">${tg}</span> `).join('')}</td>
       </tr>`).join('')}
       </tbody></table>
     </div></div>`:`
@@ -915,6 +917,42 @@ async function loadTimeline(){
       ${t('ot_no_upcoming')}
     </div></div>`}
   `;
+}
+function showOutreachDetail(type,idx){
+  if(!_timelineData)return;
+  if(type==='past'){
+    const o=_timelineData.past[idx];
+    if(!o)return;
+    const statusColor=o.status==='sent'?'teal':o.status==='failed'?'red':'amber';
+    modal(esc(o.lead_name||'Outreach'),`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;margin-bottom:16px">
+        <div><span class="dim">${t('th_status')}</span><br><span class="tag ${statusColor}">${o.status}</span></div>
+        <div><span class="dim">${t('th_campaign')}</span><br>${esc(o.campaign_name||'—')}</div>
+        <div><span class="dim">${t('th_lead')}</span><br><strong>${esc(o.lead_name||'—')}</strong></div>
+        <div><span class="dim">Headline</span><br>${esc(o.lead_headline||'—')}</div>
+        <div><span class="dim">${t('th_location')}</span><br>${esc(o.lead_location||'—')}</div>
+        <div><span class="dim">${t('th_date')}</span><br>${fmtFull(o.sent_at||o.scheduled_at)}</div>
+        ${o.message_angle?`<div><span class="dim">Angle</span><br><span class="tag">${esc(o.message_angle)}</span></div>`:''}
+        ${o.linkedin_id?`<div><span class="dim">LinkedIn ID</span><br><span class="mono dim" style="font-size:10px">${esc(o.linkedin_id)}</span></div>`:''}
+      </div>
+      <div class="section-label">${t('th_message')}</div>
+      <div style="font-size:12px;line-height:1.6;white-space:pre-wrap;color:var(--text);background:var(--bg2);padding:12px;border-radius:6px;max-height:300px;overflow:auto">${esc(o.message_text||'—')}</div>
+      ${o.lead_tags?`<div style="margin-top:12px">${o.lead_tags.split(',').filter(tg=>tg).map(tg=>'<span class="tag" style="margin-right:4px">'+tg+'</span>').join('')}</div>`:''}
+    `);
+  } else {
+    const l=_timelineData.future[idx];
+    if(!l)return;
+    modal(esc(l.lead_name||'Lead'),`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;margin-bottom:16px">
+        <div><span class="dim">${t('th_status')}</span><br><span class="tag amber">queued</span></div>
+        <div><span class="dim">${t('th_lead')}</span><br><strong>${esc(l.lead_name||'—')}</strong></div>
+        <div><span class="dim">Headline</span><br>${esc(l.lead_headline||'—')}</div>
+        <div><span class="dim">${t('th_location')}</span><br>${esc(l.lead_location||'—')}</div>
+        ${l.linkedin_id?`<div><span class="dim">LinkedIn ID</span><br><span class="mono dim" style="font-size:10px">${esc(l.linkedin_id)}</span></div>`:''}
+      </div>
+      ${l.lead_tags?`<div class="section-label">${t('th_tags')}</div><div>${l.lead_tags.split(',').filter(tg=>tg).map(tg=>'<span class="tag" style="margin-right:4px">'+tg+'</span>').join('')}</div>`:''}
+    `);
+  }
 }
 
 /* ═══════════════ CAMPAIGNS ═══════════════ */
