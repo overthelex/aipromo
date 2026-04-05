@@ -3,9 +3,12 @@ import { createServer, IncomingMessage } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
+import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
 import { sql, initDatabase, closeDatabase } from "./storage/store.js";
 import { logger } from "./utils/logger.js";
 import { apiRouter } from "./web/api.js";
+import { authRouter, authMiddleware, seedUsers } from "./web/auth.js";
 import { appConfig } from "./config.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -17,16 +20,28 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
 const clients = new Set<WebSocket>();
 
+const JWT_SECRET = appConfig.dashboardApiKey || "aipromo-default-secret";
+
 wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
-  // Auth check for WS
-  if (appConfig.dashboardApiKey) {
-    const url = new URL(req.url || "", `http://${req.headers.host}`);
-    const key = url.searchParams.get("key");
-    if (key !== appConfig.dashboardApiKey) {
-      ws.close(4001, "Unauthorized");
-      return;
-    }
+  // Auth: check JWT from cookie or API key from query
+  const cookies = req.headers.cookie?.split(";").reduce((acc, c) => {
+    const [k, v] = c.trim().split("=");
+    acc[k] = v;
+    return acc;
+  }, {} as Record<string, string>) || {};
+
+  const token = cookies["aipromo_token"];
+  const url = new URL(req.url || "", `http://${req.headers.host}`);
+  const apiKey = url.searchParams.get("key");
+
+  let authed = false;
+  if (token) {
+    try { jwt.verify(token, JWT_SECRET); authed = true; } catch {}
   }
+  if (!authed && apiKey && appConfig.dashboardApiKey && apiKey === appConfig.dashboardApiKey) authed = true;
+
+  if (!authed) { ws.close(4001, "Unauthorized"); return; }
+
   clients.add(ws);
   ws.on("close", () => clients.delete(ws));
   ws.on("error", () => clients.delete(ws));
@@ -46,17 +61,21 @@ function broadcast(event: string, payload?: Record<string, unknown>) {
 export { broadcast };
 
 app.use(express.json());
+app.use(cookieParser());
 
-// --- API Auth Middleware ---
-app.use("/api", (req, res, next) => {
-  if (!appConfig.dashboardApiKey) return next(); // skip auth if no key configured
-  const key = req.headers["x-api-key"] as string;
-  if (key === appConfig.dashboardApiKey) return next();
-  res.status(401).json({ error: "Unauthorized" });
-});
+// Auth routes (login/logout/me)
+app.use("/auth", authRouter);
+
+// Auth middleware for all /api routes
+app.use(authMiddleware);
 
 // API routes
 app.use("/api", apiRouter);
+
+// Login page
+app.get("/login", (_req, res) => {
+  res.sendFile(join(__dirname, "web/public/login.html"));
+});
 
 // Serve static assets
 app.use(express.static(join(__dirname, "web/public")));
@@ -180,6 +199,7 @@ const PORT = parseInt(process.env.PORT ?? "8080", 10);
 
 async function start() {
   await initDatabase();
+  await seedUsers();
   server.listen(PORT, () => {
     logger.info({ port: PORT }, "aipromo server started (HTTP + WS)");
     console.log(`Server running on port ${PORT}`);
