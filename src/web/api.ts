@@ -212,7 +212,15 @@ apiRouter.get("/campaign/status", async (req, res) => {
 
 apiRouter.post("/campaign/run", async (req, res) => {
   const { account, day, maxLeads, maxMessages, dryRun } = req.body;
+
+  // Return immediately, run in background with WS progress
+  res.json({ status: "running" });
+
+  const log = (msg: string) => broadcast("campaign_log", { msg });
+
   try {
+    log(`Starting campaign day ${day || 1} for ${account}...`);
+
     const result = await runCampaignDay({
       accountAlias: account,
       dayNumber: day || 1,
@@ -220,9 +228,12 @@ apiRouter.post("/campaign/run", async (req, res) => {
       maxMessages: maxMessages || 20,
       dryRun: dryRun ?? true,
     });
-    res.json(result);
+
+    log(`Done! Searched: ${result.searched}, Sent: ${result.messaged}, Replied: ${result.replied}, Follow-ups: ${result.followUps}`);
+    broadcast("campaign_done", result);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    log(`Error: ${err.message}`);
+    broadcast("campaign_done", { error: err.message });
   }
 });
 

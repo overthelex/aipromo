@@ -502,6 +502,9 @@ function handleWSEvent(msg){
     if(page==='dashboard')pgDash(vp());
     toast('Sync complete',true);
   }
+  if(ev==='campaign_log'||ev==='campaign_done'){
+    if(window._campaignLogHandler)window._campaignLogHandler(msg);
+  }
 }
 connectWS();
 
@@ -940,7 +943,7 @@ async function pgCamp(el){
         <div class="field" style="max-width:80px"><label>${t('cp_msgs')}</label><input type="number" id="cr-msgs" value="40"></div>
         <div class="field"><label>&nbsp;</label><div class="btn-group"><button class="btn" onclick="runDay(true)">${t('cp_dry')}</button><button class="btn primary" onclick="runDay(false)">${t('cp_execute')}</button></div></div>
       </div>
-      <div id="cr-result" style="font-family:var(--mono);font-size:11px;color:var(--text3)"></div>
+      <div id="cr-result" style="font-family:var(--mono);font-size:11px;color:var(--text3);max-height:300px;overflow-y:auto;white-space:pre-wrap"></div>
     </div></div>
     <div class="section-label mt-16">${t('cp_14day')}</div>
     <div class="card"><div class="card-body flush">
@@ -952,13 +955,30 @@ async function pgCamp(el){
 async function toggleCampaign(id,status){
   await api(`/campaigns/${id}`,{method:'PATCH',body:{status}});toast(`Campaign ${status}`);pgCamp(vp());
 }
+let _campaignRunning=false;
 async function runDay(dry){
-  $('cr-result').textContent='Running...';
-  const r=await api('/campaign/run',{method:'POST',body:{
+  if(_campaignRunning){toast('Campaign already running',false);return;}
+  _campaignRunning=true;
+  const el=$('cr-result');
+  el.textContent='Starting...\n';
+
+  // Listen for WS campaign logs
+  window._campaignLogHandler=(msg)=>{
+    if(msg.event==='campaign_log'){
+      el.textContent+=msg.msg+'\n';
+      el.scrollTop=el.scrollHeight;
+    }
+    if(msg.event==='campaign_done'){
+      _campaignRunning=false;
+      if(msg.error){el.textContent+='\n❌ Error: '+msg.error+'\n';}
+      else{el.textContent+=`\n✅ Done! Searched: ${msg.searched}, Sent: ${msg.messaged}, Replied: ${msg.replied}, Follow-ups: ${msg.followUps}\n`;}
+      toast(msg.error?'Campaign error':'Campaign completed');
+    }
+  };
+
+  await api('/campaign/run',{method:'POST',body:{
     account:$('cr-acc').value,day:+$('cr-day').value,maxLeads:+$('cr-leads').value,maxMessages:+$('cr-msgs').value,dryRun:dry
   }});
-  $('cr-result').textContent=r.error?'Error: '+r.error:`Done — Found: ${r.searched}, Sent: ${r.messaged}, Replied: ${r.replied}`;
-  if(!r.error)toast(dry?'Dry run complete':'Campaign day executed');
 }
 function showNewCampaign(){
   modal(t('cp_new'),`

@@ -12,6 +12,12 @@ import {
 } from "../utils/rate-limiter.js";
 import { appConfig } from "../config.js";
 import { logger } from "../utils/logger.js";
+import { broadcast } from "../server.js";
+
+function clog(msg: string) {
+  console.log(msg);
+  broadcast("campaign_log", { msg: msg.replace(/\x1b\[[0-9;]*m/g, "") }); // strip ANSI colors
+}
 import {
   CAMPAIGN_NAME,
   PRODUCT_CONTEXT,
@@ -123,12 +129,12 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
 
   const dayQuery = DAILY_SEARCH_QUERIES[(opts.dayNumber - 1) % DAILY_SEARCH_QUERIES.length];
 
-  console.log(chalk.bold(`\n=== Campaign Day ${opts.dayNumber} ===`));
-  console.log(chalk.dim(`Search: "${dayQuery.keywords}" | Title: "${dayQuery.title}"`));
-  console.log(chalk.dim(`Optimal hour: ${isOptimalHour() ? "YES" : "NO (sending anyway)"}\n`));
+  clog(chalk.bold(`\n=== Campaign Day ${opts.dayNumber} ===`));
+  clog(chalk.dim(`Search: "${dayQuery.keywords}" | Title: "${dayQuery.title}"`));
+  clog(chalk.dim(`Optimal hour: ${isOptimalHour() ? "YES" : "NO (sending anyway)"}\n`));
 
   // --- Phase 1: Search new leads ---
-  console.log(chalk.bold("Phase 1: Searching new leads...\n"));
+  clog(chalk.bold("Phase 1: Searching new leads...\n"));
 
   const searchResults = await searchLeads({
     accountAlias: opts.accountAlias,
@@ -140,10 +146,10 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     tag: `campaign-${CAMPAIGN_NAME}-d${opts.dayNumber}`,
   });
 
-  console.log(chalk.green(`  Found ${searchResults.length} new leads\n`));
+  clog(chalk.green(`  Found ${searchResults.length} new leads\n`));
 
   // --- Phase 2: Send outreach to unsent leads ---
-  console.log(chalk.bold("Phase 2: Sending outreach messages...\n"));
+  clog(chalk.bold("Phase 2: Sending outreach messages...\n"));
 
   // Get leads tagged for this campaign that:
   // 1. Haven't been messaged in ANY campaign
@@ -185,13 +191,13 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
 
     const canSend = await checkAndIncrementDaily(accountId, "message", appConfig.maxMessagesPerDay);
     if (!canSend) {
-      console.log(chalk.yellow(`  Daily limit reached (${appConfig.maxMessagesPerDay}). Stopping outreach.`));
+      clog(chalk.yellow(`  Daily limit reached (${appConfig.maxMessagesPerDay}). Stopping outreach.`));
       break;
     }
 
     // Per-minute throttle (max 5 messages/minute to avoid LinkedIn detection)
     if (!checkPerMinuteLimit(`msg:${accountId}`, 5)) {
-      console.log(chalk.dim("  Throttling (5/min limit)... waiting 30s"));
+      clog(chalk.dim("  Throttling (5/min limit)... waiting 30s"));
       await sleep(30000);
     }
 
@@ -257,7 +263,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
           ON CONFLICT (message_id) DO NOTHING
         `;
 
-        console.log(chalk.green(`  ✓ ${profile.name} [${angle}]`));
+        clog(chalk.green(`  ✓ ${profile.name} [${angle}]`));
         await sleep(randomDelay(10, 25));
       } catch (err: any) {
         // If direct message fails (unreachable), try connection request with note
@@ -273,28 +279,28 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
               sentCount++;
               await sql`UPDATE outreach_queue SET status = 'sent', message_text = ${note}, sent_at = NOW() WHERE id = ${queued.id}`;
               await sql`UPDATE leads SET status = 'contacted' WHERE id = ${lead.id} AND status = 'prospect'`;
-              console.log(chalk.yellow(`  → ${profile.name} [invitation + note]`));
+              clog(chalk.yellow(`  → ${profile.name} [invitation + note]`));
               invSent = true;
             } catch (invErr: any) {
               if (retry === 1) {
                 await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${queued.id}`;
-                console.log(chalk.red(`  ✗ ${profile.name}: ${invErr.message}`));
+                clog(chalk.red(`  ✗ ${profile.name}: ${invErr.message}`));
               }
             }
           }
           if (invSent) await sleep(randomDelay(10, 25));
         } else {
           await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${queued.id}`;
-          console.log(chalk.red(`  ✗ ${profile.name}: ${err.message}`));
+          clog(chalk.red(`  ✗ ${profile.name}: ${err.message}`));
         }
       }
     }
   }
 
-  console.log(chalk.bold(`\n  Outreach: ${opts.dryRun ? leadsToMessage.length + " previewed" : sentCount + " sent"}\n`));
+  clog(chalk.bold(`\n  Outreach: ${opts.dryRun ? leadsToMessage.length + " previewed" : sentCount + " sent"}\n`));
 
   // --- Phase 3: Reply to incoming messages ---
-  console.log(chalk.bold("Phase 3: Processing incoming replies...\n"));
+  clog(chalk.bold("Phase 3: Processing incoming replies...\n"));
 
   let repliedCount = 0;
   const chatsPage = await unipile.getChats();
@@ -372,24 +378,24 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         // Mark as read after reply
         await sql`UPDATE conversations SET unread_count = 0, status = 'read' WHERE chat_id = ${chat.id}`;
 
-        console.log(chalk.green(`  ↩ Replied to ${profile.name}`));
+        clog(chalk.green(`  ↩ Replied to ${profile.name}`));
         await sleep(randomDelay(8, 15));
       } catch (err: any) {
         logger.error({ lead: profile.name, error: err.message }, "Campaign reply failed");
-        console.log(chalk.red(`  ✗ Reply failed for ${profile.name}: ${err.message}`));
+        clog(chalk.red(`  ✗ Reply failed for ${profile.name}: ${err.message}`));
       }
     }
   }
 
-  console.log(chalk.bold(`\n  Replies: ${opts.dryRun ? "preview mode" : repliedCount + " sent"}`));
+  clog(chalk.bold(`\n  Replies: ${opts.dryRun ? "preview mode" : repliedCount + " sent"}`));
 
   // --- Phase 4: Process due follow-ups ---
   let followUpCount = 0;
   if (!opts.dryRun) {
-    console.log(chalk.bold("\nPhase 4: Processing follow-ups...\n"));
+    clog(chalk.bold("\nPhase 4: Processing follow-ups...\n"));
     const { processDueFollowUps } = await import("../core/follow-ups.js");
     followUpCount = await processDueFollowUps(opts.accountAlias);
-    console.log(chalk.bold(`\n  Follow-ups: ${followUpCount} sent`));
+    clog(chalk.bold(`\n  Follow-ups: ${followUpCount} sent`));
   }
 
   return {
