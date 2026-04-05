@@ -315,13 +315,6 @@
 
 <script>
 const A='/api';
-/* ── i18n ── */
-let lang=localStorage.getItem('lang')||'en';
-const i18n={
-  en:{leads:'Leads',conversations:'Conversations',messages:'Messages',posts:'Posts',sentToday:'Sent Today',campaignLeads:'Campaign Leads',outreachSent:'Outreach Sent',unread:'Unread',accounts:'Accounts',alias:'Alias',name:'Name',id:'ID'},
-  ua:{leads:'Ліди',conversations:'Переписки',messages:'Повідомлення',posts:'Пости',sentToday:'Відправлено сьогодні',campaignLeads:'Ліди кампанії',outreachSent:'Розсилка відправлена',unread:'Непрочитані',accounts:'Акаунти',alias:'Псевдонім',name:"Ім'я",id:'ID'}
-};
-function t(k){return (i18n[lang]&&i18n[lang][k])||k;}
 const PAGES=['dashboard','leads','conversations','messages','outreach','campaigns','posts','search','sync','activity','analytics','pipeline','deals','follow-ups'];
 function pageFromPath(){const p=window.location.pathname.replace(/^\//,'');return PAGES.includes(p)?p:'dashboard';}
 let page=pageFromPath();
@@ -329,6 +322,8 @@ let page=pageFromPath();
 /* ── i18n ── */
 const i18n = {
   en: {
+    sentToday:'Sent Today', campaignLeads:'Campaign Leads', outreachSent:'Outreach Sent', unread:'Unread',
+    accounts:'Accounts', alias:'Alias', name:'Name', id:'ID',
     dashboard:'Dashboard', leads:'Leads', conversations:'Conversations', messages:'All Messages',
     outreach:'Outreach Queue', campaigns:'Campaigns', posts:'Posts', search:'Search',
     pipeline:'Pipeline', analytics:'Analytics', deals:'Deals', 'follow-ups':'Follow-ups',
@@ -378,6 +373,8 @@ const i18n = {
     outreach:'Розсилка', campaigns:'Кампанії', posts:'Пости', search:'Пошук',
     pipeline:'Воронка', analytics:'Аналітика', deals:'Угоди', 'follow-ups':'Фоллоу-апи',
     sync:'Синхронізація', activity:'Активність', logout:'Вийти',
+    sentToday:'Відправлено сьогодні', campaignLeads:'Ліди кампанії', outreachSent:'Розсилка відправлена', unread:'Непрочитані',
+    accounts:'Акаунти', alias:'Псевдонім', name:"Ім'я", id:'ID',
     conv_all:'Всі', conv_unread:'Непрочитані', conv_select:'Оберіть переписку',
     conv_new:'нових', conv_conversation:'Переписка', conv_ai_draft:'AI Чернетка',
     conv_placeholder:'Введіть відповідь...', conv_send:'Відправити', conv_sending:'Відправляю...',
