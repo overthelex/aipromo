@@ -504,6 +504,18 @@ function handleWSEvent(msg){
   }
   if(ev==='campaign_log'||ev==='campaign_done'){
     if(window._campaignLogHandler)window._campaignLogHandler(msg);
+    if(ev==='campaign_done'){
+      if(page==='outreach')loadTimeline();
+      if(page==='campaigns')pgCamp(vp());
+      if(page==='pipeline')pgPipeline(vp());
+      if(page==='analytics')pgAnalytics(vp());
+      if(page==='dashboard')pgDash(vp());
+      if(page==='follow-ups')pgFollowUps(vp());
+    }
+  }
+  if(ev==='lead_status'){
+    if(page==='pipeline')pgPipeline(vp());
+    if(page==='leads')loadLeads();
   }
 }
 connectWS();
