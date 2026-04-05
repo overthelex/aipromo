@@ -364,6 +364,30 @@ apiRouter.get("/outreach", async (req, res) => {
   res.json({ items: rows, total: Number(total.count) });
 });
 
+// Update outreach item status
+apiRouter.patch("/outreach/:id", async (req, res) => {
+  const { status } = req.body;
+  const valid = ['pending', 'sent', 'failed'];
+  if (!valid.includes(status)) return res.status(400).json({ error: `Invalid status. Valid: ${valid.join(', ')}` });
+  await sql`UPDATE outreach_queue SET status = ${status}, sent_at = ${status === 'sent' ? sql`NOW()` : sql`NULL`} WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
+// Delete outreach item
+apiRouter.delete("/outreach/:id", async (req, res) => {
+  await sql`DELETE FROM outreach_queue WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
+// Retry outreach item (reset to pending)
+apiRouter.post("/outreach/:id/retry", async (req, res) => {
+  await sql`UPDATE outreach_queue SET status = 'pending', sent_at = NULL WHERE id = ${req.params.id}`;
+  // Also reset lead status back to prospect so it's eligible
+  const [oq] = await sql`SELECT lead_id FROM outreach_queue WHERE id = ${req.params.id}`;
+  if (oq) await sql`UPDATE leads SET status = 'prospect' WHERE id = ${oq.lead_id} AND status IN ('contacted', 'rejected')`;
+  res.json({ ok: true });
+});
+
 // --- Outreach Timeline (past + future) ---
 apiRouter.get("/outreach/timeline", async (req, res) => {
   const campaignId = req.query.campaign as string;

@@ -236,6 +236,19 @@
     .tabs .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
     .msg-filter-btn.active { background: var(--amber); color: var(--bg); border-color: var(--amber); }
 
+    /* Context menu */
+    .ctx-menu {
+      position: fixed; z-index: 300; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 4px 0; min-width: 180px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      animation: slideUp 0.12s;
+    }
+    .ctx-menu .ctx-item {
+      padding: 8px 16px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    }
+    .ctx-menu .ctx-item:hover { background: var(--surface2); }
+    .ctx-menu .ctx-item.danger { color: var(--red); }
+    .ctx-menu .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
     /* Conversation list items */
     .conv-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; border-left: 3px solid transparent; }
     .conv-item:hover { background: var(--surface2); }
@@ -885,7 +898,7 @@ async function loadTimeline(){
       <table class="tbl" style="table-layout:fixed"><thead><tr>
         <th style="width:70px">${t('th_status')}</th><th style="width:170px">${t('th_lead')}</th><th style="width:100px">${t('th_campaign')}</th><th>${t('th_message')}</th><th style="width:130px">${t('th_date')}</th>
       </tr></thead><tbody>
-      ${d.past.map((o,idx)=>`<tr style="cursor:pointer" onclick="showOutreachDetail('past',${idx})">
+      ${d.past.map((o,idx)=>`<tr style="cursor:pointer" onclick="showOutreachDetail('past',${idx})" oncontextmenu="showOutreachMenu(event,${o.id},'${o.status}')">
         <td><span class="status-dot ${o.status==='sent'?'green':o.status==='failed'?'red':'amber'}"></span><span style="font-size:11px">${o.status}</span></td>
         <td>
           <strong style="font-size:12px">${esc(o.lead_name||'—')}</strong>
@@ -953,6 +966,64 @@ function showOutreachDetail(type,idx){
       ${l.lead_tags?`<div class="section-label">${t('th_tags')}</div><div>${l.lead_tags.split(',').filter(tg=>tg).map(tg=>'<span class="tag" style="margin-right:4px">'+tg+'</span>').join('')}</div>`:''}
     `);
   }
+}
+
+function showOutreachMenu(e,id,status){
+  e.preventDefault();
+  e.stopPropagation();
+  // Remove existing menu
+  document.querySelector('.ctx-menu')?.remove();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+
+  const items=[];
+  if(status==='failed'){
+    items.push({label:'↻ Retry (re-queue)',action:()=>outreachAction(id,'retry')});
+    items.push({label:'✓ Mark as sent',action:()=>outreachAction(id,'status','sent')});
+  }
+  if(status==='sent'){
+    items.push({label:'↻ Re-queue (send again)',action:()=>outreachAction(id,'retry')});
+    items.push({label:'✗ Mark as failed',action:()=>outreachAction(id,'status','failed')});
+  }
+  if(status==='pending'){
+    items.push({label:'✓ Mark as sent',action:()=>outreachAction(id,'status','sent')});
+    items.push({label:'✗ Mark as failed',action:()=>outreachAction(id,'status','failed')});
+  }
+  items.push({sep:true});
+  items.push({label:'🗑 Delete',action:()=>outreachAction(id,'delete'),danger:true});
+
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='ctx-sep';menu.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+
+  document.body.appendChild(menu);
+  // Close on click outside
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
+}
+
+async function outreachAction(id,action,value){
+  if(action==='delete'){
+    if(!confirm('Delete this outreach item?'))return;
+    await api('/outreach/'+id,{method:'DELETE'});
+    toast('Deleted');
+  } else if(action==='retry'){
+    await api('/outreach/'+id+'/retry',{method:'POST'});
+    toast('Re-queued for retry');
+  } else if(action==='status'){
+    await api('/outreach/'+id,{method:'PATCH',body:{status:value}});
+    toast('Status → '+value);
+  }
+  loadTimeline();
 }
 
 /* ═══════════════ CAMPAIGNS ═══════════════ */
