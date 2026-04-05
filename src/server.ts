@@ -14,6 +14,7 @@ import { appConfig } from "./config.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+app.set("trust proxy", true); // Cloud Run terminates SSL
 const server = createServer(app);
 
 // --- WebSocket ---

@@ -91,7 +91,8 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     { expiresIn: TOKEN_EXPIRY }
   );
 
-  res.cookie(COOKIE_NAME, token, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 7 * 24 * 60 * 60 * 1000 });
+  const isSecure = req.protocol === "https" || req.get("x-forwarded-proto") === "https";
+  res.cookie(COOKIE_NAME, token, { httpOnly: true, secure: isSecure, sameSite: "lax", maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.json({ ok: true, user: { username: user.username, displayName: user.display_name, role: user.role } });
 });
 
