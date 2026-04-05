@@ -1743,26 +1743,26 @@ async function pgAnalytics(el){
     <div class="page-title">${t('an_title')}</div>
     <div class="section-label">${t('an_funnel')}</div>
     <div class="kpi-row mb-16">
-      <div class="kpi amber"><div class="num">${f.contacted}</div><div class="lbl">${t('st_contacted')}</div></div>
-      <div class="kpi teal"><div class="num">${f.responded}</div><div class="lbl">${t('st_responded')}</div></div>
-      <div class="kpi blue"><div class="num">${f.interested}</div><div class="lbl">${t('st_interested')}</div></div>
-      <div class="kpi blue"><div class="num">${f.demo}</div><div class="lbl">${t('st_demo')}</div></div>
-      <div class="kpi teal"><div class="num">${f.customer}</div><div class="lbl">${t('st_customer')}</div></div>
-      <div class="kpi red"><div class="num">${f.rejected}</div><div class="lbl">${t('st_rejected')}</div></div>
+      <div class="kpi amber" style="cursor:pointer" onclick="navigate('pipeline');setTimeout(()=>{},100)"><div class="num">${f.contacted}</div><div class="lbl">${t('st_contacted')}</div></div>
+      <div class="kpi teal" style="cursor:pointer" onclick="navigate('pipeline')"><div class="num">${f.responded}</div><div class="lbl">${t('st_responded')}</div></div>
+      <div class="kpi blue" style="cursor:pointer" onclick="navigate('pipeline')"><div class="num">${f.interested}</div><div class="lbl">${t('st_interested')}</div></div>
+      <div class="kpi blue" style="cursor:pointer" onclick="navigate('pipeline')"><div class="num">${f.demo}</div><div class="lbl">${t('st_demo')}</div></div>
+      <div class="kpi teal" style="cursor:pointer" onclick="navigate('deals')"><div class="num">${f.customer}</div><div class="lbl">${t('st_customer')}</div></div>
+      <div class="kpi red" style="cursor:pointer" onclick="navigate('pipeline')"><div class="num">${f.rejected}</div><div class="lbl">${t('st_rejected')}</div></div>
     </div>
 
     <div class="section-label">${t('an_outreach_perf')}</div>
     <div class="kpi-row mb-16">
-      <div class="kpi amber"><div class="num">${d.outreach.sent}</div><div class="lbl">Sent</div></div>
-      <div class="kpi red"><div class="num">${d.outreach.failed}</div><div class="lbl">Failed</div></div>
-      <div class="kpi teal"><div class="num">${d.replied}</div><div class="lbl">${t('an_replied')}</div></div>
+      <div class="kpi amber" style="cursor:pointer" onclick="navigate('outreach')"><div class="num">${d.outreach.sent}</div><div class="lbl">${t('ot_sent')}</div></div>
+      <div class="kpi red" style="cursor:pointer" onclick="navigate('outreach')"><div class="num">${d.outreach.failed}</div><div class="lbl">${t('ot_failed')}</div></div>
+      <div class="kpi teal" style="cursor:pointer" onclick="navigate('conversations')"><div class="num">${d.replied}</div><div class="lbl">${t('an_replied')}</div></div>
       <div class="kpi blue"><div class="num">${d.outreach.replyRate}%</div><div class="lbl">${t('an_reply_rate')}</div></div>
     </div>
 
     <div class="section-label">${t('an_perf_angle')}</div>
     <div class="card"><div class="card-body flush">
-      <table class="tbl"><thead><tr><th>${t('an_angle')}</th><th>Sent</th><th>${t('an_replied')}</th><th>${t('an_rate')}</th></tr></thead><tbody>
-      ${d.angleStats.map(a=>`<tr>
+      <table class="tbl"><thead><tr><th>${t('an_angle')}</th><th>${t('ot_sent')}</th><th>${t('an_replied')}</th><th>${t('an_rate')}</th></tr></thead><tbody>
+      ${d.angleStats.map(a=>`<tr style="cursor:pointer" onclick="navigate('outreach')">
         <td><span class="tag">${a.angle}</span></td>
         <td class="mono">${a.sent}</td>
         <td class="mono">${a.replied}</td>
@@ -1771,11 +1771,11 @@ async function pgAnalytics(el){
       </tbody></table>
     </div></div>
 
-    <div class="section-label mt-16">Follow-ups</div>
+    <div class="section-label mt-16">${t('fu_title')}</div>
     <div class="kpi-row">
-      <div class="kpi amber"><div class="num">${d.followUps.pending}</div><div class="lbl">Pending</div></div>
-      <div class="kpi teal"><div class="num">${d.followUps.sent}</div><div class="lbl">Sent</div></div>
-      <div class="kpi"><div class="num">${d.followUps.cancelled}</div><div class="lbl">Cancelled</div></div>
+      <div class="kpi amber" style="cursor:pointer" onclick="navigate('follow-ups')"><div class="num">${d.followUps.pending}</div><div class="lbl">${t('fu_pending')}</div></div>
+      <div class="kpi teal" style="cursor:pointer" onclick="navigate('follow-ups')"><div class="num">${d.followUps.sent}</div><div class="lbl">${t('fu_sent')}</div></div>
+      <div class="kpi" style="cursor:pointer" onclick="navigate('follow-ups')"><div class="num">${d.followUps.cancelled}</div><div class="lbl">${t('fu_cancel')}</div></div>
     </div>`;
 }
 
