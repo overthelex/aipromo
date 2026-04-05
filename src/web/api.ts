@@ -472,6 +472,35 @@ apiRouter.patch("/campaigns/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+apiRouter.get("/campaigns/:id", async (req, res) => {
+  const [campaign] = await sql`SELECT * FROM outreach_campaigns WHERE id = ${req.params.id}`;
+  if (!campaign) return res.status(404).json({ error: "Campaign not found" });
+
+  const queue = await sql`
+    SELECT oq.*, l.name as lead_name, l.headline as lead_headline
+    FROM outreach_queue oq
+    LEFT JOIN leads l ON oq.lead_id = l.id
+    WHERE oq.campaign_id = ${req.params.id}
+    ORDER BY COALESCE(oq.sent_at, oq.scheduled_at) DESC
+    LIMIT 100
+  `;
+  const [counts] = await sql`
+    SELECT
+      COUNT(*) as total,
+      COUNT(*) FILTER (WHERE status = 'sent') as sent,
+      COUNT(*) FILTER (WHERE status = 'failed') as failed,
+      COUNT(*) FILTER (WHERE status = 'pending') as pending
+    FROM outreach_queue WHERE campaign_id = ${req.params.id}
+  `;
+  res.json({ campaign, queue, counts });
+});
+
+apiRouter.delete("/campaigns/:id", async (req, res) => {
+  await sql`DELETE FROM outreach_queue WHERE campaign_id = ${req.params.id}`;
+  await sql`DELETE FROM outreach_campaigns WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
 // --- Daily Activity ---
 apiRouter.get("/activity", async (_req, res) => {
   const rows = await sql`

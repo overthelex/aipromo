@@ -1037,13 +1037,13 @@ async function pgCamp(el){
     <div class="section-label">${t('cp_active')}</div>
     <div class="card"><div class="card-body flush">
       <table class="tbl"><thead><tr><th>Name</th><th>Status</th><th>Tags</th><th>Sent</th><th>Failed</th><th>Pending</th><th>Total</th><th>Created</th><th></th></tr></thead><tbody>
-      ${camps.items.map(c=>`<tr>
+      ${camps.items.map(c=>`<tr style="cursor:pointer" onclick="showCampaignDetail(${c.id})" oncontextmenu="showCampaignMenu(event,${c.id},'${c.status}','${esc(c.name)}')">
         <td><strong>${esc(c.name)}</strong></td>
         <td><span class="status-dot ${c.status==='active'?'green':c.status==='paused'?'amber':'gray'}"></span>${c.status}</td>
         <td><span class="tag">${esc(c.target_tags)}</span></td>
         <td class="mono">${c.sent_count}</td><td class="mono">${c.failed_count}</td><td class="mono">${c.pending_count}</td><td class="mono">${c.total_count}</td>
         <td class="mono dim nowrap">${fmtDate(c.created_at)}</td>
-        <td><button class="btn sm ghost" onclick="toggleCampaign(${c.id},'${c.status==='active'?'paused':'active'}')">${c.status==='active'?'Pause':'Resume'}</button></td>
+        <td><button class="btn sm ghost" onclick="event.stopPropagation();toggleCampaign(${c.id},'${c.status==='active'?'paused':'active'}')">${c.status==='active'?'Pause':'Resume'}</button></td>
       </tr>`).join('')}
       </tbody></table>
     </div></div>
@@ -1075,6 +1075,73 @@ async function pgCamp(el){
 }
 async function toggleCampaign(id,status){
   await api(`/campaigns/${id}`,{method:'PATCH',body:{status}});toast(`Campaign ${status}`);pgCamp(vp());
+}
+async function showCampaignDetail(id){
+  const d=await api('/campaigns/'+id);
+  const c=d.campaign;const ct=d.counts;
+  modal(esc(c.name),`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;margin-bottom:16px">
+      <div><span class="dim">${t('th_status')}</span><br><span class="status-dot ${c.status==='active'?'green':c.status==='paused'?'amber':'gray'}"></span>${c.status}</div>
+      <div><span class="dim">${t('th_tags')}</span><br><span class="tag">${esc(c.target_tags)}</span></div>
+      <div><span class="dim">Template</span><br>${esc(c.template||'—')}</div>
+      <div><span class="dim">${t('th_date')}</span><br>${fmtFull(c.created_at)}</div>
+    </div>
+    <div class="kpi-row mb-16">
+      <div class="kpi teal"><div class="num">${ct.sent}</div><div class="lbl">${t('ot_sent')}</div></div>
+      <div class="kpi red"><div class="num">${ct.failed}</div><div class="lbl">${t('ot_failed')}</div></div>
+      <div class="kpi amber"><div class="num">${ct.pending}</div><div class="lbl">${t('ot_pending')}</div></div>
+      <div class="kpi"><div class="num">${ct.total}</div><div class="lbl">Total</div></div>
+    </div>
+    <div class="section-label">${t('th_message')}s (${d.queue.length})</div>
+    <div style="max-height:300px;overflow:auto">
+      <table class="tbl"><thead><tr><th>${t('th_status')}</th><th>${t('th_lead')}</th><th>${t('th_message')}</th><th>${t('th_date')}</th></tr></thead><tbody>
+      ${d.queue.map(q=>`<tr>
+        <td><span class="status-dot ${q.status==='sent'?'green':q.status==='failed'?'red':'amber'}"></span>${q.status}</td>
+        <td><strong style="font-size:11px">${esc(q.lead_name||'—')}</strong></td>
+        <td class="trunc dim" style="max-width:250px;font-size:11px">${esc((q.message_text||'').slice(0,80))}</td>
+        <td class="mono dim nowrap" style="font-size:10px">${fmtFull(q.sent_at||q.scheduled_at)}</td>
+      </tr>`).join('')||'<tr><td colspan="4" class="dim">No messages</td></tr>'}
+      </tbody></table>
+    </div>
+  `);
+}
+function showCampaignMenu(e,id,status,name){
+  e.preventDefault();e.stopPropagation();
+  document.querySelector('.ctx-menu')?.remove();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+  const items=[];
+  if(status==='active') items.push({label:'⏸ Pause',action:()=>campaignAction(id,'pause')});
+  if(status==='paused') items.push({label:'▶ Resume',action:()=>campaignAction(id,'resume')});
+  if(status!=='completed') items.push({label:'✓ Mark completed',action:()=>campaignAction(id,'complete')});
+  items.push({label:'📋 View details',action:()=>showCampaignDetail(id)});
+  items.push({sep:true});
+  items.push({label:'🗑 Delete campaign',action:()=>campaignAction(id,'delete'),danger:true});
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='ctx-sep';menu.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+  document.body.appendChild(menu);
+  setTimeout(()=>{const close=()=>{menu.remove();document.removeEventListener('click',close);};document.addEventListener('click',close);},0);
+}
+async function campaignAction(id,action){
+  if(action==='delete'){
+    if(!confirm('Delete campaign and all its outreach items?'))return;
+    await api('/campaigns/'+id,{method:'DELETE'});toast('Campaign deleted');
+  } else if(action==='pause'){
+    await api('/campaigns/'+id,{method:'PATCH',body:{status:'paused'}});toast('Campaign paused');
+  } else if(action==='resume'){
+    await api('/campaigns/'+id,{method:'PATCH',body:{status:'active'}});toast('Campaign resumed');
+  } else if(action==='complete'){
+    await api('/campaigns/'+id,{method:'PATCH',body:{status:'completed'}});toast('Campaign completed');
+  }
+  pgCamp(vp());
 }
 let _campaignRunning=false;
 async function runDay(dry){
