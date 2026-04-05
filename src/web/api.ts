@@ -80,6 +80,15 @@ apiRouter.post("/leads/:id/tag", async (req, res) => {
   res.json({ ok: true });
 });
 
+apiRouter.delete("/leads/:id", async (req, res) => {
+  await sql`DELETE FROM outreach_queue WHERE lead_id = ${req.params.id}`;
+  await sql`DELETE FROM follow_ups WHERE lead_id = ${req.params.id}`;
+  await sql`DELETE FROM lead_notes WHERE lead_id = ${req.params.id}`;
+  await sql`DELETE FROM deals WHERE lead_id = ${req.params.id}`;
+  await sql`DELETE FROM leads WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
 // --- Conversations ---
 apiRouter.get("/conversations", async (req, res) => {
   const limit = parseInt(req.query.limit as string) || 50;
@@ -699,6 +708,53 @@ apiRouter.get("/analytics", async (_req, res) => {
     angleStats,
     followUps: fuStats,
   });
+});
+
+// --- Conversations management ---
+apiRouter.delete("/conversations/:chatId", async (req, res) => {
+  await sql`DELETE FROM messages WHERE chat_id = ${req.params.chatId}`;
+  await sql`DELETE FROM conversations WHERE chat_id = ${req.params.chatId}`;
+  res.json({ ok: true });
+});
+
+apiRouter.patch("/conversations/:chatId/archive", async (req, res) => {
+  await sql`UPDATE conversations SET status = 'archived', unread_count = 0 WHERE chat_id = ${req.params.chatId}`;
+  res.json({ ok: true });
+});
+
+// --- Messages management ---
+apiRouter.delete("/messages/:id", async (req, res) => {
+  await sql`DELETE FROM messages WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
+// --- Deals detail ---
+apiRouter.get("/deals/:id", async (req, res) => {
+  const [deal] = await sql`
+    SELECT d.*, l.name as lead_name, l.headline as lead_headline, l.company, l.location
+    FROM deals d LEFT JOIN leads l ON d.lead_id = l.id
+    WHERE d.id = ${req.params.id}
+  `;
+  if (!deal) return res.status(404).json({ error: "Deal not found" });
+  const notes = await sql`SELECT * FROM lead_notes WHERE lead_id = ${deal.lead_id} ORDER BY created_at DESC LIMIT 10`;
+  res.json({ deal, notes });
+});
+
+apiRouter.delete("/deals/:id", async (req, res) => {
+  await sql`DELETE FROM deals WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
+// --- Follow-ups management ---
+apiRouter.delete("/follow-ups/:id", async (req, res) => {
+  await sql`DELETE FROM follow_ups WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
+apiRouter.post("/follow-ups/:id/reschedule", async (req, res) => {
+  const { days } = req.body;
+  await sql`UPDATE follow_ups SET scheduled_for = scheduled_for + ${(days || 1) + ' days'}::interval WHERE id = ${req.params.id} AND status = 'pending'`;
+  res.json({ ok: true });
 });
 
 // --- Config ---

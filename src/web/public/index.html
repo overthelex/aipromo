@@ -659,7 +659,7 @@ async function loadLeads(){
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${d.items.length} ${t('leads.shown')} / ${d.total} ${t('leads.total')}</div>
     <div class="card"><div class="card-body flush" style="max-height:65vh;overflow:auto">
       <table class="tbl"><thead><tr><th>${t('leads.name')}</th><th>${t('leads.headline')}</th><th>${t('leads.company')}</th><th>${t('leads.location')}</th><th>${t('leads.tags')}</th><th>${t('leads.source')}</th><th>${t('leads.added')}</th></tr></thead><tbody>
-      ${d.items.map(l=>`<tr>
+      ${d.items.map(l=>`<tr onclick="openLeadDetail(${l.id})" oncontextmenu="showLeadMenu(event,${l.id},'${esc(l.name)}')" style="cursor:pointer">
         <td><strong>${esc(l.name)}</strong></td>
         <td class="trunc msg-preview">${esc(l.headline)}</td>
         <td class="nowrap">${esc(l.company)}</td>
@@ -670,6 +670,60 @@ async function loadLeads(){
       </tr>`).join('')}
       </tbody></table>
     </div></div>`;
+}
+
+function showLeadMenu(e,id,name){
+  e.preventDefault();
+  e.stopPropagation();
+  // Remove existing menu
+  document.querySelector('.ctx-menu')?.remove();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+
+  const items=[];
+  items.push({label:'📋 View details',action:()=>openLeadDetail(id)});
+  // Status submenu
+  const statuses=['prospect','contacted','responded','interested','demo','customer','rejected'];
+  for(const s of statuses){
+    items.push({label:'  → '+s,action:()=>updateLeadStatus(id,s)});
+  }
+  items.push({label:'🏷 Add tag',action:async()=>{
+    const tag=prompt('Tag for '+name+':');
+    if(!tag)return;
+    await api('/leads/'+id+'/tag',{method:'POST',body:{tag}});
+    toast('Tag added');loadLeads();
+  }});
+  items.push({label:'📝 Add note',action:async()=>{
+    const note=prompt('Note for '+name+':');
+    if(!note)return;
+    await api('/leads/'+id+'/notes',{method:'POST',body:{note}});
+    toast('Note added');
+  }});
+  items.push({label:'💰 Create deal',action:()=>createDeal(id,'')});
+  items.push({sep:true});
+  items.push({label:'🗑 Delete',action:async()=>{
+    if(!confirm('Delete lead "'+name+'"?'))return;
+    await api('/leads/'+id,{method:'DELETE'});
+    toast('Lead deleted');loadLeads();
+  },danger:true});
+
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='ctx-sep';menu.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+
+  document.body.appendChild(menu);
+  // Close on click outside
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
 }
 
 /* ═══════════════ CONVERSATIONS ═══════════════ */
@@ -704,7 +758,7 @@ async function loadConv(unread,silent){
     const lastMsg=c.last_message_text||'';
     const preview=lastMsg.slice(0,80).replace(/\n/g,' ');
     const isActive=window._activeChat===c.chat_id;
-    return `<div class="conv-item${isActive?' conv-active':''}${unr?' conv-unread':''}" data-chat="${c.chat_id}" onclick="selectConv('${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}','${c.account_id||''}')">
+    return `<div class="conv-item${isActive?' conv-active':''}${unr?' conv-unread':''}" data-chat="${c.chat_id}" onclick="selectConv('${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}','${c.account_id||''}')" oncontextmenu="showConvMenu(event,'${c.chat_id}','${esc(c.attendee_name||c.lead_name||c.subject||'')}')">
       <div class="flex-between"><strong style="font-size:12px">${displayName}</strong><span class="mono dim" style="font-size:10px">${ago(c.last_message_at)}</span></div>
       <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.last_message_is_sender?'<span style="color:var(--amber)">'+t('conv_you')+'</span> ':''}${esc(preview)}</div>
       ${c.content_type?`<span class="tag" style="margin-top:4px;font-size:9px">${c.content_type}</span>`:''} ${unr?`<span class="tag red" style="margin-top:4px">${c.unread_count} ${t('conv_new')}</span>`:''}
@@ -718,6 +772,50 @@ function selectConv(chatId,name,accountId){
     el.classList.toggle('conv-active',el.dataset.chat===chatId);
   });
   openThread(chatId,name);
+}
+function showConvMenu(e,chatId,name){
+  e.preventDefault();
+  e.stopPropagation();
+  // Remove existing menu
+  document.querySelector('.ctx-menu')?.remove();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+
+  const items=[];
+  items.push({label:'✓ Mark as read',action:async()=>{
+    await api('/conversations/'+chatId+'/read',{method:'POST',body:{}});
+    loadConv(false);
+  }});
+  items.push({label:'📦 Archive',action:async()=>{
+    await api('/conversations/'+chatId+'/archive',{method:'PATCH',body:{}});
+    toast('Archived');
+    loadConv(false);
+  }});
+  items.push({sep:true});
+  items.push({label:'🗑 Delete',action:async()=>{
+    if(!confirm('Delete conversation?'))return;
+    await api('/conversations/'+chatId,{method:'DELETE'});
+    toast('Deleted');
+    loadConv(false);
+  },danger:true});
+
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='ctx-sep';menu.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+
+  document.body.appendChild(menu);
+  // Close on click outside
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
 }
 async function openThread(chatId,name){
   const [d]=await Promise.all([
@@ -821,17 +919,18 @@ async function loadMsgs(filter){
     const ta=a[1].msgs[0]?.timestamp||'';const tb=b[1].msgs[0]?.timestamp||'';
     return tb.localeCompare(ta);
   });
+  window._threadsData=sorted;
   // Each thread: msgs are DESC from API, reverse for display
   $('msgs-tbl').innerHTML=`
     <div style="font-size:11px;color:var(--text3);margin-bottom:12px">${d.items.length} ${t('msg_in')} ${sorted.length} ${t('msg_threads')}</div>
-    ${sorted.map(([chatId,th])=>{
+    ${sorted.map(([chatId,th],idx)=>{
       const msgs=th.msgs.slice().reverse(); // oldest first
       const first=msgs[0];
       const last=msgs[msgs.length-1];
       const expanded=msgs.length<=3;
       return `
       <div class="card mb-8">
-        <div class="card-head" style="cursor:pointer" onclick="toggleThread(this)">
+        <div class="card-head" style="cursor:pointer" onclick="toggleThread(this)" oncontextmenu="showThreadMenu(event,${idx})">
           <span class="tag ${first.is_sender?'amber':'teal'}">${first.is_sender?(th.sender||'OUT'):'IN'}</span>
           <strong>${esc(th.contact)}</strong>
           <span style="color:var(--text3);font-size:11px;margin-left:4px">${msgs.length} ${t('msg_msgs')}</span>
@@ -861,6 +960,55 @@ function toggleThread(head){
   const chev=head.querySelector('.thread-chevron');
   if(body.style.display==='none'){body.style.display='';chev.textContent='▼';}
   else{body.style.display='none';chev.textContent='▶';}
+}
+function showThreadMenu(e,idx){
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelector('.ctx-menu')?.remove();
+  const [chatId,th]=window._threadsData[idx];
+  const msgs=th.msgs.slice().reverse();
+  const name=th.contact;
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+  const items=[];
+  items.push({label:'\u{1F4CB} View full thread',action:()=>{
+    const bubbles=msgs.map(m=>`
+      <div class="bubble ${m.is_sender?'out':'in'}">
+        ${esc(m.text)}
+        <div class="ts">${fmtFull(m.timestamp)} ${m.message_type?`<span class="tp">${m.message_type}</span>`:''}</div>
+      </div>`).join('');
+    modal(esc(name),`<div class="thread" style="max-height:60vh;overflow-y:auto">${bubbles}</div>`);
+  }});
+  items.push({label:'\u{1F4AC} Open in conversations',action:()=>{
+    navigate('conversations');
+    setTimeout(()=>selectConv(chatId,name),300);
+  }});
+  items.push({label:'\u{1F4CB} Copy first message',action:()=>{
+    const first=msgs[msgs.length-1];
+    if(first?.text){navigator.clipboard.writeText(first.text);toast('Copied');}
+  }});
+  items.push({sep:true});
+  items.push({label:'\u{1F5D1} Delete all messages',action:async()=>{
+    if(!confirm('Delete all '+msgs.length+' messages in this thread?'))return;
+    for(const m of th.msgs)await api('/messages/'+m.message_id,{method:'DELETE'});
+    toast('Thread deleted');
+    loadMsgs(window._lastMsgFilter);
+  },danger:true});
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='ctx-sep';menu.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+  document.body.appendChild(menu);
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
 }
 
 /* ═══════════════ OUTREACH QUEUE ═══════════════ */
@@ -1202,23 +1350,81 @@ function loadPostsTab(tab,type){
   tab.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   tab.classList.add('active');loadPostsView(type);
 }
+window._postsData={company:[],personal:[]};
+
 async function loadPostsView(type){
   const d=await api('/posts?limit=100'+(type==='company'?'&company=true':''));
+  const key=type==='company'?'company':'personal';
+  window._postsData[key]=d.items||[];
   $('posts-tbl').innerHTML=`
     <div class="card"><div class="card-body flush" style="max-height:70vh;overflow:auto">
       <table class="tbl"><thead><tr><th>Author</th><th>Written By</th><th>Text</th><th>Reacts</th><th>Impress</th><th>Clicks</th><th>Engage %</th><th>Date</th></tr></thead><tbody>
-      ${d.items.map(p=>`<tr>
+      ${d.items.map((p,idx)=>`<tr onclick="showPostDetail(${idx},'${key}')" oncontextmenu="showPostMenu(event,${idx},'${key}')" style="cursor:pointer">
         <td class="nowrap">${esc(p.author_name)}</td>
         <td class="nowrap dim">${esc(p.written_by_name||'')}</td>
-        <td class="msg-preview" style="max-width:350px;cursor:pointer" onclick="modal('Post',\`<pre style='white-space:pre-wrap;font-size:12px;line-height:1.6;color:var(--text)'>\${esc(this.dataset.t)}</pre><div style=margin-top:12px><a href='\${this.dataset.u}' target=_blank style='color:var(--amber);font-size:12px'>Open on LinkedIn &rarr;</a></div>\`)" data-t="${esc(p.text)}" data-u="${esc(p.share_url)}">${esc(p.text?.slice(0,120))}</td>
+        <td class="msg-preview" style="max-width:350px">${esc(p.text?.slice(0,120))}</td>
         <td class="mono">${p.reaction_count}</td>
         <td class="mono">${p.impressions_count}</td>
         <td class="mono">${p.clicks||0}</td>
-        <td class="mono ${p.engagement_rate>5?'amber':''}">${p.engagement_rate?p.engagement_rate.toFixed(1)+'%':'—'}</td>
+        <td class="mono ${p.engagement_rate>5?'amber':''}">${p.engagement_rate?p.engagement_rate.toFixed(1)+'%':'\u2014'}</td>
         <td class="mono dim nowrap">${fmtDate(p.posted_at)}</td>
       </tr>`).join('')}
       </tbody></table>
     </div></div>`;
+}
+
+function showPostDetail(idx,type){
+  const p=window._postsData[type][idx];
+  if(!p)return;
+  modal('Post Details',`
+    <div style="margin-bottom:12px">
+      <strong style="font-size:14px">${esc(p.author_name)}</strong>
+      ${p.written_by_name?`<span class="dim" style="margin-left:8px;font-size:12px">written by ${esc(p.written_by_name)}</span>`:''}
+    </div>
+    <pre style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:var(--text);background:var(--bg2);padding:12px;border-radius:8px;max-height:40vh;overflow:auto">${esc(p.text)}</pre>
+    <div style="display:flex;gap:16px;margin-top:14px;font-size:12px;font-family:var(--mono)">
+      <span>\ud83d\udc4d ${p.reaction_count} reactions</span>
+      <span>\ud83d\udc41 ${p.impressions_count} impressions</span>
+      <span>\ud83d\uddb1 ${p.clicks||0} clicks</span>
+      <span class="${p.engagement_rate>5?'amber':''}">\ud83d\udcca ${p.engagement_rate?p.engagement_rate.toFixed(1)+'%':'\u2014'} engage</span>
+    </div>
+    <div style="margin-top:12px;font-size:12px">
+      <span class="dim">Posted: ${fmtDate(p.posted_at)}</span>
+      ${p.share_url?`<a href="${esc(p.share_url)}" target="_blank" style="color:var(--amber);margin-left:16px">Open on LinkedIn &rarr;</a>`:''}
+    </div>`);
+}
+
+function showPostMenu(e,idx,type){
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelector('.ctx-menu')?.remove();
+  const p=window._postsData[type][idx];
+  if(!p)return;
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+
+  const items=[
+    {label:'\ud83d\udccb View details',action:()=>showPostDetail(idx,type)},
+    {label:'\ud83d\udd17 Open on LinkedIn',action:()=>window.open(p.share_url,'_blank')},
+    {label:'\ud83d\udccb Copy text',action:()=>{navigator.clipboard.writeText(p.text);toast('Copied');}},
+    {label:'\ud83d\udd17 Copy URL',action:()=>{navigator.clipboard.writeText(p.share_url);toast('URL copied');}}
+  ];
+
+  for(const it of items){
+    const d=document.createElement('div');
+    d.className='ctx-item';
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+
+  document.body.appendChild(menu);
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
 }
 
 /* ═══════════════ SEARCH ═══════════════ */
@@ -1246,6 +1452,7 @@ async function pgSearch(el){
     </div></div>
     <div id="search-res"></div>`;
 }
+window._searchResults=[];
 async function runSearchFn(){
   $('search-status').textContent=t('search.searching');
   const r=await api('/search',{method:'POST',body:{
@@ -1253,10 +1460,12 @@ async function runSearchFn(){
     limit:+$('slim').value,save:$('ssave').checked,tag:$('stag').value
   }});
   $('search-status').textContent=r.error?t('search.error')+': '+r.error:`${t('search.found')} ${r.count} ${t('leads')}`;
-  if(r.items)$('search-res').innerHTML=`
+  if(r.items){
+    window._searchResults=r.items;
+    $('search-res').innerHTML=`
     <div class="card"><div class="card-body flush" style="max-height:60vh;overflow:auto">
       <table class="tbl"><thead><tr><th>${t('search.name')}</th><th>${t('search.headline')}</th><th>${t('search.location')}</th><th>${t('search.distance')}</th></tr></thead><tbody>
-      ${r.items.map(l=>`<tr>
+      ${r.items.map((l,idx)=>`<tr onclick="showSearchResultDetail(${idx})" oncontextmenu="showSearchResultMenu(event,${idx})" style="cursor:pointer">
         <td><strong>${esc(l.name)}</strong></td>
         <td class="msg-preview">${esc(l.headline)}</td>
         <td class="dim">${esc(l.location)}</td>
@@ -1266,6 +1475,50 @@ async function runSearchFn(){
       </tr>`).join('')}
       </tbody></table>
     </div></div>`;
+  }
+}
+function showSearchResultDetail(idx){
+  const r=window._searchResults[idx];
+  if(!r)return;
+  modal(esc(r.name),`
+    <div style="line-height:2">
+      <div><strong>Name:</strong> ${esc(r.name)}</div>
+      <div><strong>Headline:</strong> ${esc(r.headline||'')}</div>
+      <div><strong>Location:</strong> ${esc(r.location||'')}</div>
+      <div><strong>Distance:</strong> ${r.networkDistance==='DISTANCE_1'?'1st':r.networkDistance==='DISTANCE_2'?'2nd':'3rd+'}</div>
+      ${r.profileUrl?`<div><strong>Profile:</strong> <a href="${esc(r.profileUrl)}" target="_blank" style="color:var(--amber)">${esc(r.profileUrl)}</a></div>`:''}
+      ${r.id?`<div><strong>LinkedIn ID:</strong> <span class="mono">${esc(r.id)}</span></div>`:''}
+    </div>`);
+}
+function showSearchResultMenu(e,idx){
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelector('.ctx-menu')?.remove();
+  const r=window._searchResults[idx];
+  if(!r)return;
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+
+  const items=[];
+  items.push({label:'\u{1F4CB} View details',action:()=>showSearchResultDetail(idx)});
+  if(r.profileUrl)items.push({label:'\u{1F517} Open LinkedIn',action:()=>window.open(r.profileUrl,'_blank')});
+  if(r.id)items.push({label:'\u{1F4CB} Copy LinkedIn ID',action:()=>{navigator.clipboard.writeText(r.id);toast('ID copied');}});
+
+  for(const it of items){
+    const d=document.createElement('div');
+    d.className='ctx-item';
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+
+  document.body.appendChild(menu);
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
 }
 
 /* ═══════════════ SYNC ═══════════════ */
@@ -1347,8 +1600,8 @@ async function pgPipeline(el){
   $('pipeline-leads').innerHTML=`
     <div class="card"><div class="card-body flush" style="max-height:60vh;overflow:auto">
       <table class="tbl"><thead><tr><th>Status</th><th>Name</th><th>Headline</th><th>Tags</th><th></th></tr></thead><tbody>
-      ${leads.items.map(l=>`<tr>
-        <td><select onchange="updateLeadStatus(${l.id},this.value)" style="font-size:11px;padding:2px 4px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px">
+      ${leads.items.map(l=>`<tr oncontextmenu="showPipelineMenu(event,${l.id},'${l.status}','${esc(l.name)}','${l.account_id}')">
+        <td><select onchange="updateLeadStatus(${l.id},this.value)" onclick="event.stopPropagation()" style="font-size:11px;padding:2px 4px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px">
           ${['prospect','contacted','responded','interested','demo','customer','rejected'].map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${t('st_'+s)}</option>`).join('')}
         </select></td>
         <td><strong style="cursor:pointer" onclick="openLeadDetail(${l.id})">${esc(l.name)}</strong></td>
@@ -1364,6 +1617,60 @@ async function updateLeadStatus(id,status){
   toast('Status → '+status);
 }
 function loadLeadsWithStatus(s){/* placeholder for filtered view */}
+
+function showPipelineMenu(e,id,status,name,accountId){
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelector('.ctx-menu')?.remove();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+
+  const statuses=['prospect','contacted','responded','interested','demo','customer','rejected'];
+  const items=[];
+
+  // Status change submenu
+  const statusSub=document.createElement('div');
+  statusSub.className='ctx-item';
+  statusSub.textContent='⟳ Change status';
+  statusSub.style.position='relative';
+  const sub=document.createElement('div');
+  sub.className='ctx-menu';
+  sub.style.cssText='position:absolute;left:100%;top:0;display:none;min-width:140px';
+  for(const s of statuses){
+    const si=document.createElement('div');
+    si.className='ctx-item'+(s===status?' dim':'');
+    si.textContent=(s===status?'✓ ':'')+s;
+    if(s!==status) si.onclick=()=>{menu.remove();updateLeadStatus(id,s);pgPipeline(vp());};
+    sub.appendChild(si);
+  }
+  statusSub.appendChild(sub);
+  statusSub.onmouseenter=()=>sub.style.display='block';
+  statusSub.onmouseleave=()=>sub.style.display='none';
+  menu.appendChild(statusSub);
+
+  items.push({label:'📝 Add note',action:()=>{const note=prompt('Note for '+name+':');if(!note)return;api('/leads/'+id+'/notes',{method:'POST',body:{note}}).then(()=>toast('Note added'));}});
+  items.push({label:'💰 Create deal',action:()=>createDeal(id,accountId)});
+  items.push({label:'📋 View details',action:()=>openLeadDetail(id)});
+  items.push({sep:true});
+  items.push({label:'🗑 Delete lead',action:()=>{if(!confirm('Delete lead "'+name+'"?'))return;api('/leads/'+id,{method:'DELETE'}).then(()=>{toast('Lead deleted');pgPipeline(vp());});},danger:true});
+
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='ctx-sep';menu.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+
+  document.body.appendChild(menu);
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
+}
 
 /* ═══════════════ LEAD DETAIL ═══════════════ */
 async function openLeadDetail(id){
@@ -1475,6 +1782,7 @@ async function pgAnalytics(el){
 async function pgDeals(el){
   const d=await api('/deals');
   const tot=d.totals;
+  window._dealsData=d.items;
   el.innerHTML=`
     <div class="flex-between mb-16">
       <div class="page-title" style="margin:0">${t('deals_title')}</div>
@@ -1488,18 +1796,98 @@ async function pgDeals(el){
     </div>
     <div class="card"><div class="card-body flush">
       <table class="tbl"><thead><tr><th>${t('deals_lead')}</th><th>${t('deals_col_title')}</th><th>${t('deals_value')}</th><th>${t('deals_stage')}</th><th>${t('deals_created')}</th><th></th></tr></thead><tbody>
-      ${d.items.map(dl=>`<tr>
+      ${d.items.map(dl=>`<tr style="cursor:pointer" onclick="showDealDetail(${dl.id})" oncontextmenu="showDealMenu(event,${dl.id},'${dl.stage}')">
         <td><strong>${esc(dl.lead_name||'—')}</strong><br><span class="dim" style="font-size:10px">${esc(dl.lead_headline||'')}</span></td>
         <td>${esc(dl.title)}</td>
         <td class="mono">${dl.value} ${dl.currency}</td>
-        <td><select onchange="updateDeal(${dl.id},this.value)" style="font-size:11px;padding:2px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px">
+        <td><select onclick="event.stopPropagation()" oncontextmenu="event.stopPropagation()" onchange="updateDeal(${dl.id},this.value)" style="font-size:11px;padding:2px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px">
           ${['qualification','proposal','negotiation','closed_won','closed_lost'].map(s=>`<option value="${s}" ${dl.stage===s?'selected':''}>${t('stage_'+s)}</option>`).join('')}
         </select></td>
         <td class="mono dim">${fmtDate(dl.created_at)}</td>
-        <td><button class="btn sm ghost" onclick="openLeadDetail(${dl.lead_id})">${t('deals_lead')}</button></td>
+        <td><button class="btn sm ghost" onclick="event.stopPropagation();openLeadDetail(${dl.lead_id})">${t('deals_lead')}</button></td>
       </tr>`).join('')}
       </tbody></table>
     </div></div>`;
+}
+
+async function showDealDetail(id){
+  const d=await api('/deals/'+id);
+  const dl=d.deal||d;
+  const notes=d.notes||[];
+  modal(esc(dl.title),`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;margin-bottom:16px">
+      <div><span class="dim">Value</span><br><strong class="mono">${dl.value} ${dl.currency}</strong></div>
+      <div><span class="dim">Stage</span><br><span class="tag">${t('stage_'+dl.stage)||dl.stage}</span></div>
+      <div><span class="dim">Created</span><br>${fmtFull(dl.created_at)}</div>
+      <div><span class="dim">Closed</span><br>${dl.closed_at?fmtFull(dl.closed_at):'—'}</div>
+    </div>
+    <div class="section-label">Lead</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;margin-bottom:16px">
+      <div><span class="dim">Name</span><br><strong>${esc(dl.lead_name||'—')}</strong></div>
+      <div><span class="dim">Headline</span><br>${esc(dl.lead_headline||'—')}</div>
+      <div><span class="dim">Company</span><br>${esc(dl.lead_company||dl.company||'—')}</div>
+      <div><span class="dim">Location</span><br>${esc(dl.lead_location||dl.location||'—')}</div>
+    </div>
+    <div class="section-label">Notes</div>
+    <div style="margin-bottom:8px">
+      ${notes.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span class="dim">${fmtFull(n.created_at)}</span> ${esc(n.note)}</div>`).join('')||'<div class="dim" style="font-size:12px">—</div>'}
+    </div>
+  `);
+}
+function showDealMenu(e,id,stage){
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelector('.ctx-menu')?.remove();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+
+  const stages=['qualification','proposal','negotiation','closed_won','closed_lost'];
+  const items=[];
+
+  // Stage change options
+  for(const s of stages){
+    if(s===stage)continue;
+    items.push({label:'→ '+(t('stage_'+s)||s),action:async()=>{
+      const body={stage:s};
+      if(s==='closed_won'||s==='closed_lost')body.closed_at=new Date().toISOString();
+      await api('/deals/'+id,{method:'PATCH',body});
+      toast(t('deals_title')+' → '+(t('stage_'+s)||s));pgDeals(vp());
+    }});
+  }
+  items.push({sep:true});
+  items.push({label:'\uD83D\uDCB0 Edit value',action:async()=>{
+    const v=prompt('New deal value:');if(!v)return;
+    await api('/deals/'+id,{method:'PATCH',body:{value:parseFloat(v)}});
+    toast('Value updated');pgDeals(vp());
+  }});
+  items.push({label:'\uD83D\uDCCB View lead',action:async()=>{
+    const d=await api('/deals/'+id);
+    const deal=d.deal||d;
+    openLeadDetail(deal.lead_id);
+  }});
+  items.push({sep:true});
+  items.push({label:'\uD83D\uDDD1 Delete',action:async()=>{
+    if(!confirm('Delete this deal?'))return;
+    await api('/deals/'+id,{method:'DELETE'});
+    toast('Deal deleted');pgDeals(vp());
+  },danger:true});
+
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='ctx-sep';menu.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+
+  document.body.appendChild(menu);
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
 }
 async function updateDeal(id,stage){
   const body={stage};
@@ -1517,23 +1905,25 @@ function promptNewDeal(){
 /* ═══════════════ FOLLOW-UPS ═══════════════ */
 async function pgFollowUps(el){
   const [pending,sent]=await Promise.all([api('/follow-ups?status=pending'),api('/follow-ups?status=sent')]);
+  window._followUpsPending=pending.items;
+  window._followUpsSent=sent.items;
   el.innerHTML=`
     <div class="page-title">${t('fu_title')}</div>
     <div class="section-label">${t('fu_pending')} (${pending.items.length})</div>
     <div class="card mb-16"><div class="card-body flush" style="max-height:40vh;overflow:auto">
       <table class="tbl"><thead><tr><th>${t('fu_lead')}</th><th>${t('fu_step')}</th><th>${t('fu_scheduled')}</th><th></th></tr></thead><tbody>
-      ${pending.items.map(f=>`<tr>
+      ${pending.items.map(f=>`<tr onclick="showFollowUpDetail(${f.id},'pending')" oncontextmenu="showFollowUpMenu(event,${f.id},'pending')" style="cursor:pointer">
         <td><strong>${esc(f.lead_name||'—')}</strong><br><span class="dim" style="font-size:10px">${esc(f.lead_headline||'')}</span></td>
         <td class="mono">#${f.step}</td>
         <td class="mono dim">${fmtFull(f.scheduled_for)}</td>
-        <td><button class="btn sm danger" onclick="cancelFollowUp(${f.id})">${t('fu_cancel')}</button></td>
+        <td><button class="btn sm danger" onclick="event.stopPropagation();cancelFollowUp(${f.id})">${t('fu_cancel')}</button></td>
       </tr>`).join('')}
       </tbody></table>
     </div></div>
     <div class="section-label">${t('fu_sent')} (${sent.items.length})</div>
     <div class="card"><div class="card-body flush" style="max-height:40vh;overflow:auto">
       <table class="tbl"><thead><tr><th>${t('fu_lead')}</th><th>${t('fu_step')}</th><th>${t('fu_sent')}</th><th>${t('fu_message')}</th></tr></thead><tbody>
-      ${sent.items.map(f=>`<tr>
+      ${sent.items.map(f=>`<tr onclick="showFollowUpDetail(${f.id},'sent')" oncontextmenu="showFollowUpMenu(event,${f.id},'sent')" style="cursor:pointer">
         <td><strong>${esc(f.lead_name||'—')}</strong></td>
         <td class="mono">#${f.step}</td>
         <td class="mono dim">${fmtFull(f.sent_at)}</td>
@@ -1541,6 +1931,77 @@ async function pgFollowUps(el){
       </tr>`).join('')}
       </tbody></table>
     </div></div>`;
+}
+function showFollowUpDetail(id,type){
+  const list=type==='pending'?window._followUpsPending:window._followUpsSent;
+  const f=(list||[]).find(x=>x.id===id);
+  if(!f)return;
+  const statusColor=f.status==='sent'?'teal':f.status==='pending'?'amber':'dim';
+  modal(esc(f.lead_name||'Follow-up'),`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;margin-bottom:16px">
+      <div><span class="dim">${t('fu_lead')}</span><br><strong>${esc(f.lead_name||'—')}</strong></div>
+      <div><span class="dim">Headline</span><br>${esc(f.lead_headline||'—')}</div>
+      <div><span class="dim">${t('fu_step')}</span><br>#${f.step}</div>
+      <div><span class="dim">${t('th_status')}</span><br><span class="tag ${statusColor}">${f.status}</span></div>
+      <div><span class="dim">${t('fu_scheduled')}</span><br>${fmtFull(f.scheduled_for||'—')}</div>
+      <div><span class="dim">${t('fu_sent')}</span><br>${fmtFull(f.sent_at||'—')}</div>
+    </div>
+    <div class="section-label">${t('th_message')}</div>
+    <div style="font-size:12px;line-height:1.6;white-space:pre-wrap;color:var(--text);background:var(--bg2);padding:12px;border-radius:6px;max-height:300px;overflow:auto">${esc(f.message_text||'—')}</div>
+  `);
+}
+function showFollowUpMenu(e,id,status){
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelector('.ctx-menu')?.remove();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.style.left=e.clientX+'px';
+  menu.style.top=e.clientY+'px';
+
+  const items=[];
+  if(status==='pending'){
+    items.push({label:'\u23ED Reschedule +1 day',action:async()=>{
+      await api('/follow-ups/'+id+'/reschedule',{method:'POST',body:{days:1}});
+      toast('Rescheduled +1 day');pgFollowUps(vp());
+    }});
+    items.push({label:'\u23ED Reschedule +3 days',action:async()=>{
+      await api('/follow-ups/'+id+'/reschedule',{method:'POST',body:{days:3}});
+      toast('Rescheduled +3 days');pgFollowUps(vp());
+    }});
+    items.push({label:'\u2717 Cancel',action:async()=>{
+      await api('/follow-ups/'+id,{method:'PATCH',body:{status:'cancelled'}});
+      toast('Cancelled');pgFollowUps(vp());
+    }});
+    items.push({sep:true});
+    items.push({label:'\uD83D\uDDD1 Delete',action:async()=>{
+      if(!confirm('Delete this follow-up?'))return;
+      await api('/follow-ups/'+id,{method:'DELETE'});
+      toast('Deleted');pgFollowUps(vp());
+    },danger:true});
+  } else {
+    items.push({label:'\uD83D\uDCCB View details',action:()=>showFollowUpDetail(id,'sent')});
+    items.push({label:'\uD83D\uDDD1 Delete',action:async()=>{
+      if(!confirm('Delete this follow-up?'))return;
+      await api('/follow-ups/'+id,{method:'DELETE'});
+      toast('Deleted');pgFollowUps(vp());
+    },danger:true});
+  }
+
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='ctx-sep';menu.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='ctx-item'+(it.danger?' danger':'');
+    d.textContent=it.label;
+    d.onclick=()=>{menu.remove();it.action();};
+    menu.appendChild(d);
+  }
+
+  document.body.appendChild(menu);
+  setTimeout(()=>{
+    const close=()=>{menu.remove();document.removeEventListener('click',close);};
+    document.addEventListener('click',close);
+  },0);
 }
 async function cancelFollowUp(id){
   await api('/follow-ups/'+id,{method:'PATCH',body:{status:'cancelled'}});
