@@ -115,6 +115,20 @@ authRouter.get("/me", (req: Request, res: Response) => {
   }
 });
 
+// --- Reset password (admin only, requires API key) ---
+authRouter.post("/reset-password", async (req: Request, res: Response) => {
+  const apiKey = req.headers["x-api-key"] as string;
+  if (!apiKey || !appConfig.dashboardApiKey || apiKey !== appConfig.dashboardApiKey) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  const { username, newPassword } = req.body;
+  if (!username || !newPassword) return res.status(400).json({ error: "username and newPassword required" });
+  const hash = await bcrypt.hash(newPassword, 10);
+  const result = await sql`UPDATE users SET password_hash = ${hash} WHERE username = ${username} RETURNING username`;
+  if (result.length === 0) return res.status(404).json({ error: "User not found" });
+  res.json({ ok: true, username: result[0].username });
+});
+
 // --- Auth middleware ---
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   // Skip auth for login, health, webhooks, static files
