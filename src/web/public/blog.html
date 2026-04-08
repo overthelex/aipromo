@@ -683,7 +683,16 @@ BUSINESS_HOURS_END=18</code></pre>
     }
   });
 }</code></pre><h2>Типи подій</h2><p>Система підтримує кілька типів подій для різних сценаріїв:</p><ul><li><strong>campaign_log</strong> — повідомлення про статус під час виконання кампанії: знайдено лідів, надіслано повідомлення, помилки збагачення профілів тощо.</li><li><strong>campaign_done</strong> — фінальне зведення після завершення кампанії з підсумковою статистикою: кількість оброблених лідів, надісланих повідомлень та помилок.</li><li><strong>sync_log</strong> — події синхронізації вхідних повідомлень та оновлення даних із зовнішніх джерел.</li></ul><h2>Інтеграція з дашбордом</h2><p>На клієнтській стороні ми використовуємо нативний WebSocket API з механізмом автоматичного перепідключення. Якщо з'єднання обривається, клієнт чекає 3 секунди та підключається знову:</p><pre><code>function connectWS() {
-  const ws = new WebSocket(\`,
+  const ws = new WebSocket(
+    location.protocol === "https:" ? "wss://" : "ws://"
+    + location.host + "/ws"
+  );
+  ws.onmessage = (e) =&gt; {
+    const { event, data } = JSON.parse(e.data);
+    handleEvent(event, data);
+  };
+  ws.onclose = () =&gt; setTimeout(connectWS, 3000);
+}</code></pre>`,
     content: `
 <h2>The Problem with Polling</h2>
 <p>Campaign runs can take 20–30 minutes (60 leads × 15-second delays). If the dashboard polls <code>GET /api/campaign/status</code> every 5 seconds, that's 360 unnecessary HTTP requests per campaign run. Worse, you get status updates in 5-second chunks instead of real-time.</p>
