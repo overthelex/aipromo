@@ -44,7 +44,12 @@ function randomDelay(minSec: number, maxSec: number): number {
 
 // --- Outreach System Prompt ---
 
-function getOutreachSystemPrompt(angle: string): string {
+const INVITATION_NOTE_LIMIT = 290;
+
+function getOutreachSystemPrompt(angle: string, maxChars?: number): string {
+  const charLimit = maxChars
+    ? `\n- HARD LIMIT: message MUST be under ${maxChars} characters total (this is a LinkedIn invitation note limit). Count carefully. Be concise — 2-3 short sentences max.`
+    : "";
   return `You are writing a LinkedIn first-touch message on behalf of the legal.org.ua team.
 
 ${PRODUCT_CONTEXT}
@@ -54,7 +59,7 @@ ${getAngleInstruction(angle)}
 
 CRITICAL RULES:
 - Write in Ukrainian (unless lead profile is clearly English-only)
-- 3-5 sentences MAX. LinkedIn messages must be short.
+- ${maxChars ? "2-3 sentences MAX" : "3-5 sentences MAX"}. LinkedIn messages must be short.${charLimit}
 - Start with something specific to THIS person's profile (their headline, company, role, location)
 - DO NOT start with generic "Привіт, [name]" — find a creative opener based on their work
 - DO NOT list all features — focus on ONE angle from above
@@ -269,8 +274,26 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         // If direct message fails (unreachable), try connection request with note
         if (err.message?.includes('unreachable') || err.message?.includes('422')) {
           let invSent = false;
-          const note = message.slice(0, 290);
-          if (message.length > 290) logger.warn({ lead: profile.name, original: message.length }, "Invitation note truncated to 290 chars");
+
+          // Re-generate a short message that fits invitation note limit
+          let note: string;
+          if (message.length <= INVITATION_NOTE_LIMIT) {
+            note = message;
+          } else {
+            clog(chalk.dim(`  Regenerating short note for ${profile.name} (${message.length} > ${INVITATION_NOTE_LIMIT})...`));
+            const shortPrompt = getOutreachSystemPrompt(angle, INVITATION_NOTE_LIMIT);
+            note = await claude.generateWithSystem(shortPrompt, userPrompt);
+            // Safety net: if AI still exceeds limit, trim at last sentence boundary
+            if (note.length > INVITATION_NOTE_LIMIT) {
+              const trimmed = note.slice(0, INVITATION_NOTE_LIMIT);
+              const lastSentence = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
+              note = lastSentence > INVITATION_NOTE_LIMIT * 0.5
+                ? trimmed.slice(0, lastSentence + 1)
+                : trimmed.slice(0, trimmed.lastIndexOf(" ")) + "...";
+              logger.warn({ lead: profile.name, length: note.length }, "Invitation note trimmed at sentence boundary");
+            }
+          }
+
           for (let retry = 0; retry < 2 && !invSent; retry++) {
             try {
               if (retry > 0) await sleep(5000);
@@ -279,7 +302,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
               sentCount++;
               await sql`UPDATE outreach_queue SET status = 'sent', message_text = ${note}, sent_at = NOW() WHERE id = ${queued.id}`;
               await sql`UPDATE leads SET status = 'contacted' WHERE id = ${lead.id} AND status = 'prospect'`;
-              clog(chalk.yellow(`  → ${profile.name} [invitation + note]`));
+              clog(chalk.yellow(`  → ${profile.name} [invitation + note, ${note.length} chars]`));
               invSent = true;
             } catch (invErr: any) {
               if (retry === 1) {
