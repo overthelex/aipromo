@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>selected.ai — Blog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #101014; --surface: #1e1e24; --border: #2e2e38;
+      --text: #dcdce0; --text2: #a0a0ae; --text3: #68687a;
+      --amber: #f0a830; --red: #f05050; --teal: #30c8b0;
+      --purple: #a070f0; --blue: #4090f0;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Header */
+    .header {
+      border-bottom: 1px solid var(--border); padding: 16px 32px;
+      display: flex; align-items: center; gap: 16px; position: sticky; top: 0;
+      background: rgba(16,16,20,0.92); backdrop-filter: blur(12px); z-index: 100;
+    }
+    .header .logo { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px; color: var(--amber); }
+    .header .sep { width: 1px; height: 20px; background: var(--border); }
+    .header .nav-link { font-size: 13px; color: var(--text3); font-weight: 500; transition: color 0.15s; }
+    .header .nav-link:hover { color: var(--text); text-decoration: none; }
+    .header .nav-link.active { color: var(--text); }
+
+    /* Hero */
+    .hero {
+      max-width: 900px; margin: 0 auto; padding: 60px 32px 40px;
+    }
+    .hero h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+    .hero h1 span { color: var(--amber); }
+    .hero p { font-size: 16px; color: var(--text2); line-height: 1.6; max-width: 620px; }
+
+    /* Filter tabs */
+    .filters {
+      max-width: 900px; margin: 0 auto; padding: 0 32px 32px;
+      display: flex; gap: 8px;
+    }
+    .filter-btn {
+      padding: 6px 16px; font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      background: transparent; border: 1px solid var(--border); border-radius: 20px;
+      color: var(--text3); cursor: pointer; transition: all 0.15s;
+    }
+    .filter-btn:hover { border-color: var(--text3); color: var(--text2); }
+    .filter-btn.active { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+
+    /* Card grid */
+    .grid {
+      max-width: 900px; margin: 0 auto; padding: 0 32px 60px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+    .card-banner { position: relative; height: 200px; overflow: hidden; }
+    .card-banner canvas { width: 100%; height: 100%; display: block; }
+    .card-badge {
+      display: inline-block; padding: 3px 10px; font-size: 10px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+      border-radius: 4px; color: #fff;
+    }
+    .card-badge.marketing { background: rgba(160,112,240,0.85); }
+    .card-badge.engineering { background: rgba(48,200,176,0.85); }
+    .card-body { padding: 20px; }
+    .card-body h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+    .card-body .meta { font-size: 11px; color: var(--text3); margin-bottom: 10px; display: flex; gap: 12px; }
+    .card-body .excerpt { font-size: 13px; color: var(--text2); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-tags { padding: 0 20px 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 3px;
+      background: rgba(240,168,48,0.1); color: var(--amber); letter-spacing: 0.3px;
+    }
+
+    /* Article modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+      z-index: 200; display: none; align-items: flex-start; justify-content: center;
+      overflow-y: auto; padding: 40px 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      max-width: 720px; width: 100%; overflow: hidden; position: relative;
+      animation: modalIn 0.25s ease-out;
+    }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-banner { height: 260px; position: relative; }
+    .modal-banner canvas { width: 100%; height: 100%; display: block; }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px; width: 36px; height: 36px;
+      background: rgba(0,0,0,0.6); border: none; border-radius: 50%; color: #fff;
+      font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; z-index: 10;
+    }
+    .modal-close:hover { background: rgba(0,0,0,0.8); }
+    .modal-content { padding: 32px; }
+    .modal-content .article-meta {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .modal-content h1 { font-size: 26px; font-weight: 700; margin-bottom: 16px; line-height: 1.3; }
+    .modal-content .article-body { font-size: 15px; line-height: 1.75; color: var(--text2); }
+    .modal-content .article-body h2 { font-size: 20px; font-weight: 700; color: var(--text); margin: 28px 0 12px; }
+    .modal-content .article-body h3 { font-size: 16px; font-weight: 700; color: var(--text); margin: 24px 0 10px; }
+    .modal-content .article-body p { margin-bottom: 14px; }
+    .modal-content .article-body ul, .modal-content .article-body ol { margin: 0 0 14px 20px; }
+    .modal-content .article-body li { margin-bottom: 6px; }
+    .modal-content .article-body code {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      background: rgba(240,168,48,0.08); padding: 2px 6px; border-radius: 4px; color: var(--amber);
+    }
+    .modal-content .article-body pre {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; overflow-x: auto; margin-bottom: 14px;
+    }
+    .modal-content .article-body pre code { background: none; padding: 0; }
+    .modal-content .article-body blockquote {
+      border-left: 3px solid var(--amber); padding: 12px 16px; margin: 0 0 14px;
+      background: rgba(240,168,48,0.04); border-radius: 0 8px 8px 0;
+    }
+    .modal-content .article-body strong { color: var(--text); }
+    .modal-tags { padding: 0 32px 32px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border); padding: 24px 32px;
+      text-align: center; font-size: 12px; color: var(--text3);
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/login" class="logo" style="text-decoration:none">selected.ai</a>
+  <div class="sep"></div>
+  <a href="/blog" class="nav-link active">Blog</a>
+  <a href="/login" class="nav-link">Sign In</a>
+</div>
+
+<div class="hero">
+  <h1>The <span>selected.ai</span> Blog</h1>
+  <p>How we built an AI-powered LinkedIn outreach engine — from architecture to conversion. For growth managers and engineers alike.</p>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="filterCards('all')">All</button>
+  <button class="filter-btn" onclick="filterCards('marketing')">Growth &amp; Marketing</button>
+  <button class="filter-btn" onclick="filterCards('engineering')">Engineering</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="modal-backdrop" id="modal-backdrop" onclick="closeModal(event)">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="footer">
+  &copy; 2026 selected.ai &mdash; <a href="https://selected.highfunk.uk">selected.highfunk.uk</a>
+</div>
+
+<script>
+// ─── Articles ───────────────────────────────────────────────────────────────────
+
+const ARTICLES = [
+  {
+    id: "linkedin-outreach-automation",
+    title: "How selected.ai Automates LinkedIn Lead Discovery at Scale",
+    category: "marketing",
+    readTime: "7 min",
+    date: "2026-04-08",
+    tags: ["LinkedIn", "Automation", "Lead Gen", "Outreach"],
+    excerpt: "A deep dive into how selected.ai searches, enriches, and contacts ideal prospects on LinkedIn — without sending a single manual message.",
+    content: `
+<h2>The Problem: Manual Outreach Doesn't Scale</h2>
+<p>Every growth team knows the pain: you need 50+ qualified conversations a week, but your SDRs spend 80% of their time just <strong>finding</strong> the right people and writing first-touch messages. By the time they hit "send," the prospect has already been contacted by three competitors.</p>
+<p>selected.ai was built to solve exactly this. It's an autonomous outreach engine that handles the entire top-of-funnel: from search to first message to follow-up — all powered by Claude AI.</p>
+
+<h2>How the Pipeline Works</h2>
+<h3>Phase 1: Smart Lead Search</h3>
+<p>Each campaign day targets a specific audience segment with rotating keyword and title filters. For example, Day 1 might search for <code>адвокат нерухомість</code> (real estate lawyers) with title filters like <code>partner OR керуючий партнер</code>.</p>
+<p>The system deduplicates against your existing lead database and conversation history, ensuring you never contact the same person twice — even across campaigns.</p>
+
+<h3>Phase 2: Hyper-Personalized First Touch</h3>
+<p>This is where the magic happens. For each lead, Claude AI generates a unique message based on:</p>
+<ul>
+  <li>The lead's headline, company, and role</li>
+  <li>A rotating "message angle" (cost savings, social proof, tech innovation, etc.)</li>
+  <li>The campaign's product context</li>
+</ul>
+<p>No two messages are the same. Each one reads like it was hand-written by someone who actually looked at the prospect's profile. Because the AI <em>did</em> look at it.</p>
+
+<h3>Phase 3: Timezone-Aware Delivery</h3>
+<p>Messages are scheduled based on the recipient's local timezone. A lawyer in Kyiv gets their message at 9 AM EET, while a counsel in London receives theirs at 9 AM GMT. The system maps LinkedIn location data to UTC offsets and queues messages for optimal engagement windows.</p>
+
+<h3>Phase 4: Intelligent Follow-ups</h3>
+<p>If a lead doesn't respond within 3 days, the system sends a follow-up with a <strong>different angle</strong> — never the same pitch twice. A three-step sequence (Day 3, Day 5, Day 7) ensures persistence without being annoying.</p>
+
+<h2>Results We're Seeing</h2>
+<blockquote>In the first campaign for a Ukrainian LegalTech product, we sent 58 hyper-personalized messages in a single day — a task that would take an SDR team 2-3 full working days.</blockquote>
+<p>The key metrics that matter:</p>
+<ul>
+  <li><strong>Time to launch:</strong> 5 minutes (vs. 2-3 hours for manual campaign setup)</li>
+  <li><strong>Messages per day:</strong> 50-60 with built-in rate limiting</li>
+  <li><strong>Personalization quality:</strong> Each message references specific profile details</li>
+  <li><strong>Zero manual work</strong> after campaign configuration</li>
+</ul>
+
+<h2>What Makes It Different</h2>
+<p>Most LinkedIn automation tools send templates with <code>{firstName}</code> merge tags. selected.ai generates entirely new copy for each prospect, using Claude's understanding of context, tone, and cultural nuance. The AI writes in the prospect's language, matches the industry vocabulary, and adapts the pitch angle automatically.</p>
+<p>This isn't mail merge with extra steps. It's a synthetic SDR that actually reads profiles.</p>
+    `
+  },
+  {
+    id: "hyperpersonalization-conversion",
+    title: "Hyper-Personalization at Scale: Why AI Messages Convert 3x Better",
+    category: "marketing",
+    readTime: "6 min",
+    date: "2026-04-07",
+    tags: ["Personalization", "AI", "Conversion", "Claude"],
+    excerpt: "Generic templates get 2% reply rates. AI-crafted messages tailored to each prospect's profile consistently outperform — here's the data and the method.",
+    content: `
+<h2>The Template Trap</h2>
+<p>You've seen them. We all have. "Hi {firstName}, I noticed you work at {company} and thought you might be interested in..." — straight to the trash. LinkedIn users receive dozens of these daily, and they've developed a sixth sense for automated outreach.</p>
+<p>The data backs this up: generic templates typically see <strong>1-3% reply rates</strong> on cold LinkedIn outreach. That means 97 out of 100 prospects ignore you completely.</p>
+
+<h2>What Hyper-Personalization Actually Means</h2>
+<p>True personalization isn't just inserting a name and company. It means:</p>
+<ul>
+  <li><strong>Referencing specific work:</strong> "Your focus on combining IP law with criminal investigation is rare — and exactly the profile that benefits most from..."</li>
+  <li><strong>Matching language:</strong> Writing in Ukrainian to Ukrainian lawyers, switching to English for international counsel</li>
+  <li><strong>Adapting the angle:</strong> A CFO gets the cost-saving pitch; a CTO gets the tech-innovation angle</li>
+  <li><strong>Varying structure:</strong> No two messages follow the same template — different openers, different CTAs, different flow</li>
+</ul>
+
+<h2>The 7-Angle Rotation System</h2>
+<p>selected.ai uses a rotation of 7 message angles to ensure variety across a campaign:</p>
+<ol>
+  <li><strong>Pain Point (Time):</strong> "How much time do you spend checking registries manually?"</li>
+  <li><strong>Pain Point (Cost):</strong> "60-150 UAH per extract vs. 8 UAH with AI"</li>
+  <li><strong>Social Proof:</strong> "Backed by AWS, recognized by Google Cloud"</li>
+  <li><strong>Free Bonus:</strong> "All databases free with any paid plan"</li>
+  <li><strong>Tech Innovation:</strong> "Official API access, AI-powered analytics"</li>
+  <li><strong>Competitor Gap:</strong> "No competitor offers this combination"</li>
+  <li><strong>Question Hook:</strong> Opens with a genuine question about their workflow</li>
+</ol>
+<p>Each lead gets a deterministic angle based on <code>(dayNumber + leadIndex) % 7</code>, ensuring no two consecutive leads in the same batch receive the same pitch.</p>
+
+<h2>The AI Writing Pipeline</h2>
+<p>For each message, Claude receives:</p>
+<ul>
+  <li>A system prompt with product context and strict rules (3-5 sentences, no bullet points, no generic openers)</li>
+  <li>The lead's full profile data</li>
+  <li>The specific angle to use</li>
+</ul>
+<blockquote>The system prompt explicitly forbids starting with "Привіт, [name]" — forcing the AI to find creative openers based on the prospect's actual work.</blockquote>
+
+<h2>Handling the 290-Character Limit</h2>
+<p>When LinkedIn doesn't allow direct messaging (no existing connection), the fallback is a connection request with a note — limited to 290 characters. Instead of brutally truncating the message, selected.ai <strong>regenerates</strong> a shorter version through Claude with an explicit character limit. The result is a complete, coherent mini-pitch that fits the constraint.</p>
+
+<h2>Why This Works</h2>
+<p>Prospects respond to messages that demonstrate you've done your homework. When an AI can reference someone's specific practice area, career trajectory, or company context — and do it in 3 sentences — it creates the impression of genuine human interest. Because the interest <em>is</em> genuine — it's just expressed by an AI that's better at synthesizing profile data than most humans.</p>
+    `
+  },
+  {
+    id: "architecture-nodejs-cloudrun",
+    title: "Architecture of selected.ai: Node.js, Express, WebSocket & Cloud Run",
+    category: "engineering",
+    readTime: "9 min",
+    date: "2026-04-06",
+    tags: ["Node.js", "TypeScript", "Cloud Run", "PostgreSQL", "Architecture"],
+    excerpt: "How we built a real-time campaign automation platform with Express 5, WebSocket, PostgreSQL, and deployed it on GCP Cloud Run with zero downtime.",
+    content: `
+<h2>Design Principles</h2>
+<p>selected.ai is a monolith — intentionally. When you're building a campaign engine that needs to coordinate search, AI generation, rate limiting, and message delivery in sequence, microservices would add latency and complexity without benefit. One process, one deployment, one database.</p>
+
+<h2>The Stack</h2>
+<pre><code>Runtime:     Node.js 20 + TypeScript (ESM)
+Web:         Express 5 + ws (WebSocket)
+Database:    PostgreSQL via postgres.js
+AI:          Claude via AWS Bedrock
+LinkedIn:    Unipile API (proxy)
+Auth:        JWT cookies + bcrypt
+Deploy:      Docker → GCP Artifact Registry → Cloud Run
+CI/CD:       GitHub Actions (test → build → deploy)</code></pre>
+
+<h2>Server Architecture</h2>
+<p>The Express server serves three concerns from a single process:</p>
+<ul>
+  <li><strong>REST API</strong> (<code>/api/*</code>) — Dashboard operations, campaign control, analytics</li>
+  <li><strong>WebSocket</strong> (<code>/ws</code>) — Real-time campaign logs, status updates</li>
+  <li><strong>Static SPA</strong> — Vanilla JS dashboard served from <code>/public</code></li>
+</ul>
+
+<h3>WebSocket Broadcasting</h3>
+<p>When a campaign runs, every action (message sent, lead found, error) broadcasts to all connected dashboard clients via WebSocket:</p>
+<pre><code>function broadcast(event: string, data: any) {
+  const msg = JSON.stringify({ event, data });
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN)
+      client.send(msg);
+  });
+}</code></pre>
+<p>This gives operators real-time visibility into campaign execution without polling.</p>
+
+<h2>Campaign Engine Flow</h2>
+<p>The campaign runs as a background async task triggered by a POST to <code>/api/campaign/run</code>. The HTTP response returns immediately with <code>{"status":"running"}</code>, and the actual work happens after:</p>
+<pre><code>apiRouter.post("/campaign/run", async (req, res) => {
+  res.json({ status: "running" }); // Return immediately
+
+  // Background execution
+  const result = await runCampaignDay({
+    accountAlias: account,
+    dayNumber: day,
+    maxNewLeads: 60,
+    maxMessages: 60,
+  });
+  broadcast("campaign_done", result);
+});</code></pre>
+
+<h2>Rate Limiting Strategy</h2>
+<p>LinkedIn has aggressive bot detection. We implement multiple layers:</p>
+<ul>
+  <li><strong>Daily caps:</strong> 50 messages/day, 20 invitations/day per account</li>
+  <li><strong>Per-minute throttle:</strong> Max 5 messages/minute</li>
+  <li><strong>Random delays:</strong> 10-25 seconds between sends (mimics human behavior)</li>
+  <li><strong>Timezone-aware scheduling:</strong> Messages queued for optimal local hours (8-10, 12, 16-17)</li>
+</ul>
+<p>The rate limiter uses a simple sliding-window counter stored in memory, with daily totals persisted to PostgreSQL:</p>
+<pre><code>const canSend = await checkAndIncrementDaily(
+  accountId, "message", config.maxMessagesPerDay
+);</code></pre>
+
+<h2>Database Schema Highlights</h2>
+<p>The schema auto-creates on startup via <code>initDatabase()</code> using <code>CREATE TABLE IF NOT EXISTS</code>. Key tables:</p>
+<ul>
+  <li><code>leads</code> — LinkedIn profiles with status pipeline (prospect → contacted → responded → interested → demo → customer)</li>
+  <li><code>outreach_queue</code> — Message queue with status tracking and scheduled delivery</li>
+  <li><code>follow_ups</code> — 3-step follow-up sequences with automatic cancellation on reply</li>
+  <li><code>daily_activity</code> — Rate limit tracking per account per day</li>
+</ul>
+
+<h2>Cloud Run Deployment</h2>
+<p>Cloud Run gives us serverless scaling with persistent WebSocket support. Key config:</p>
+<ul>
+  <li><strong>Max instances: 1</strong> — Single instance to avoid rate limit races</li>
+  <li><strong>CPU: 1, Memory: 512Mi</strong> — Sufficient for our workload</li>
+  <li><strong>Cloud SQL connector</strong> — PostgreSQL via Unix socket</li>
+  <li><strong>Startup CPU boost</strong> — Faster cold starts</li>
+  <li><strong>Secrets via Secret Manager</strong> — API keys, tokens never in env vars</li>
+</ul>
+<p>CI/CD runs on every push to main: <code>vitest</code> → <code>tsc --noEmit</code> → Docker build → push to Artifact Registry → <code>gcloud run deploy</code>.</p>
+    `
+  },
+  {
+    id: "claude-ai-linkedin-integration",
+    title: "Integrating Claude AI for LinkedIn Message Generation: Lessons Learned",
+    category: "engineering",
+    readTime: "8 min",
+    date: "2026-04-05",
+    tags: ["Claude AI", "Bedrock", "Prompt Engineering", "LLM", "Integration"],
+    excerpt: "How we use Claude via AWS Bedrock to generate hyper-personalized LinkedIn messages — prompt design, fallback strategies, and production gotchas.",
+    content: `
+<h2>Why Claude via Bedrock</h2>
+<p>We chose Claude for message generation because of its strong multilingual capabilities (critical for Ukrainian/English mixed audiences) and its ability to follow complex system prompts precisely. AWS Bedrock gives us a managed endpoint without API key management headaches — it integrates natively with IAM roles on Cloud Run.</p>
+
+<h2>The Prompt Architecture</h2>
+<p>Every outreach message is generated with a two-part prompt:</p>
+<h3>System Prompt</h3>
+<p>Contains the product context (~500 words about the product, pricing, features), the specific message angle, and strict formatting rules:</p>
+<pre><code>CRITICAL RULES:
+- Write in Ukrainian (unless lead is clearly English-only)
+- 3-5 sentences MAX
+- Start with something specific to THIS person's profile
+- DO NOT start with generic "Привіт, [name]"
+- Focus on ONE angle, not a feature list
+- End with a soft CTA
+- Output ONLY the message text</code></pre>
+
+<h3>User Prompt</h3>
+<p>Contains the lead's structured profile data:</p>
+<pre><code>Lead profile:
+- Name: Олексій Петренко
+- Headline: Managing Partner at Kyiv Law Group
+- Company: Kyiv Law Group
+- Location: Kyiv
+
+Message angle: pain_point_time
+Day of campaign: 3</code></pre>
+
+<h2>The 290-Character Regeneration Problem</h2>
+<p>This was our biggest production surprise. LinkedIn connection request notes are limited to 290 characters, but Claude generates 400-600 character messages. Our first approach was naive truncation:</p>
+<pre><code>// DON'T DO THIS
+const note = message.slice(0, 290);</code></pre>
+<p>This produced messages that cut off mid-sentence — a terrible first impression. The fix: <strong>regenerate</strong> with an explicit character limit:</p>
+<pre><code>const shortPrompt = getOutreachSystemPrompt(angle, 290);
+// System prompt now includes:
+// "HARD LIMIT: message MUST be under 290 characters total"
+const note = await claude.generateWithSystem(
+  shortPrompt, userPrompt
+);</code></pre>
+<p>As a safety net, if Claude still exceeds the limit (rare but possible), we trim at the last sentence boundary rather than mid-word.</p>
+
+<h2>Timezone-Aware Scheduling</h2>
+<p>We map LinkedIn location strings to UTC offsets using pattern matching:</p>
+<pre><code>const TIMEZONE_MAP = [
+  { patterns: /kyiv|odessa|ukraine/i, utcOffset: 3 },
+  { patterns: /london|uk|britain/i, utcOffset: 1 },
+  { patterns: /new york|us east/i, utcOffset: -4 },
+  // ... 15+ timezone regions
+];</code></pre>
+<p>If the current time isn't in the recipient's optimal window (8-10, 12, 16-17 local), the message is generated immediately but queued with <code>status: 'scheduled'</code> and a future <code>scheduled_at</code> timestamp. A separate process picks up due messages every campaign run.</p>
+
+<h2>Reply Handling</h2>
+<p>When a campaign lead replies, the system:</p>
+<ol>
+  <li>Detects the unread message via Unipile API</li>
+  <li>Loads the last 6 messages for conversation context</li>
+  <li>Generates a contextual reply using a different system prompt (sales assistant mode)</li>
+  <li>Sends the reply and cancels pending follow-ups</li>
+</ol>
+<p>The reply prompt has different rules — it answers questions, mentions pricing when asked, and suggests demos on interest signals.</p>
+
+<h2>Production Lessons</h2>
+<ul>
+  <li><strong>Temperature matters:</strong> We use the default temperature for variety, but considered lowering it for follow-ups where consistency matters more</li>
+  <li><strong>Prompt versioning:</strong> Keep prompts in code (not a CMS) — they change with the product and need to be deployed atomically</li>
+  <li><strong>Fallback chains:</strong> DM → Invitation + regenerated note → Log failure. Never leave a lead in limbo</li>
+  <li><strong>Idempotency:</strong> Queue the message in DB before sending. If the send fails, the queue record captures the failure. If the process crashes, you know what was attempted</li>
+  <li><strong>Character counting:</strong> Ukrainian characters are multi-byte in UTF-8 but count as single characters in LinkedIn's limit. Always use <code>string.length</code>, not byte length</li>
+</ul>
+
+<h2>What's Next</h2>
+<p>We're exploring multi-turn conversation handling where Claude maintains context across multiple exchanges, and A/B testing different message angles to optimize reply rates per audience segment. The data from angle rotation is already feeding into analytics — it's just a matter of closing the loop.</p>
+    `
+  }
+];
+
+// ─── Mathematical Banner Generators ─────────────────────────────────────────────
+// 2D iterative maps with density accumulation + hover animation
+
+function hashSeed(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+  return h;
+}
+
+function seeded(seed) {
+  return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+const PALETTES = [
+  { bg: "#12041f", colors: ["#12041f","#2d1b69","#6b2fa8","#a040d0","#d050e0","#f06292","#ff8a80","#ffc107","#ffe082"] },
+  { bg: "#041a2a", colors: ["#041a2a","#0c3555","#1565c0","#2196f3","#4fc3f7","#80deea","#a7ffeb","#1de9b6","#b2ff59"] },
+  { bg: "#1a0800", colors: ["#1a0800","#5d1a00","#bf360c","#ff6d00","#ff9100","#ffab40","#ffd54f","#fff176","#ffffff"] },
+  { bg: "#050520", colors: ["#050520","#1a237e","#283593","#3f51b5","#7986cb","#9fa8da","#e8eaf6","#b388ff","#ea80fc"] },
+];
+
+function hexToRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n>>16)&255, (n>>8)&255, n&255]; }
+
+function sampleGradient(rgbs, t) {
+  const ct = Math.max(0, Math.min(0.999, t));
+  const seg = ct * (rgbs.length - 1);
+  const i = Math.floor(seg), f = seg - i;
+  const c1 = rgbs[i], c2 = rgbs[Math.min(i+1, rgbs.length-1)];
+  return [Math.round(c1[0]+(c2[0]-c1[0])*f), Math.round(c1[1]+(c2[1]-c1[1])*f), Math.round(c1[2]+(c2[2]-c1[2])*f)];
+}
+
+// ─── Attractor types (2D iterative maps) ────────────────────────────────────────
+
+// ─── 4 distinct generator types ─────────────────────────────────────────────────
+
+// Type 0: Clifford attractor — density accumulation
+function drawClifford(ctx, w, h, rgbs, bg, anim) {
+  const zoom = 1.0 + anim * 0.15;
+  const colorShift = anim * 0.4;
+  const a = -1.4, b = 1.6, c = 1.0, d = 0.7;
+  const N = 250000;
+  const counts = new Float32Array(w * h);
+  let x = 0.1, y = 0.1, maxC = 0;
+  for (let i = 0; i < 300; i++) { const nx = Math.sin(a*y)+c*Math.cos(a*x); const ny = Math.sin(b*x)+d*Math.cos(b*y); x=nx; y=ny; }
+  for (let i = 0; i < N; i++) {
+    const nx = Math.sin(a*y)+c*Math.cos(a*x), ny = Math.sin(b*x)+d*Math.cos(b*y);
+    x=nx; y=ny;
+    const px = Math.floor((x/zoom + 2.5) / 5 * w);
+    const py = Math.floor((y/zoom + 2.5) / 5 * h);
+    if (px>=0 && px<w && py>=0 && py<h) { counts[py*w+px]++; if(counts[py*w+px]>maxC) maxC=counts[py*w+px]; }
+  }
+  const img = ctx.createImageData(w, h);
+  const bgC = hexToRgb(bg);
+  for (let i = 0; i < w*h; i++) {
+    const t = maxC > 0 ? Math.pow(counts[i]/maxC, 0.4) : 0;
+    const [r,g,b] = t > 0.01 ? sampleGradient(rgbs, (t + colorShift) % 1) : bgC;
+    const a2 = t > 0.01 ? 0.3 + t * 0.7 : 1;
+    img.data[i*4]   = Math.round(bgC[0]*(1-a2) + r*a2);
+    img.data[i*4+1] = Math.round(bgC[1]*(1-a2) + g*a2);
+    img.data[i*4+2] = Math.round(bgC[2]*(1-a2) + b*a2);
+    img.data[i*4+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// Type 1: De Jong attractor — density accumulation, different params
+function drawDeJong(ctx, w, h, rgbs, bg, anim) {
+  const zoom = 1.0 + anim * 0.12;
+  const colorShift = anim * 0.35;
+  const a = -2.24, b = 2.43, c = -1.65, d = -2.43;
+  const N = 250000;
+  const counts = new Float32Array(w * h);
+  let x = 0.1, y = 0.1, maxC = 0;
+  for (let i = 0; i < 300; i++) { const nx = Math.sin(a*y)-Math.cos(b*x); const ny = Math.sin(c*x)-Math.cos(d*y); x=nx; y=ny; }
+  for (let i = 0; i < N; i++) {
+    const nx = Math.sin(a*y)-Math.cos(b*x), ny = Math.sin(c*x)-Math.cos(d*y);
+    x=nx; y=ny;
+    const px = Math.floor((x/zoom + 2.2) / 4.4 * w);
+    const py = Math.floor((y/zoom + 2.2) / 4.4 * h);
+    if (px>=0 && px<w && py>=0 && py<h) { counts[py*w+px]++; if(counts[py*w+px]>maxC) maxC=counts[py*w+px]; }
+  }
+  const img = ctx.createImageData(w, h);
+  const bgC = hexToRgb(bg);
+  for (let i = 0; i < w*h; i++) {
+    const t = maxC > 0 ? Math.pow(counts[i]/maxC, 0.45) : 0;
+    const [r,g,b] = t > 0.01 ? sampleGradient(rgbs, (t + colorShift) % 1) : bgC;
+    const a2 = t > 0.01 ? 0.3 + t * 0.7 : 1;
+    img.data[i*4]   = Math.round(bgC[0]*(1-a2) + r*a2);
+    img.data[i*4+1] = Math.round(bgC[1]*(1-a2) + g*a2);
+    img.data[i*4+2] = Math.round(bgC[2]*(1-a2) + b*a2);
+    img.data[i*4+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// Type 2: Harmonograph — damped Lissajous parametric curves
+function drawHarmonograph(ctx, w, h, rgbs, bg, anim) {
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const f1 = 2.01, f2 = 3.03, f3 = 2.99, f4 = 2.01;
+  const p1 = 0, p2 = 1.57, p3 = 3.14, p4 = 0.78;
+  const d1 = 0.004, d2 = 0.003;
+  const phaseShift = anim * 1.5;
+  const scaleAnim = 0.23 + anim * 0.04;
+  const N = 100000;
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const t = i * 0.004;
+    const x = Math.sin(t*f1 + p1 + phaseShift)*Math.exp(-d1*t) + Math.sin(t*f3 + p3)*Math.exp(-d2*t);
+    const y = Math.sin(t*f2 + p2 + phaseShift*0.7)*Math.exp(-d1*t) + Math.sin(t*f4 + p4)*Math.exp(-d2*t);
+    const px = w/2 + x * w * scaleAnim;
+    const py = h/2 + y * h * scaleAnim * 1.4;
+    const ct = (i / N + anim * 0.3) % 1;
+    const [r,g,b] = sampleGradient(rgbs, ct);
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.18)`;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    if (i % 3000 === 0 && i > 0) { ctx.stroke(); ctx.beginPath(); ctx.moveTo(px, py); }
+  }
+  ctx.stroke();
+}
+
+// Type 3: Flow field — sine-cos vector field with particle traces
+function drawFlowField(ctx, w, h, rgbs, bg, anim) {
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const scaleF = 0.008 + anim * 0.003;
+  const ox = 137 + anim * 80, oy = 42 + anim * 50;
+  const particles = 800;
+  const steps = 250;
+  const lineW = 0.8 + anim * 0.6;
+  ctx.lineWidth = lineW;
+  const rng = seeded(42);
+  for (let p = 0; p < particles; p++) {
+    let x = rng() * w, y = rng() * h;
+    const ct = (p / particles + anim * 0.25) % 1;
+    const [r,g,b] = sampleGradient(rgbs, ct);
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.14)`;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for (let s = 0; s < steps; s++) {
+      const angle = Math.sin((x+ox)*scaleF)*Math.cos((y+oy)*scaleF)*Math.PI*4
+                  + Math.cos((x-y)*scaleF*0.5)*Math.PI*2;
+      x += Math.cos(angle) * 1.8; y += Math.sin(angle) * 1.8;
+      if (x<0||x>w||y<0||y>h) break;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+// Each article: unique type + palette
+const ARTICLE_VISUALS = {
+  "linkedin-outreach-automation":    { type: "clifford",     palette: 0 },
+  "hyperpersonalization-conversion": { type: "dejong",       palette: 1 },
+  "architecture-nodejs-cloudrun":    { type: "harmonograph", palette: 2 },
+  "claude-ai-linkedin-integration":  { type: "flowfield",    palette: 3 },
+};
+
+const DRAW_FNS = {
+  clifford: drawClifford,
+  dejong: drawDeJong,
+  harmonograph: drawHarmonograph,
+  flowfield: drawFlowField,
+};
+
+// ─── Shared overlays ────────────────────────────────────────────────────────────
+
+function drawOverlays(ctx, w, h) {
+  const vig = ctx.createRadialGradient(w/2, h/2, h*0.2, w/2, h/2, w*0.7);
+  vig.addColorStop(0, "rgba(0,0,0,0)");
+  vig.addColorStop(0.7, "rgba(0,0,0,0.12)");
+  vig.addColorStop(1, "rgba(0,0,0,0.5)");
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, w, h);
+  const bf = ctx.createLinearGradient(0, h*0.45, 0, h);
+  bf.addColorStop(0, "transparent");
+  bf.addColorStop(1, "rgba(30,30,36,0.85)");
+  ctx.fillStyle = bf; ctx.fillRect(0, 0, w, h);
+}
+
+// ─── Banner rendering & cache ───────────────────────────────────────────────────
+
+function drawFullBanner(ctx, w, h, articleId, anim) {
+  const vis = ARTICLE_VISUALS[articleId] || { type: "clifford", palette: 0 };
+  const palette = PALETTES[vis.palette];
+  const rgbs = palette.colors.map(hexToRgb);
+  DRAW_FNS[vis.type](ctx, w, h, rgbs, palette.bg, anim);
+  drawOverlays(ctx, w, h);
+}
+
+function drawBannerText(ctx, w, h, title, category, isLarge) {
+  const s = w / (isLarge ? 720 : 430); // scale factor
+  ctx.save();
+
+  // Category badge — top left
+  const badgeText = category === "marketing" ? "GROWTH & MARKETING" : "ENGINEERING";
+  const badgeFontSz = Math.round(11 * s);
+  ctx.font = `700 ${badgeFontSz}px 'DM Sans', sans-serif`;
+  ctx.letterSpacing = `${0.8 * s}px`;
+  const bm = ctx.measureText(badgeText);
+  const bPad = 10 * s, bH = badgeFontSz + 10 * s, bX = 20 * s, bY = 18 * s;
+  ctx.fillStyle = category === "marketing" ? "rgba(160,112,240,0.9)" : "rgba(48,200,176,0.9)";
+  ctx.beginPath(); ctx.roundRect(bX, bY, bm.width + bPad * 2, bH, 4 * s); ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.fillText(badgeText, bX + bPad, bY + badgeFontSz + 2 * s);
+  ctx.letterSpacing = "0px";
+
+  // Title — large uppercase, bottom of banner
+  const titleText = title.toUpperCase();
+  const titleFontSz = Math.round((isLarge ? 32 : 22) * s);
+  ctx.font = `800 ${titleFontSz}px 'DM Sans', sans-serif`;
+  ctx.fillStyle = "#fff";
+  ctx.shadowColor = "rgba(0,0,0,0.8)";
+  ctx.shadowBlur = 12 * s;
+  ctx.shadowOffsetY = 3 * s;
+
+  // Word-wrap
+  const pad = 20 * s;
+  const maxW = w - pad * 2;
+  const words = titleText.split(" ");
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? line + " " + word : word;
+    if (ctx.measureText(test).width > maxW) { if (line) lines.push(line); line = word; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+
+  const lineH = titleFontSz * 1.18;
+  const blockH = lines.length * lineH;
+  const startY = h - pad - blockH + titleFontSz;
+  lines.forEach((l, i) => ctx.fillText(l, pad, startY + i * lineH));
+
+  ctx.restore();
+}
+
+function initCanvas(canvas) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.floor(rect.width * dpr), h = Math.floor(rect.height * dpr);
+  canvas.width = w; canvas.height = h;
+  return { ctx: canvas.getContext("2d"), w, h };
+}
+
+function renderBanner(canvas, articleId) {
+  const { ctx, w, h } = initCanvas(canvas);
+  const article = ARTICLES.find(a => a.id === articleId);
+  drawFullBanner(ctx, w, h, articleId, 0);
+  if (article) drawBannerText(ctx, w, h, article.title, article.category, false);
+}
+
+function renderBannerLarge(canvas, articleId) {
+  const { ctx, w, h } = initCanvas(canvas);
+  const article = ARTICLES.find(a => a.id === articleId);
+  drawFullBanner(ctx, w, h, articleId, 0);
+  if (article) drawBannerText(ctx, w, h, article.title, article.category, true);
+}
+
+// Hover animation — zoom + color shift + parameter morph (no rotation)
+const activeAnims = new Map();
+
+function animateBanner(canvas, articleId, isLarge) {
+  if (activeAnims.has(articleId)) return;
+  const w = canvas.width, h = canvas.height;
+  const ctx = canvas.getContext("2d");
+  const article = ARTICLES.find(a => a.id === articleId);
+
+  const duration = 2500;
+  const start = performance.now();
+
+  function tick(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const ease = progress < 0.5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2;
+    const anim = Math.sin(ease * Math.PI); // 0 → 1 → 0
+
+    drawFullBanner(ctx, w, h, articleId, anim);
+    if (article) drawBannerText(ctx, w, h, article.title, article.category, isLarge);
+
+    if (progress < 1) {
+      activeAnims.set(articleId, requestAnimationFrame(tick));
+    } else {
+      activeAnims.delete(articleId);
+      drawFullBanner(ctx, w, h, articleId, 0);
+      if (article) drawBannerText(ctx, w, h, article.title, article.category, isLarge);
+    }
+  }
+  activeAnims.set(articleId, requestAnimationFrame(tick));
+}
+
+// ─── Rendering ──────────────────────────────────────────────────────────────────
+
+function renderCards(filter) {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  const filtered = filter === "all" ? ARTICLES : ARTICLES.filter(a => a.category === filter);
+
+  filtered.forEach(a => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.category = a.category;
+    card.onclick = () => openArticle(a.id);
+    card.innerHTML = `
+      <div class="card-banner" data-article="${a.id}">
+        <canvas></canvas>
+      </div>
+      <div class="card-body">
+        <div class="meta"><span>${a.readTime} read</span><span>${a.date}</span></div>
+        <p class="excerpt">${a.excerpt}</p>
+      </div>
+      <div class="card-tags">${a.tags.map(t => `<span class="tag">${t}</span>`).join("")}</div>
+    `;
+    grid.appendChild(card);
+
+    // Lazy render with IntersectionObserver
+    const banner = card.querySelector(".card-banner");
+    const canvas = banner.querySelector("canvas");
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { renderBanner(canvas, a.id); obs.disconnect(); }
+    }, { rootMargin: "200px" });
+    obs.observe(canvas);
+
+    // Hover animation
+    banner.addEventListener("mouseenter", () => animateBanner(canvas, a.id, false));
+  });
+}
+
+function filterCards(filter) {
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.textContent.includes(
+    filter === "all" ? "All" : filter === "marketing" ? "Growth" : "Engineering"
+  )));
+  renderCards(filter);
+}
+
+function openArticle(id) {
+  const a = ARTICLES.find(x => x.id === id);
+  if (!a) return;
+  const modal = document.getElementById("modal");
+  modal.innerHTML = `
+    <div class="modal-banner">
+      <canvas></canvas>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-content">
+      <div class="article-meta">
+        <span style="font-size:12px;color:var(--text3)">${a.readTime} read &middot; ${a.date}</span>
+      </div>
+      <div class="article-body">${a.content}</div>
+    </div>
+    <div class="modal-tags">${a.tags.map(t => `<span class="tag">${t}</span>`).join("")}</div>
+  `;
+  document.getElementById("modal-backdrop").classList.add("open");
+  document.body.style.overflow = "hidden";
+
+  requestAnimationFrame(() => {
+    const canvas = modal.querySelector("canvas");
+    renderBannerLarge(canvas, a.id);
+    setTimeout(() => animateBanner(canvas, a.id, true), 100);
+  });
+
+  // Update URL
+  history.pushState(null, "", `/blog?article=${id}`);
+}
+
+function closeModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById("modal-backdrop").classList.remove("open");
+  document.body.style.overflow = "";
+  history.pushState(null, "", "/blog");
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+// ─── Init ───────────────────────────────────────────────────────────────────────
+
+renderCards("all");
+
+// Open article from URL
+const params = new URLSearchParams(location.search);
+if (params.get("article")) openArticle(params.get("article"));
+</script>
+</body>
+</html>
