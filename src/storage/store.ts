@@ -201,78 +201,91 @@ export async function initDatabase(): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS daily_activity_account_date_action_key ON daily_activity(account_id, date, action_type)
   `;
 
-  // Performance indexes
-  await sql`CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_conversations_account_id ON conversations(account_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_conversations_last_msg ON conversations(last_message_at DESC)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_outreach_queue_lead_id ON outreach_queue(lead_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_outreach_queue_campaign ON outreach_queue(campaign_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_leads_account_id ON leads(account_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_posts_account_id ON posts(account_id)`;
+  // Performance indexes (ignore duplicate errors from concurrent init)
+  const indexes = [
+    sql`CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_conversations_account_id ON conversations(account_id)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_conversations_last_msg ON conversations(last_message_at DESC)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_outreach_queue_lead_id ON outreach_queue(lead_id)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_outreach_queue_campaign ON outreach_queue(campaign_id)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_leads_account_id ON leads(account_id)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_posts_account_id ON posts(account_id)`,
+  ];
+  for (const idx of indexes) {
+    try { await idx; } catch (e: any) { if (e.code !== '23505') throw e; }
+  }
 
   // --- Lead pipeline status ---
   await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'prospect'`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)`;
+  try { await sql`CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)`; } catch (e: any) { if (e.code !== '23505') throw e; }
 
   // --- Follow-up sequences ---
-  await sql`
-    CREATE TABLE IF NOT EXISTS follow_ups (
-      id SERIAL PRIMARY KEY,
-      lead_id INTEGER REFERENCES leads(id),
-      account_id TEXT NOT NULL DEFAULT '',
-      campaign_id INTEGER,
-      step INTEGER NOT NULL DEFAULT 1,
-      scheduled_for TIMESTAMPTZ NOT NULL,
-      message_text TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'pending',
-      sent_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-  await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_due ON follow_ups(status, scheduled_for)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_lead ON follow_ups(lead_id)`;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS follow_ups (
+        id SERIAL PRIMARY KEY,
+        lead_id INTEGER REFERENCES leads(id),
+        account_id TEXT NOT NULL DEFAULT '',
+        campaign_id INTEGER,
+        step INTEGER NOT NULL DEFAULT 1,
+        scheduled_for TIMESTAMPTZ NOT NULL,
+        message_text TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pending',
+        sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+  } catch (e: any) { if (e.code !== '23505') throw e; }
+  try { await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_due ON follow_ups(status, scheduled_for)`; } catch (e: any) { if (e.code !== '23505') throw e; }
+  try { await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_lead ON follow_ups(lead_id)`; } catch (e: any) { if (e.code !== '23505') throw e; }
 
   // --- Lead notes ---
-  await sql`
-    CREATE TABLE IF NOT EXISTS lead_notes (
-      id SERIAL PRIMARY KEY,
-      lead_id INTEGER REFERENCES leads(id),
-      author TEXT NOT NULL DEFAULT '',
-      note TEXT NOT NULL DEFAULT '',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS lead_notes (
+        id SERIAL PRIMARY KEY,
+        lead_id INTEGER REFERENCES leads(id),
+        author TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+  } catch (e: any) { if (e.code !== '23505') throw e; }
 
   // --- Deals ---
-  await sql`
-    CREATE TABLE IF NOT EXISTS deals (
-      id SERIAL PRIMARY KEY,
-      lead_id INTEGER REFERENCES leads(id),
-      account_id TEXT NOT NULL DEFAULT '',
-      title TEXT NOT NULL DEFAULT '',
-      value NUMERIC NOT NULL DEFAULT 0,
-      currency TEXT NOT NULL DEFAULT 'UAH',
-      stage TEXT NOT NULL DEFAULT 'qualification',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      closed_at TIMESTAMPTZ
-    )
-  `;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS deals (
+        id SERIAL PRIMARY KEY,
+        lead_id INTEGER REFERENCES leads(id),
+        account_id TEXT NOT NULL DEFAULT '',
+        title TEXT NOT NULL DEFAULT '',
+        value NUMERIC NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'UAH',
+        stage TEXT NOT NULL DEFAULT 'qualification',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        closed_at TIMESTAMPTZ
+      )
+    `;
+  } catch (e: any) { if (e.code !== '23505') throw e; }
 
   // --- Outreach angle tracking ---
   await sql`ALTER TABLE outreach_queue ADD COLUMN IF NOT EXISTS message_angle TEXT NOT NULL DEFAULT ''`;
 
   // --- Users ---
-  await sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      display_name TEXT NOT NULL DEFAULT '',
-      role TEXT NOT NULL DEFAULT 'user',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        display_name TEXT NOT NULL DEFAULT '',
+        role TEXT NOT NULL DEFAULT 'user',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+  } catch (e: any) { if (e.code !== '23505') throw e; }
 }
 
 export async function closeDatabase(): Promise<void> {
