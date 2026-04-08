@@ -144,18 +144,22 @@
   <a href="/login" class="logo" style="text-decoration:none">selected.ai</a>
   <div class="sep"></div>
   <a href="/blog" class="nav-link active">Blog</a>
-  <a href="/login" class="nav-link">Sign In</a>
+  <a href="/login" class="nav-link" id="nav-signin">Sign In</a>
+  <div style="margin-left:auto;display:flex;gap:0;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+    <button onclick="setLang('en')" id="lang-en" style="background:transparent;border:none;color:var(--text3);padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;transition:background 0.15s,color 0.15s">EN</button>
+    <button onclick="setLang('ua')" id="lang-ua" style="background:transparent;border:none;color:var(--text3);padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;transition:background 0.15s,color 0.15s">UA</button>
+  </div>
 </div>
 
 <div class="hero">
-  <h1>The <span>selected.ai</span> Blog</h1>
-  <p>How we built an AI-powered LinkedIn outreach engine — from architecture to conversion. For growth managers and engineers alike.</p>
+  <h1 id="hero-title">The <span>selected.ai</span> Blog</h1>
+  <p id="hero-sub">How we built an AI-powered LinkedIn outreach engine — from architecture to conversion. For growth managers and engineers alike.</p>
 </div>
 
 <div class="filters">
-  <button class="filter-btn active" onclick="filterCards('all')">All</button>
-  <button class="filter-btn" onclick="filterCards('marketing')">Growth &amp; Marketing</button>
-  <button class="filter-btn" onclick="filterCards('engineering')">Engineering</button>
+  <button class="filter-btn active" data-filter="all" onclick="filterCards('all')">All</button>
+  <button class="filter-btn" data-filter="marketing" onclick="filterCards('marketing')">Growth &amp; Marketing</button>
+  <button class="filter-btn" data-filter="engineering" onclick="filterCards('engineering')">Engineering</button>
 </div>
 
 <div class="grid" id="grid"></div>
@@ -180,6 +184,9 @@ const ARTICLES = [
     date: "2026-04-08",
     tags: ["LinkedIn", "Automation", "Lead Gen", "Outreach"],
     excerpt: "A deep dive into how selected.ai searches, enriches, and contacts ideal prospects on LinkedIn — without sending a single manual message.",
+    title_ua: "Як selected.ai автоматизує пошук лідів у LinkedIn у масштабі",
+    excerpt_ua: "Від пошуку до follow-up — як AI-платформа замінює ручну роботу SDR, надсилаючи десятки персоналізованих повідомлень щодня без жодного copy-paste.",
+    content_ua: `<h2>Від ручного outreach до повної автоматизації</h2><p>LinkedIn залишається каналом №1 для B2B-продажів, але ручний outreach — це рутина, яка з'їдає години щодня. Скролити профілі, писати повідомлення, стежити за часовими зонами, не забувати про follow-up — усе це забирає час, який можна витратити на закриття угод.</p><p><strong>selected.ai</strong> — це платформа, яка перетворює LinkedIn outreach на повністю автоматизований процес. Не шаблонна розсилка, а <strong>синтетичний SDR</strong>, який читає профілі, генерує унікальні повідомлення й доставляє їх у потрібний момент.</p><p>Розберімо, як це працює — крок за кроком.</p><h2>Фаза 1: Smart Lead Search — розумний пошук лідів</h2><p>Все починається з пошуку. Але замість одного статичного запиту selected.ai використовує <strong>ротацію ключових слів і посад</strong>, щоб охопити максимум релевантних профілів.</p><h3>Як це працює</h3><ul><li><strong>Ротація запитів</strong> — платформа автоматично чергує різні комбінації ключових слів, посад і фільтрів, щоб LinkedIn не обмежував видачу</li><li><strong>Дедуплікація</strong> — кожен знайдений профіль перевіряється на унікальність. Якщо лід вже є в базі або вже отримував повідомлення — він пропускається</li><li><strong>Збагачення даних</strong> — для кожного ліда збирається повна інформація: посада, компанія, локація, опис профілю</li></ul><p>Результат — чистий список лідів без дублів, готовий до outreach.</p><h2>Фаза 2: Hyper-Personalized First Touch — гіпер-персоналізований перший контакт</h2><p>Тут починається магія. Замість шаблону <code>"Привіт {name}, я бачив ваш профіль..."</code> — <strong>Claude AI генерує унікальне повідомлення для кожного ліда</strong>.</p><h3>Що враховує AI</h3><ul><li><strong>Профіль отримувача</strong> — посада, компанія, досвід, навички</li><li><strong>Ротація кутів подачі (angles)</strong> — платформа чергує різні підходи: ROI, автоматизація, масштабування команди, конкурентна перевага</li><li><strong>Тон і стиль</strong> — повідомлення звучать природно, як від реальної людини, а не від бота</li></ul><blockquote><p>Кожне повідомлення — це не mail merge з підставленим ім'ям. Це текст, написаний AI, який <strong>прочитав профіль</strong> і знайшов релевантний hook.</p></blockquote><p>На практиці це означає, що два ліди з однаковою посадою отримають <strong>різні повідомлення</strong> з різними аргументами.</p><h2>Фаза 3: Timezone-Aware Delivery — доставка з урахуванням часових зон</h2><p>Надіслати ідеальне повідомлення о 3 годині ночі за часом отримувача — це втратити його. selected.ai вирішує цю проблему автоматично.</p><h3>Механіка доставки</h3><ul><li><strong>Визначення часової зони</strong> — на основі локації ліда платформа визначає його місцевий час</li><li><strong>Оптимальне вікно</strong> — повідомлення плануються на робочі години отримувача, коли ймовірність відповіді найвища</li><li><strong>Rate limiting</strong> — платформа дотримується лімітів LinkedIn, розподіляючи відправку рівномірно протягом дня</li></ul><p>Ви запускаєте кампанію — а система сама вирішує, <strong>коли саме</strong> доставити кожне повідомлення.</p><h2>Фаза 4: Intelligent Follow-ups — розумні follow-up повідомлення</h2><p>Більшість відповідей приходять не на перше повідомлення, а на follow-up. selected.ai автоматизує це за допомогою <strong>3-крокової послідовності</strong>.</p><h3>Структура послідовності</h3><ul><li><strong>День 3</strong> — перший follow-up з новим кутом подачі. Не "просто нагадую", а нова цінність</li><li><strong>День 5</strong> — другий follow-up з іншим підходом. Наприклад, якщо перше повідомлення було про ROI — друге буде про автоматизацію процесів</li><li><strong>День 7</strong> — фінальний follow-up. Коротке, м'яке повідомлення</li></ul><blockquote><p>Кожен follow-up використовує <strong>інший angle</strong>, щоб не повторюватися і збільшити шанси на відповідь.</p></blockquote><h3>Авто-скасування при відповіді</h3><p>Якщо лід відповів на будь-якому етапі — <strong>послідовність автоматично зупиняється</strong>. Ніяких незручних "просто перевіряю, чи ви отримали моє повідомлення" після того, як людина вже відповіла.</p><h2>Результати: цифри говорять самі за себе</h2><ul><li><strong>58 персоналізованих повідомлень</strong> за один день — кожне унікальне</li><li><strong>5 хвилин на запуск</strong> — від налаштування до першого повідомлення</li><li><strong>Нуль ручної роботи</strong> — після запуску кампанія працює автономно</li></ul><p>Це не теоретичні показники — це реальні результати однієї кампанії.</p><h2>Чим selected.ai відрізняється від інших інструментів</h2><p>Більшість інструментів LinkedIn outreach — це по суті <strong>mail merge</strong>: шаблон + змінні. Отримувач бачить це за секунду і ігнорує.</p><p>selected.ai працює інакше:</p><ul><li><strong>Не шаблон, а генерація</strong> — кожне повідомлення створюється з нуля на основі профілю</li><li><strong>Не спам, а стратегія</strong> — ротація angles, часові зони, розумні follow-up</li><li><strong>Не інструмент, а синтетичний SDR</strong> — платформа виконує повний цикл роботи sales development representative</li></ul><p>По суті, selected.ai — це <strong>AI-працівник</strong>, який читає профілі, пише повідомлення, обирає час відправки й веде follow-up послідовності. Все, що вам потрібно — запустити кампанію.</p><h2>Висновок</h2><p>LinkedIn outreach не повинен бути ручною рутиною. З selected.ai ви отримуєте повністю автоматизований pipeline: від пошуку лідів до follow-up — з AI-персоналізацією, яка масштабується без втрати якості.</p><p><strong>5 хвилин налаштування. Десятки персоналізованих повідомлень щодня. Нуль copy-paste.</strong></p>`,
     content: `
 <h2>The Problem: Manual Outreach Doesn't Scale</h2>
 <p>Every growth team knows the pain: you need 50+ qualified conversations a week, but your SDRs spend 80% of their time just <strong>finding</strong> the right people and writing first-touch messages. By the time they hit "send," the prospect has already been contacted by three competitors.</p>
@@ -228,6 +235,9 @@ const ARTICLES = [
     date: "2026-04-07",
     tags: ["Personalization", "AI", "Conversion", "Claude"],
     excerpt: "Generic templates get 2% reply rates. AI-crafted messages tailored to each prospect's profile consistently outperform — here's the data and the method.",
+    title_ua: "Гіперперсоналізація у масштабі: чому AI-повідомлення конвертують у 3 рази краще",
+    excerpt_ua: "Шаблонні повідомлення з {firstName} дають 1-3% відповідей. Дізнайтесь, як система 7 кутів атаки та AI-pipeline генерують персоналізовані повідомлення, що конвертують утричі краще.",
+    content_ua: `<h2>Пастка шаблонів: чому generic-повідомлення не працюють</h2><p>Якщо ваша outreach-стратегія зводиться до <code>{firstName}</code>, у вас проблема. Типові шаблонні повідомлення в LinkedIn отримують 1-3% відповідей — і це в кращому випадку. Люди миттєво розпізнають масову розсилку й ігнорують її.</p><p>Справжня персоналізація — це не підставити ім'я в шаблон. Це продемонструвати, що ви зробили домашнє завдання.</p><h2>Що таке реальна персоналізація</h2><p>Персоналізоване повідомлення враховує кілька факторів одночасно:</p><ul><li><strong>Конкретні досягнення</strong> — посилання на проєкти, публікації або досвід lead'а</li><li><strong>Мова спілкування</strong> — автоматичне визначення та адаптація (UA/EN)</li><li><strong>Роль і контекст</strong> — CTO отримує інший меседж, ніж Head of Sales</li><li><strong>Структура</strong> — варіація формату: питання, факт, кейс, пряма пропозиція</li></ul><p>Коли всі ці елементи працюють разом, reply rate зростає в 3 рази й більше.</p><h2>Система 7 кутів атаки (7-Angle Rotation)</h2><p>Щоб уникнути повторюваності, ми використовуємо ротацію з 7 різних підходів до кожного lead'а:</p><ol><li><strong>pain_time</strong> — акцент на втраті часу через ручні процеси</li><li><strong>pain_cost</strong> — фокус на фінансових втратах та неефективності</li><li><strong>social_proof</strong> — кейси та результати подібних компаній</li><li><strong>free_bonus</strong> — безкоштовна цінність: аудит, чеклист, демо</li><li><strong>tech_innovation</strong> — технологічна перевага та сучасний підхід</li><li><strong>competitor_gap</strong> — що роблять конкуренти, а ви ще ні</li><li><strong>question_hook</strong> — провокаційне питання, що чіпляє увагу</li></ol><p>Кожен кут атаки дає свіжий погляд на ту саму пропозицію. Система автоматично обирає angle залежно від профілю та історії взаємодії.</p><h2>AI Writing Pipeline: як це працює під капотом</h2><p>Генерація повідомлень побудована на двошаровій prompt-архітектурі:</p><h3>System Prompt</h3><p>Визначає tone of voice, обмеження, формат та загальні правила комунікації. Цей prompt однаковий для всіх повідомлень у межах кампанії.</p><h3>User Prompt з профілем lead'а</h3><p>Містить конкретні дані: посаду, компанію, індустрію, нещодавні публікації, спільні зв'язки. Claude аналізує цей контекст і генерує повідомлення, адаптоване під конкретну людину.</p><blockquote>Ключовий принцип: AI не «заповнює шаблон» — він створює унікальне повідомлення з нуля для кожного lead'а, враховуючи обраний angle та всю доступну інформацію.</blockquote><h2>Проблема 290 символів: розумне скорочення</h2><p>LinkedIn connection request обмежений 290 символами. Наївний підхід — обрізати текст — руйнує меседж. Наше рішення:</p><ol><li>Якщо повідомлення перевищує ліміт, воно не обрізається</li><li>Натомість Claude отримує повторний запит з інструкцією згенерувати <strong>коротшу версію</strong></li><li>AI зберігає ключову ідею та персоналізацію, але переформульовує стисліше</li></ol><pre>// Замість truncate:\nmessage.slice(0, 290) // ❌ Втрата сенсу\n\n// Регенерація через Claude:\nawait regenerateShorter(message, 290) // ✅ Збереження якості</pre><p>Результат — повідомлення, що вміщується в ліміт і зберігає повну цінність.</p><h2>Чому це працює: ефект домашнього завдання</h2><p>Коли людина бачить, що ви згадали її конкретний проєкт або нещодавню публікацію — це сигнал поваги. Це означає, що ви не просто натиснули «відправити 1000 повідомлень», а витратили час на дослідження.</p><p>AI дозволяє масштабувати цей ефект. Кожен lead отримує повідомлення, яке виглядає як написане вручну, — тому що воно й справді створене індивідуально, просто не людиною, а інтелектуальним pipeline.</p><p><strong>Результат:</strong> reply rate 8-12% замість 1-3% — це різниця між кампанією, що генерує зустрічі, і кампанією, що генерує тишу.</p>`,
     content: `
 <h2>The Template Trap</h2>
 <p>You've seen them. We all have. "Hi {firstName}, I noticed you work at {company} and thought you might be interested in..." — straight to the trash. LinkedIn users receive dozens of these daily, and they've developed a sixth sense for automated outreach.</p>
@@ -279,6 +289,21 @@ const ARTICLES = [
     date: "2026-04-06",
     tags: ["Node.js", "TypeScript", "Cloud Run", "PostgreSQL", "Architecture"],
     excerpt: "How we built a real-time campaign automation platform with Express 5, WebSocket, PostgreSQL, and deployed it on GCP Cloud Run with zero downtime.",
+    title_ua: "Архітектура selected.ai: Node.js, Express, WebSocket та Cloud Run",
+    excerpt_ua: "Глибокий технічний огляд архітектурних рішень selected.ai — від свідомого моноліту на Node.js до деплою на Cloud Run з автоматичним CI/CD.",
+    content_ua: `<h2>Принципи проєктування: свідомий моноліт</h2><p>selected.ai побудований як <strong>свідомий моноліт</strong> — єдиний сервер, який обслуговує REST API, WebSocket-з'єднання та статичний SPA-інтерфейс. Це не тимчасове рішення, а продуманий архітектурний вибір: на ранніх етапах продукту моноліт забезпечує швидкість розробки, простоту деплою та мінімальну операційну складність.</p><h2>Технологічний стек</h2><ul><li><strong>Runtime:</strong> Node.js 20 + TypeScript (ESM)</li><li><strong>Web-фреймворк:</strong> Express 5 — REST API (<code>/api/*</code>), статичні файли SPA</li><li><strong>Real-time:</strong> бібліотека <code>ws</code> для WebSocket-з'єднань (<code>/ws</code>)</li><li><strong>База даних:</strong> PostgreSQL (драйвер <code>postgres.js</code>)</li><li><strong>AI:</strong> Claude через AWS Bedrock (<code>@anthropic-ai/bedrock-sdk</code>)</li><li><strong>LinkedIn-інтеграція:</strong> Unipile API (проксі для повідомлень та пошуку)</li><li><strong>Автентифікація:</strong> JWT-токени в cookies, хешування паролів через bcrypt</li><li><strong>Деплой:</strong> Docker → GCP Artifact Registry → Cloud Run</li></ul><h2>Архітектура сервера</h2><p>Один Express-сервер обслуговує три типи трафіку:</p><ol><li><strong>REST API</strong> (<code>/api/*</code>) — CRUD-операції для кампаній, лідів, аналітики, автентифікації</li><li><strong>WebSocket</strong> (<code>/ws</code>) — оновлення в реальному часі: логи кампаній, зміни статусів</li><li><strong>Статичний SPA</strong> — дашборд на vanilla JS з підтримкою i18n (EN/UA)</li></ol><h3>WebSocket broadcast()</h3><p>Функція <code>broadcast()</code> надсилає оновлення всім підключеним клієнтам одночасно:</p><pre><code>function broadcast(type: string, data: unknown) {
+  const message = JSON.stringify({ type, ...data });
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}</code></pre><p>Це забезпечує миттєве відображення прогресу кампаній у дашборді без потреби в polling.</p><h2>Двигун кампаній</h2><p>Запуск кампанії через <code>POST /api/campaign/run</code> повертає відповідь негайно, а виконання відбувається асинхронно у фоні. Двигун працює за конвеєрним принципом:</p><ol><li><strong>Пошук</strong> — знаходження потенційних лідів через Unipile Search API</li><li><strong>Збагачення</strong> — аналіз профілю та генерація персоналізованого повідомлення через Claude</li><li><strong>Відправка</strong> — надсилання повідомлення з дотриманням лімітів</li></ol><h2>Rate Limiting: захист облікового запису</h2><p>Система лімітів розроблена для імітації природної поведінки людини:</p><table><tr><th>Параметр</th><th>Значення</th></tr><tr><td>Повідомлення на день</td><td>50</td></tr><tr><td>Запрошення на день</td><td>20</td></tr><tr><td>Throttle на хвилину</td><td>5</td></tr><tr><td>Випадкова затримка</td><td>10–25 секунд</td></tr></table><p>Додатково — планування за часовим поясом: повідомлення надсилаються лише в робочі години отримувача.</p><h2>Схема бази даних</h2><p>Основні таблиці PostgreSQL:</p><ul><li><strong>leads</strong> — воронка статусів: <code>new → contacted → replied → qualified → converted</code></li><li><strong>outreach_queue</strong> — черга повідомлень для відправки</li><li><strong>follow_ups</strong> — автоматичні нагадування та повторні повідомлення</li><li><strong>daily_activity</strong> — лічильники денної активності для контролю лімітів</li></ul><h2>Деплой на Cloud Run</h2><p>Конфігурація Cloud Run оптимізована для одного інстансу:</p><pre><code>maxScale: 1
+resources:
+  cpu: 1
+  memory: 512Mi
+database: Cloud SQL (PostgreSQL)
+secrets: GCP Secret Manager</code></pre><p>Обмеження <code>maxScale: 1</code> — принципове рішення: оскільки платформа працює з одним LinkedIn-акаунтом, кілька інстансів створили б конфлікти при відправці повідомлень.</p><h3>CI/CD пайплайн</h3><p>Повний цикл деплою автоматизований через GitHub Actions:</p><ol><li>Push в <code>main</code> → збірка Docker-образу</li><li>Завантаження в GCP Artifact Registry</li><li>Деплой на Cloud Run з оновленням конфігурації</li></ol><p>Від коміту до продакшену — менше 5 хвилин.</p><h2>Висновки</h2><p>Архітектура selected.ai демонструє, що свідомий моноліт може бути елегантним рішенням для спеціалізованих SaaS-продуктів. Простота стеку — це не обмеження, а перевага: менше рухомих частин означає швидшу розробку, простіший дебаг та надійніший продакшен.</p>`,
     content: `
 <h2>Design Principles</h2>
 <p>selected.ai is a monolith — intentionally. When you're building a campaign engine that needs to coordinate search, AI generation, rate limiting, and message delivery in sequence, microservices would add latency and complexity without benefit. One process, one deployment, one database.</p>
@@ -369,6 +394,14 @@ CI/CD:       GitHub Actions (test → build → deploy)</code></pre>
     date: "2026-04-05",
     tags: ["Claude AI", "Bedrock", "Prompt Engineering", "LLM", "Integration"],
     excerpt: "How we use Claude via AWS Bedrock to generate hyper-personalized LinkedIn messages — prompt design, fallback strategies, and production gotchas.",
+    title_ua: "Інтеграція Claude AI для генерації повідомлень у LinkedIn: отримані уроки",
+    excerpt_ua: "Як ми побудували систему генерації повідомлень на базі Claude через AWS Bedrock — від архітектури промптів до обмеження у 290 символів та планування з урахуванням часових зон.",
+    content_ua: `<h2>Чому Claude через Bedrock</h2><p>Коли ми обирали мовну модель для генерації повідомлень у LinkedIn, ключовими критеріями були багатомовність, якість українського тексту та зручність інтеграції в існуючу інфраструктуру AWS. Claude від Anthropic через AWS Bedrock відповідав усім вимогам: нативна підтримка української мови, інтеграція з IAM для автентифікації без окремих API-ключів, а також передбачувана тарифікація через єдиний білінг AWS.</p><p>Bedrock дозволяє викликати Claude як звичайний AWS-сервіс — з підписами SigV4, ролями IAM та регіональними ендпоінтами. Це суттєво спрощує управління доступом у продакшені та усуває потребу в ротації API-токенів.</p><h2>Архітектура промптів</h2><p>Наша система використовує двошарову архітектуру промптів для генерації персоналізованих повідомлень:</p><h3>Системний промпт</h3><p>Містить приблизно 500 слів контексту продукту, включаючи:</p><ul><li>Опис платформи Selected.ai та її цінність для цільової аудиторії</li><li>Інструкцію щодо кута подачі (angle) — конкретний біль або потреба, на яку ми звертаємось</li><li>Суворі правила генерації: тільки українська мова, 3–5 речень, заборона на шаблонні привітання</li></ul><h3>Користувацький промпт</h3><p>Містить структуровані дані профілю ліда:</p><pre><code>{ name, headline, company, location, industry, summary }</code></pre><p>Модель отримує реальні дані профілю та генерує повідомлення, яке виглядає як написане живою людиною, а не шаблонною розсилкою.</p><h2>Проблема обмеження у 290 символів</h2><p>LinkedIn обмежує запити на підключення до 290 символів. Наш перший підхід був наївним:</p><pre><code>const truncated = message.slice(0, 290);</code></pre><p>Це призводило до обрізаних посередині слова повідомлень, що виглядало непрофесійно. Виправлення складалося з двох частин:</p><ol><li><strong>Явний ліміт у промпті</strong> — додали інструкцію генерувати повідомлення строго до 290 символів</li><li><strong>Запасний механізм на межі речень</strong> — якщо відповідь все одно перевищує ліміт, обрізаємо на останній повній крапці перед 290-м символом</li></ol><pre><code>function safeTruncate(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const truncated = text.slice(0, limit);
+  const lastSentence = truncated.lastIndexOf('.');
+  return lastSentence > 0 ? truncated.slice(0, lastSentence + 1) : truncated;
+}</code></pre><p>Якщо і це не допомагає — запускаємо повторну генерацію з ще жорсткішим обмеженням.</p><h2>Планування з урахуванням часових зон</h2><p>Надсилати повідомлення о 3 годині ночі за місцевим часом отримувача — гарантований спосіб потрапити в ігнор. Ми реалізували систему визначення часової зони на основі локації профілю:</p><ul><li>Патерн-матчинг по полю location для визначення міста або країни</li><li>Маппінг на UTC-зміщення через таблицю відповідностей</li><li>Постановка повідомлень у чергу з урахуванням робочих годин отримувача</li></ul><p>Повідомлення плануються на робочі години (9:00–18:00 за місцевим часом) з рандомізацією інтервалу, щоб уникнути підозрілих патернів масової розсилки.</p><h2>Обробка відповідей</h2><p>Коли лід відповідає, система автоматично:</p><ol><li>Виявляє непрочитане повідомлення через Unipile API</li><li>Завантажує повний контекст переписки</li><li>Генерує релевантну відповідь через Claude з урахуванням історії діалогу</li><li>Скасовує заплановані follow-up повідомлення для цього ліда</li></ol><p>Це запобігає ситуації, коли лід вже відповів, а система все одно надсилає черговий follow-up — що виглядає як спам і руйнує довіру.</p><h2>Уроки продакшену</h2><h3>Температура генерації</h3><p>Занадто низька температура (0.1–0.3) давала однотипні повідомлення, які легко розпізнавались як автоматичні. Занадто висока (0.9+) — непередбачуваний тон. Оптимальний діапазон для наших задач: <strong>0.5–0.7</strong>.</p><h3>Версіонування промптів у коді</h3><p>Промпти зберігаються безпосередньо в коді, а не в базі даних чи зовнішніх файлах. Це дає чіткий Git-історію змін, можливість code review та відкат до попередніх версій.</p><h3>Ланцюжки резервних дій</h3><p>Не кожен лід доступний для прямого повідомлення. Наша система використовує fallback-ланцюжок:</p><ol><li><strong>Пряме повідомлення</strong> — якщо профіль відкритий або ми вже підключені</li><li><strong>Запит на підключення</strong> — з персоналізованою запискою до 290 символів</li><li><strong>Логування</strong> — якщо обидва варіанти недоступні, зберігаємо ліда для ручної обробки</li></ol><h3>Ідемпотентність: черга перед відправкою</h3><p>Критично важливо записувати повідомлення в чергу <strong>до</strong> фактичної відправки. Якщо процес впаде після відправки, але до запису — система спробує надіслати повідомлення повторно. Патерн <em>«запиши намір, потім виконай, потім позначи як виконане»</em> запобігає дублюванню.</p><h3>Підрахунок символів: length, а не байти</h3><p>Українські символи займають 2 байти в UTF-8, але LinkedIn рахує саме символи. Використання <code>string.length</code> в JavaScript коректно повертає кількість символів, а не байтів — що відповідає логіці обмеження LinkedIn.</p><blockquote><p>Головний урок: автоматизація повідомлень у LinkedIn — це не просто виклик API мовної моделі. Це система з десятків edge-кейсів, де кожна деталь — від довжини повідомлення до часу відправки — впливає на конверсію.</p></blockquote>`,
     content: `
 <h2>Why Claude via Bedrock</h2>
 <p>We chose Claude for message generation because of its strong multilingual capabilities (critical for Ukrainian/English mixed audiences) and its ability to follow complex system prompts precisely. AWS Bedrock gives us a managed endpoint without API key management headaches — it integrates natively with IAM roles on Cloud Run.</p>
@@ -451,6 +484,9 @@ const note = await claude.generateWithSystem(
     date: "2026-04-04",
     tags: ["Follow-ups", "Cadence", "Automation", "Conversion"],
     excerpt: "Most follow-ups fail because they repeat the same pitch. Our 3-step AI cadence uses a different angle every time — and knows when to stop.",
+    title_ua: "Послідовність фолоу-апів, яка не дратує: 3-крокова AI Cadence",
+    excerpt_ua: "Чому більшість follow-up повідомлень провалюються і як 3-крокова cadence з автоматичним скасуванням перетворює нав'язливість на системну конверсію.",
+    content_ua: `<h2>Чому більшість follow-up повідомлень провалюються</h2><p>Класичний "just checking in" — це сигнал відчаю. Коли ваш follow-up не несе нової цінності, він не просто ігнорується — він активно шкодить вашому бренду. Людина бачить повторне повідомлення без контексту і подумки додає вас у чорний список.</p><p><strong>Selected.ai</strong> використовує принципово інший підхід: кожне наступне повідомлення має власну стратегію, власний кут подачі та чітку причину для відповіді.</p><h2>3-крокова Cadence: структура, що конвертує</h2><h3>Крок 1 — День 3: м'яке доповнення цінності</h3><p>Перший follow-up приходить через 3 дні після початкового повідомлення. Замість "нагадую про себе" — зовсім інший angle. Якщо початкове повідомлення було про ROI, друге може торкнутися конкретного use case або трендів індустрії.</p><blockquote>Ключовий принцип: нове повідомлення = нова перспектива, а не повторення старої.</blockquote><h3>Крок 2 — День 5: social proof та success story</h3><p>Люди довіряють результатам інших. На цьому етапі AI генерує повідомлення з елементами соціального доказу — реальні кейси, метрики успіху, релевантні приклади з індустрії ліда.</p><p>Це не generic testimonial, а <strong>персоналізований proof point</strong>, підібраний під профіль та сферу конкретного отримувача.</p><h3>Крок 3 — День 7: прямий offer</h3><p>Фінальне повідомлення — чіткий call to action: запрошення на demo, пропозиція trial-доступу або конкретна наступна дія. Без натяків, без розмитих формулювань.</p><p>Після третього кроку послідовність завершується gracefully. Жодного "останній шанс" чи четвертого нагадування — це зберігає професійний тон і залишає двері відкритими.</p><h2>Автоматичне скасування: інтелект системи</h2><p>Найважливіша частина cadence — це момент, коли вона <strong>зупиняється</strong>. Як тільки система фіксує reply від ліда, всі pending follow-up повідомлення автоматично скасовуються, а статус контакту змінюється на <code>responded</code>.</p><p>Це критично: ніщо не руйнує довіру швидше, ніж автоматичне повідомлення після того, як людина вже відповіла. Selected.ai виключає цей сценарій на архітектурному рівні.</p><h2>Чому різні angles працюють</h2><p>Люди ігнорують повідомлення, які не резонують з їхнім поточним контекстом. Те, що не зачепило в понеділок, може спрацювати у п'ятницю — якщо подане під іншим кутом.</p><p><strong>Selected.ai</strong> ротує повідомлення через 7 різних angles, максимізуючи шанс знайти <strong>right hook</strong> — саме ту подачу, яка збігається з потребою ліда в конкретний момент.</p><blockquote>7 angles × 3 кроки = систематичне покриття всіх можливих мотивацій відповіді.</blockquote><h2>Scheduling Layer: як це працює під капотом</h2><p>Технічно cadence побудована на таблиці <code>follow_ups</code> з полем <code>scheduled_for</code> (timestamp запланованої відправки). Background process регулярно перевіряє чергу та відправляє повідомлення, суворо дотримуючись daily limits.</p><p>Це означає, що навіть якщо у вас 200 активних cadences одночасно, система розподілить відправку рівномірно, не перевищуючи ліміти платформи і не провокуючи spam-фільтри.</p><h2>Результат: система замість хаосу</h2><p>3-крокова AI cadence від <strong>Selected.ai</strong> — це не просто автоматизація follow-up. Це продумана комунікаційна стратегія, де кожне повідомлення має мету, кожен крок несе нову цінність, а система достатньо розумна, щоб зупинитися, коли потрібно.</p>`,
     content: `
 <h2>Why Most Follow-Ups Fail</h2>
 <p>The typical follow-up sequence: "Just checking in," "Circling back," "Wanted to bump this to the top of your inbox." Each one more desperate than the last. The prospect sees through it, and your brand takes the hit.</p>
@@ -485,6 +521,9 @@ const note = await claude.generateWithSystem(
     date: "2026-04-03",
     tags: ["Timezone", "Scheduling", "Engagement", "LinkedIn"],
     excerpt: "A message landing at 3 AM gets buried. selected.ai maps each lead's location to their local timezone and queues messages for peak engagement windows.",
+    title_ua: "Розсилка з урахуванням часових зон: чому відправка о 9 ранку за їхнім часом змінює все",
+    excerpt_ua: "Ваша кампанія стартує о 14:00 за Києвом — але ліди в Сан-Франциско та Дубаї отримують повідомлення посеред ночі. Як timezone-aware черга вирішує цю проблему.",
+    content_ua: `<h2>Проблема 3-ї ночі</h2><p>Уявіть: ви запускаєте outreach-кампанію о 14:00 за київським часом. Здається — ідеальний робочий час. Але ваші ліди в Сан-Франциско отримують повідомлення о 4 ранку, а контакти в Дубаї — о 15:00, коли їхня поштова скринька вже переповнена. Результат: ваше повідомлення потрапляє в кінець стрічки, open rate падає, а відповідей майже немає.</p><p>Дослідження LinkedIn показують, що повідомлення, надіслані в <strong>локальний робочий час</strong> отримувача, мають на 40-60% вищий response rate. Це не магія — це просто повага до розкладу вашого ліда.</p><h2>Як працює mapping часових зон</h2><p>Selected.ai аналізує поле <strong>location</strong> у LinkedIn-профілі та зіставляє його з базою з 15+ регіонів через pattern matching:</p><ul><li><strong>Україна</strong> — UTC+3 (EET/EEST)</li><li><strong>Західна Європа</strong> (Німеччина, Франція, Нідерланди) — UTC+2</li><li><strong>Великобританія</strong> — UTC+1 (BST)</li><li><strong>US East</strong> (Нью-Йорк, Бостон, Маямі) — UTC-4</li><li><strong>US West</strong> (Сан-Франциско, Лос-Анджелес, Сіетл) — UTC-7</li><li><strong>Близький Схід</strong> (Дубаї, Ер-Ріяд) — UTC+4</li><li><strong>Singapore</strong> — UTC+8</li><li><strong>Tokyo</strong> — UTC+9</li></ul><p>Система використовує regex-патерни для розпізнавання варіацій назв міст та регіонів, включаючи скорочення та локалізовані назви.</p><h2>Оптимальні вікна відправки</h2><p>На основі аналізу engagement-даних, selected.ai таргетує чотири пікових вікна за <strong>локальним часом отримувача</strong>:</p><ul><li><strong>8:00–10:00</strong> — початок робочого дня, перевірка повідомлень</li><li><strong>12:00–12:30</strong> — обідня перерва, скролінг LinkedIn</li><li><strong>16:00–17:00</strong> — завершення робочого дня, останній перегляд inbox</li></ul><p>Ці вікна забезпечують максимальну видимість вашого повідомлення саме тоді, коли лід активний на платформі.</p><h2>Механізм черги</h2><p>Коли кампанія генерує повідомлення, вони не відправляються миттєво. Ось як працює процес:</p><ul><li>Повідомлення генерується одразу через Claude AI</li><li>Система розраховує найближче оптимальне вікно за локальним часом ліда</li><li>Встановлюється <code>scheduled_at</code> з додаванням випадкового jitter <strong>0–30 хвилин</strong>, щоб уникнути batch-патернів</li><li>Під час кожного циклу кампанії черга перевіряється та повідомлення відправляються з дотриманням того ж <strong>rate limiting</strong> — денні ліміти, per-minute throttle</li></ul><p>Такий підхід робить вашу outreach-активність максимально схожою на органічну поведінку реальної людини.</p><h2>Fallback-стратегія</h2><p>Не всі профілі мають заповнене поле location. У таких випадках система застосовує fallback — <strong>UTC+3 (Україна)</strong>. Це оптимальний вибір, якщо ваша основна аудиторія знаходиться в Східній Європі. За потреби значення за замовчуванням можна змінити в конфігурації кампанії.</p><p>Timezone-aware outreach — це не просто технічна фіча. Це фундаментальна зміна підходу: замість масової розсилки ви відправляєте <strong>правильне повідомлення у правильний час</strong>. І результати говорять самі за себе.</p>`,
     content: `
 <h2>The 3 AM Problem</h2>
 <p>You run a campaign at 2 PM your time. Great — but your leads in San Francisco are still in their morning meeting, and your leads in Dubai are already winding down for the day. By the time they open LinkedIn, your message is buried under 20 newer notifications.</p>
@@ -526,6 +565,9 @@ const note = await claude.generateWithSystem(
     date: "2026-04-02",
     tags: ["Copywriting", "Angles", "A/B Testing", "Personalization"],
     excerpt: "Each lead gets a unique message angle from a rotation of 7 strategies. Here's what each one does, when it works best, and how rotation prevents fatigue.",
+    title_ua: "7 кутів подачі повідомлень, які ми ротуємо, і що кожен робить найкраще",
+    excerpt_ua: "Чому одне й те саме повідомлення вбиває довіру — і як Selected.ai автоматично чергує 7 різних підходів, щоб кожен лід отримав релевантний меседж.",
+    content_ua: `<h2>Навіщо ротувати повідомлення</h2><p>LinkedIn — це спільнота, де люди спілкуються між собою. Якщо десятки контактів в одній індустрії отримають ідентичний текст, ваша репутація впаде миттєво. Скріншоти розходяться за хвилини, і відновити довіру після цього майже неможливо.</p><p>Selected.ai вирішує цю проблему автоматичною ротацією <strong>7 кутів подачі</strong> — кожен лід отримує повідомлення, яке найкраще резонує саме з його роллю та болем.</p><h2>7 кутів подачі: детальний розбір</h2><h3>1. Pain Point Time — біль через витрачений час</h3><p>Найкраще працює для <strong>старших юристів і партнерів</strong>, які цінують кожну годину. Ключове питання: <em>«Скільки годин витрачаєте на перевірку контрагентів вручну?»</em> Цей кут бʼє в щоденну рутину і змушує порахувати реальну вартість свого часу.</p><h3>2. Pain Point Cost — біль через вартість</h3><p>Ідеальний для <strong>CFO та фінансових директорів</strong>. Конкретні цифри: традиційні сервіси коштують <strong>60–150 грн</strong> за запит, тоді як Selected.ai — лише <strong>8 грн</strong>. Економія, яку неможливо проігнорувати, особливо при великих обсягах перевірок.</p><h3>3. Social Proof — соціальний доказ</h3><p>Спирається на авторитет визнаних брендів та експертних оцінок. Ми згадуємо партнерства рівня <strong>AWS</strong> і <strong>Google Cloud</strong>, рейтинги незалежних експертів та відгуки реальних клієнтів. Цей кут найкраще працює для тих, хто приймає рішення на основі репутації.</p><h3>4. Free Bonus — безкоштовний бонус</h3><p>Орієнтований на <strong>генералістів</strong> — юристів і менеджерів широкого профілю. Ключова пропозиція: <strong>усі бази даних безкоштовно</strong> при оформленні платного плану. Простий і зрозумілий стимул, який знижує барʼєр входу.</p><h3>5. Tech Innovation — технологічна інновація</h3><p>Створений для <strong>tech-forward аудиторії</strong> — тих, хто слідкує за цифровою трансформацією. Ми акцентуємо на інтеграціях із <strong>Дія.Підпис</strong>, прямому доступі до <strong>НАІС API</strong> та вбудованій <strong>AI-аналітиці</strong>. Цей кут показує, що Selected.ai — це не просто база даних, а технологічна платформа.</p><h3>6. Competitor Gap — розрив з конкурентами</h3><p>Жоден конкурент не пропонує такої комбінації: <strong>єдиний реєстр + AI-аналітика + Дія.Підпис + доступна ціна</strong>. Цей кут працює через порівняння і найкраще підходить для тих, хто вже користується альтернативними рішеннями та незадоволений ними.</p><h3>7. Question Hook — питання-гачок</h3><p>Універсальний кут, який підходить <strong>для будь-якої аудиторії</strong>. Замість продажу — щире запитання про робочий процес ліда. Наприклад: <em>«Як зараз у вашій команді організована перевірка контрагентів?»</em> Це знижує захисну реакцію і відкриває діалог.</p><h2>Як працює ротація</h2><p>Алгоритм ротації простий і детермінований:</p><p><code>(dayNumber + leadIndex) % 7</code></p><p>Це гарантує, що:</p><ul><li>Кожен лід отримує <strong>унікальний кут</strong> відносно сусідніх контактів</li><li>З кожним днем кут змінюється навіть для лідів з однаковим індексом</li><li>Розподіл рівномірний — жоден кут не домінує</li></ul><h2>Як ми вимірюємо ефективність</h2><p>Кожне відправлене повідомлення зберігає значення кута в полі <code>outreach_queue.message_angle</code>. Це дозволяє:</p><ul><li>Відстежувати <strong>reply rate</strong> для кожного кута окремо</li><li>Порівнювати ефективність кутів у розрізі індустрій та ролей</li><li>Автоматично коригувати ваги ротації на основі реальних даних</li></ul><p>За нашими даними, різні аудиторії реагують на різні кути — і саме тому <strong>ротація завжди перемагає</strong> одноманітну розсилку.</p>`,
     content: `
 <h2>Why Rotate at All?</h2>
 <p>If you find one message that works, why not send it to everyone? Because LinkedIn audiences talk to each other. If two lawyers in the same Kyiv office receive identical messages from the same person, your credibility is gone. Rotation ensures no two consecutive leads in a batch get the same pitch — and helps you discover which angles perform best.</p>
@@ -573,6 +615,9 @@ const note = await claude.generateWithSystem(
     date: "2026-04-01",
     tags: ["Rate Limiting", "LinkedIn", "Safety", "Anti-Detection"],
     excerpt: "LinkedIn's bot detection is aggressive. Here's our multi-layer rate limiting strategy: daily caps, per-minute throttles, random delays, and business hours enforcement.",
+    title_ua: "Rate Limiting для автоматизації LinkedIn: як не потрапити в бан",
+    excerpt_ua: "П'ять рівнів захисту — від денних лімітів до випадкових затримок — які дозволяють Selected.ai масштабувати охоплення без ризику блокування акаунта.",
+    content_ua: `<h2>Чому це важливо</h2><p>Бан LinkedIn — це не просто тимчасова незручність. Ви втрачаєте всі контакти, історію листування та роками побудовану мережу. Selected.ai використовує п'ятирівневу систему rate limiting, щоб ваш акаунт залишався в безпеці навіть при активному аутрічі.</p><h2>1. Денні ліміти</h2><p>Перший рівень захисту — жорсткі денні обмеження: <strong>50 повідомлень</strong> та <strong>20 запрошень</strong> на день. Кожна дія фіксується в таблиці <code>daily_activity</code>, і перед кожним надсиланням система перевіряє залишок.</p><pre><code>const allowed = await checkAndIncrementDaily(accountId, 'message');\nif (!allowed) {\n  logger.warn('Daily message cap reached, skipping send');\n  return;\n}</code></pre><p>Це гарантує, що навіть при одночасній роботі кількох кампаній загальна кількість дій не перевищить безпечні межі.</p><h2>2. Обмеження за хвилину</h2><p>Денного ліміту недостатньо — LinkedIn також відстежує інтенсивність дій. Selected.ai використовує <strong>ковзне вікно: максимум 5 повідомлень за хвилину</strong> з обов'язковою паузою <strong>30 секунд</strong> між пакетами. Це імітує природну поведінку людини.</p><h2>3. Випадкові затримки</h2><p>Фіксовані інтервали легко розпізнати алгоритмам. Тому між кожним надсиланням додається <strong>випадкова затримка від 10 до 25 секунд</strong>:</p><pre><code>function randomDelay(minMs = 10000, maxMs = 25000): Promise&lt;void&gt; {\n  const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;\n  return new Promise(resolve =&gt; setTimeout(resolve, delay));\n}</code></pre><p>Непередбачуваність інтервалів робить автоматизацію невідрізнюваною від ручної роботи.</p><h2>4. Робочі години</h2><p>Повідомлення о третій ночі — очевидна ознака бота. Selected.ai надсилає повідомлення лише в <strong>робочий час з 9:00 до 18:00</strong> у часовому поясі отримувача. Система автоматично визначає таймзону за локацією профілю та планує відправку відповідно.</p><h2>5. Fallback для запрошень</h2><p>Запрошення на LinkedIn часто завершуються помилками через тимчасові обмеження платформи. Selected.ai використовує логіку повторних спроб: <strong>максимум 2 спроби</strong> з інтервалом <strong>5 секунд</strong>, при цьому запрошення мають окремий лічильник від повідомлень.</p><p>Це дозволяє не втрачати потенційних лідів через випадкові збої API, зберігаючи безпечний темп роботи.</p><h2>Моніторинг у реальному часі</h2><p>Дашборд Selected.ai показує всю аналітику в реальному часі: кількість надісланих повідомлень і запрошень, помилки, залишок денного ліміту. Якщо щось іде не так — ви побачите це одразу, а не після блокування акаунта.</p><h2>Конфігурація</h2><p>Усі ліміти налаштовуються через змінні середовища, що дозволяє адаптувати систему під різні акаунти та стратегії:</p><pre><code>MAX_MESSAGES_PER_DAY=50\nMAX_INVITATIONS_PER_DAY=20\nMIN_DELAY_MS=10000\nMAX_DELAY_MS=25000\nMESSAGES_PER_MINUTE=5</code></pre><p>Ці п'ять рівнів працюють разом, створюючи надійний захист, який дозволяє масштабувати аутріч без ризику для вашого акаунта LinkedIn.</p>`,
     content: `
 <h2>The Stakes</h2>
 <p>LinkedIn restricts or bans accounts that exhibit automated behavior. Losing an account means losing all connections, conversation history, and trust built over years. Our rate limiting isn't an optimization — it's a survival mechanism.</p>
@@ -628,6 +673,17 @@ BUSINESS_HOURS_END=18</code></pre>
     date: "2026-03-30",
     tags: ["WebSocket", "Real-Time", "Dashboard", "Monitoring"],
     excerpt: "How we built a real-time campaign log viewer using WebSocket broadcasting — every message sent, every error, every follow-up, streamed to the dashboard instantly.",
+    title_ua: "Моніторинг кампаній у реальному часі за допомогою WebSocket Broadcasting",
+    excerpt_ua: "Як ми замінили HTTP-polling на WebSocket-трансляцію для миттєвих оновлень статусу кампаній — архітектура, інтеграція з дашбордом та сумісність із Cloud Run.",
+    content_ua: `<h2>Проблема polling-підходу</h2><p>Типова кампанія з пошуку лідів працює 20–30 хвилин. Якщо дашборд опитує сервер кожні 5 секунд, це генерує до 360 запитів за одну кампанію — і все одно оновлення приходять із затримкою. Користувач бачить застарілий статус, а сервер обробляє сотні зайвих HTTP-запитів. Нам потрібен був механізм, який доставляє події миттєво, без навантаження на API.</p><h2>Архітектура WebSocket</h2><p>Ми використовуємо бібліотеку <code>ws</code> для створення <code>WebSocketServer</code>, який ділить порт із Express-сервером. Це означає, що не потрібен окремий порт чи процес — WebSocket-з'єднання встановлюються через HTTP Upgrade на тому ж сервері.</p><p>Ключовий елемент — функція <code>broadcast()</code>, яка надсилає повідомлення всім підключеним клієнтам одночасно:</p><pre><code>function broadcast(type: string, data: any) {
+  const message = JSON.stringify({ type, ...data });
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}</code></pre><h2>Типи подій</h2><p>Система підтримує кілька типів подій для різних сценаріїв:</p><ul><li><strong>campaign_log</strong> — повідомлення про статус під час виконання кампанії: знайдено лідів, надіслано повідомлення, помилки збагачення профілів тощо.</li><li><strong>campaign_done</strong> — фінальне зведення після завершення кампанії з підсумковою статистикою: кількість оброблених лідів, надісланих повідомлень та помилок.</li><li><strong>sync_log</strong> — події синхронізації вхідних повідомлень та оновлення даних із зовнішніх джерел.</li></ul><h2>Інтеграція з дашбордом</h2><p>На клієнтській стороні ми використовуємо нативний WebSocket API з механізмом автоматичного перепідключення. Якщо з'єднання обривається, клієнт чекає 3 секунди та підключається знову:</p><pre><code>function connectWS() {
+  const ws = new WebSocket(\`,
     content: `
 <h2>The Problem with Polling</h2>
 <p>Campaign runs can take 20–30 minutes (60 leads × 15-second delays). If the dashboard polls <code>GET /api/campaign/status</code> every 5 seconds, that's 360 unnecessary HTTP requests per campaign run. Worse, you get status updates in 5-second chunks instead of real-time.</p>
@@ -683,6 +739,18 @@ const wss = new WebSocketServer({ server, path: "/ws" });</code></pre>
     date: "2026-03-28",
     tags: ["Unipile", "LinkedIn API", "PostgreSQL", "Data Pipeline", "Sync"],
     excerpt: "LinkedIn doesn't have a public API for messaging. Here's how we use Unipile as a proxy to search, message, and sync conversations into our PostgreSQL database.",
+    title_ua: "Від Unipile до PostgreSQL: будуємо пайплайн даних LinkedIn",
+    excerpt_ua: "Як ми інтегрували Unipile як проксі для LinkedIn API, реалізували дедуплікацію лідів, синхронізацію розмов та вебхуки для оновлень у реальному часі.",
+    content_ua: `<h2>Проблема з LinkedIn API</h2><p>Офіційний LinkedIn API обмежений сторінками компаній та маркетинговими інструментами — він не надає доступу до обміну повідомленнями чи пошуку профілів. Для автоматизації лідогенерації нам потрібен був інший підхід.</p><h2>Чому Unipile</h2><p>Ми обрали <strong>Unipile</strong> як керований проксі-сервіс, який надає повноцінний доступ до функцій LinkedIn: пошук людей, надсилання повідомлень, запрошень та отримання чатів — усе через єдиний REST API.</p><h2>Клас UnipileService</h2><p>Наш сервісний шар інкапсулює всі взаємодії з Unipile API:</p><pre><code>class UnipileService {
+  searchPeople(query, options)
+  startChat(accountId, profileId)
+  sendMessage(chatId, text)
+  sendInvitation(accountId, profileId, note)
+  getChats(accountId, cursor)
+  getChatMessages(chatId, cursor)
+}</code></pre><p>Кожен метод має вбудовану логіку <strong>retry з exponential backoff</strong>, що забезпечує стійкість до тимчасових збоїв API.</p><h2>Мультиакаунт</h2><p>Конфігурація кількох LinkedIn-акаунтів зберігається у змінній середовища:</p><pre><code>UNIPILE_ACCOUNTS='[{"alias":"sales-ua","id":"acc_123"},{"alias":"sales-us","id":"acc_456"}]'</code></pre><p>Кожен <strong>alias</strong> маппиться на унікальний <strong>id</strong> акаунта в Unipile, що дозволяє розподіляти навантаження між профілями.</p><h2>Дедуплікація лідів</h2><p>При імпорті лідів з пошукової видачі ми використовуємо PostgreSQL constraint для запобігання дублікатів:</p><pre><code>INSERT INTO leads (account_id, linkedin_id, name, ...)
+VALUES ($1, $2, $3, ...)
+ON CONFLICT (account_id, linkedin_id) DO NOTHING</code></pre><p>Це гарантує, що кожна комбінація <strong>account_id + linkedin_id</strong> є унікальною в базі даних.</p><h2>Синхронізація розмов</h2><p>Пайплайн синхронізації працює в кілька етапів:</p><ol><li><strong>Отримання чатів</strong> — запит до Unipile API за списком активних розмов</li><li><strong>Upsert розмов</strong> — оновлення або створення записів у таблиці conversations</li><li><strong>Отримання повідомлень</strong> — завантаження нових повідомлень для кожного чату</li><li><strong>Вставка з дедуплікацією</strong> — додавання повідомлень з перевіркою за <code>message_id</code></li><li><strong>Зв'язування з лідами</strong> — прив'язка розмов до відповідних записів у таблиці leads</li></ol><h2>Пайплайн статусів лідів</h2><p>Кожен лід проходить через визначену послідовність статусів:</p><ul><li><strong>prospect</strong> → <strong>contacted</strong> → <strong>responded</strong> → <strong>interested</strong> → <strong>demo</strong> → <strong>customer</strong></li></ul><p>Перші два переходи (<code>prospect → contacted</code> та <code>contacted → responded</code>) відбуваються <strong>автоматично</strong> при надсиланні повідомлення та отриманні відповіді. Решта переходів виконуються <strong>вручну</strong> через дашборд.</p><h2>Вебхук для повідомлень</h2><p>Для отримання повідомлень у реальному часі ми налаштували ендпоінт:</p><pre><code>POST /webhook/message</code></pre><p>Обробка вхідного вебхука включає:</p><ol><li><strong>Валідація</strong> — перевірка структури та автентичності запиту</li><li><strong>Вставка повідомлення</strong> — збереження в базу з дедуплікацією</li><li><strong>Оновлення лічильника</strong> — інкремент <code>unread_count</code> для відповідної розмови</li><li><strong>WebSocket broadcast</strong> — миттєве сповіщення всіх підключених клієнтів дашборду</li></ol><p>Це забезпечує оновлення інтерфейсу без потреби у постійному полінгу.</p><h2>Підсумок</h2><p>Побудований пайплайн забезпечує надійну інтеграцію між LinkedIn (через Unipile), PostgreSQL для зберігання та дедуплікації даних, і WebSocket для оновлень у реальному часі. Ключові рішення — мультиакаунт, автоматична дедуплікація та вебхуки — дозволяють масштабувати лідогенерацію без втрати якості даних.</p>`,
     content: `
 <h2>The LinkedIn API Problem</h2>
 <p>LinkedIn's official API is limited to company pages and marketing tools. There's no public API for sending messages, reading conversations, or searching by profile attributes. Every automation tool uses some form of unofficial access — browser extensions, headless browsers, or third-party proxies.</p>
@@ -971,7 +1039,7 @@ function drawBannerText(ctx, w, h, title, category, isLarge) {
   ctx.save();
 
   // Category badge — top left
-  const badgeText = category === "marketing" ? "GROWTH & MARKETING" : "ENGINEERING";
+  const badgeText = category === "marketing" ? t('badgeMarketing') : t('badgeEngineering');
   const badgeFontSz = Math.round(11 * s);
   ctx.font = `700 ${badgeFontSz}px 'DM Sans', sans-serif`;
   ctx.letterSpacing = `${0.8 * s}px`;
@@ -1025,14 +1093,14 @@ function renderBanner(canvas, articleId) {
   const { ctx, w, h } = initCanvas(canvas);
   const article = ARTICLES.find(a => a.id === articleId);
   drawFullBanner(ctx, w, h, articleId, 0);
-  if (article) drawBannerText(ctx, w, h, article.title, article.category, false);
+  if (article) drawBannerText(ctx, w, h, getField(article, 'title'), article.category, false);
 }
 
 function renderBannerLarge(canvas, articleId) {
   const { ctx, w, h } = initCanvas(canvas);
   const article = ARTICLES.find(a => a.id === articleId);
   drawFullBanner(ctx, w, h, articleId, 0);
-  if (article) drawBannerText(ctx, w, h, article.title, article.category, true);
+  if (article) drawBannerText(ctx, w, h, getField(article, 'title'), article.category, true);
 }
 
 // Hover animation — zoom + color shift + parameter morph (no rotation)
@@ -1053,22 +1121,73 @@ function animateBanner(canvas, articleId, isLarge) {
     const anim = Math.sin(ease * Math.PI); // 0 → 1 → 0
 
     drawFullBanner(ctx, w, h, articleId, anim);
-    if (article) drawBannerText(ctx, w, h, article.title, article.category, isLarge);
+    if (article) drawBannerText(ctx, w, h, getField(article, 'title'), article.category, isLarge);
 
     if (progress < 1) {
       activeAnims.set(articleId, requestAnimationFrame(tick));
     } else {
       activeAnims.delete(articleId);
       drawFullBanner(ctx, w, h, articleId, 0);
-      if (article) drawBannerText(ctx, w, h, article.title, article.category, isLarge);
+      if (article) drawBannerText(ctx, w, h, getField(article, 'title'), article.category, isLarge);
     }
   }
   activeAnims.set(articleId, requestAnimationFrame(tick));
 }
 
+// ─── i18n ───────────────────────────────────────────────────────────────────────
+
+const UI_STRINGS = {
+  en: {
+    heroTitle: 'The <span>selected.ai</span> Blog',
+    heroSub: 'How we built an AI-powered LinkedIn outreach engine — from architecture to conversion. For growth managers and engineers alike.',
+    all: 'All', marketing: 'Growth & Marketing', engineering: 'Engineering',
+    read: 'read', signIn: 'Sign In',
+    badgeMarketing: 'GROWTH & MARKETING', badgeEngineering: 'ENGINEERING',
+  },
+  ua: {
+    heroTitle: 'Блог <span>selected.ai</span>',
+    heroSub: 'Як ми побудували AI-платформу для автоматизації LinkedIn-аутрічу — від архітектури до конверсії. Для маркетологів та інженерів.',
+    all: 'Усі', marketing: 'Зростання & Маркетинг', engineering: 'Інженерія',
+    read: 'читання', signIn: 'Увійти',
+    badgeMarketing: 'ЗРОСТАННЯ & МАРКЕТИНГ', badgeEngineering: 'ІНЖЕНЕРІЯ',
+  }
+};
+
+let currentLang = localStorage.getItem('blog_lang') || 'ua';
+
+function t(key) { return UI_STRINGS[currentLang][key] || UI_STRINGS.en[key] || key; }
+
+function getField(article, field) {
+  if (currentLang === 'ua' && article[field + '_ua']) return article[field + '_ua'];
+  return article[field];
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('blog_lang', lang);
+  document.getElementById('lang-en').style.background = lang === 'en' ? 'var(--amber)' : 'transparent';
+  document.getElementById('lang-en').style.color = lang === 'en' ? 'var(--bg)' : 'var(--text3)';
+  document.getElementById('lang-ua').style.background = lang === 'ua' ? 'var(--amber)' : 'transparent';
+  document.getElementById('lang-ua').style.color = lang === 'ua' ? 'var(--bg)' : 'var(--text3)';
+  document.getElementById('hero-title').innerHTML = t('heroTitle');
+  document.getElementById('hero-sub').textContent = t('heroSub');
+  document.getElementById('nav-signin').textContent = t('signIn');
+  // Update filter buttons
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    const f = b.dataset.filter;
+    if (f) b.textContent = t(f);
+  });
+  // Re-render cards and close modal
+  closeModal();
+  renderCards(currentFilter);
+}
+
+let currentFilter = 'all';
+
 // ─── Rendering ──────────────────────────────────────────────────────────────────
 
 function renderCards(filter) {
+  currentFilter = filter;
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
   const filtered = filter === "all" ? ARTICLES : ARTICLES.filter(a => a.category === filter);
@@ -1083,8 +1202,8 @@ function renderCards(filter) {
         <canvas></canvas>
       </div>
       <div class="card-body">
-        <div class="meta"><span>${a.readTime} read</span><span>${a.date}</span></div>
-        <p class="excerpt">${a.excerpt}</p>
+        <div class="meta"><span>${a.readTime} ${t('read')}</span><span>${a.date}</span></div>
+        <p class="excerpt">${getField(a, 'excerpt')}</p>
       </div>
       <div class="card-tags">${a.tags.map(t => `<span class="tag">${t}</span>`).join("")}</div>
     `;
@@ -1104,9 +1223,8 @@ function renderCards(filter) {
 }
 
 function filterCards(filter) {
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.textContent.includes(
-    filter === "all" ? "All" : filter === "marketing" ? "Growth" : "Engineering"
-  )));
+  currentFilter = filter;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.dataset.filter === filter));
   renderCards(filter);
 }
 
@@ -1121,9 +1239,9 @@ function openArticle(id) {
     </div>
     <div class="modal-content">
       <div class="article-meta">
-        <span style="font-size:12px;color:var(--text3)">${a.readTime} read &middot; ${a.date}</span>
+        <span style="font-size:12px;color:var(--text3)">${a.readTime} ${t('read')} &middot; ${a.date}</span>
       </div>
-      <div class="article-body">${a.content}</div>
+      <div class="article-body">${getField(a, 'content')}</div>
     </div>
     <div class="modal-tags">${a.tags.map(t => `<span class="tag">${t}</span>`).join("")}</div>
   `;
@@ -1151,6 +1269,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal()
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
 
+setLang(currentLang);
 renderCards("all");
 
 // Open article from URL
