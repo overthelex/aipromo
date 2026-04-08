@@ -33,6 +33,65 @@ function sanitize(s: string): string {
   return s.replace(/\0/g, "");
 }
 
+// --- Timezone-aware optimal send time ---
+
+// Map location keywords to UTC offsets (summer time)
+const TIMEZONE_MAP: Array<{ patterns: RegExp; utcOffset: number }> = [
+  { patterns: /\b(kyiv|kiev|kharkiv|odessa|odesa|lviv|dnipro|zaporizhzhia|mykolaiv|chernihiv|sumy|poltava|vinnytsia|zhytomyr|rivne|lutsk|ternopil|ivano-frankivsk|uzhhorod|chernivtsi|kherson|kropyvnytskyi|vyshhorod|ukraine|україна|київ|одеса|харків|львів|дніпро)\b/i, utcOffset: 3 },
+  { patterns: /\b(warsaw|krakow|gdansk|wroclaw|poland|polska|berlin|munich|hamburg|frankfurt|germany|deutschland|paris|france|amsterdam|netherlands|brussels|belgium|vienna|austria|rome|milan|italy|madrid|barcelona|spain|prague|czech|zurich|switzerland|stockholm|sweden|oslo|norway|copenhagen|denmark|helsinki|finland|budapest|hungary|bucharest|romania|sofia|bulgaria|athens|greece|zagreb|croatia|belgrade|serbia|bratislava|slovakia|ljubljana|slovenia|lisbon|portugal|dublin|ireland|tallinn|estonia|riga|latvia|vilnius|lithuania)\b/i, utcOffset: 2 },
+  { patterns: /\b(london|manchester|birmingham|uk|united kingdom|britain|england|scotland|wales)\b/i, utcOffset: 1 },
+  { patterns: /\b(new york|boston|washington|philadelphia|miami|atlanta|charlotte|us east|est |eastern)\b/i, utcOffset: -4 },
+  { patterns: /\b(chicago|dallas|houston|austin|denver|us central|cst |central)\b/i, utcOffset: -5 },
+  { patterns: /\b(los angeles|san francisco|seattle|portland|us west|pst |pacific)\b/i, utcOffset: -7 },
+  { patterns: /\b(toronto|montreal|ottawa|canada|vancouver)\b/i, utcOffset: -4 },
+  { patterns: /\b(dubai|uae|abu dhabi|emirates)\b/i, utcOffset: 4 },
+  { patterns: /\b(istanbul|turkey|türkiye|ankara)\b/i, utcOffset: 3 },
+  { patterns: /\b(tel aviv|jerusalem|israel)\b/i, utcOffset: 3 },
+  { patterns: /\b(tbilisi|georgia|საქართველო)\b/i, utcOffset: 4 },
+  { patterns: /\b(singapore)\b/i, utcOffset: 8 },
+  { patterns: /\b(tokyo|japan)\b/i, utcOffset: 9 },
+  { patterns: /\b(sydney|melbourne|australia)\b/i, utcOffset: 10 },
+  { patterns: /\b(mumbai|delhi|bangalore|india)\b/i, utcOffset: 5.5 },
+];
+
+// Optimal local hours for sending LinkedIn messages (recipient's local time)
+// Tue-Thu 8-10am, 12-1pm, 4-6pm — best engagement windows
+const OPTIMAL_LOCAL_HOURS = [8, 9, 10, 12, 16, 17];
+
+function getUtcOffset(location: string): number {
+  if (!location) return 3; // Default: Ukraine UTC+3
+  for (const { patterns, utcOffset } of TIMEZONE_MAP) {
+    if (patterns.test(location)) return utcOffset;
+  }
+  return 3; // Default: Ukraine
+}
+
+function isOptimalHourForLocation(location: string): boolean {
+  const offset = getUtcOffset(location);
+  const localHour = (new Date().getUTCHours() + offset + 24) % 24;
+  return OPTIMAL_LOCAL_HOURS.includes(Math.floor(localHour));
+}
+
+function getNextOptimalSendTime(location: string): Date {
+  const offset = getUtcOffset(location);
+  const now = new Date();
+  const localHour = (now.getUTCHours() + offset + 24) % 24;
+
+  // Find next optimal hour
+  let hoursToWait = 0;
+  for (let h = 1; h <= 24; h++) {
+    const candidateLocal = (localHour + h) % 24;
+    if (OPTIMAL_LOCAL_HOURS.includes(candidateLocal)) {
+      hoursToWait = h;
+      break;
+    }
+  }
+
+  // Add random jitter (0-30 min) to avoid sending all at :00
+  const jitterMs = Math.random() * 30 * 60 * 1000;
+  return new Date(now.getTime() + hoursToWait * 3600_000 + jitterMs);
+}
+
 function isOptimalHour(): boolean {
   const hour = new Date().getUTCHours();
   return OPTIMAL_HOURS_UTC.includes(hour);
@@ -127,6 +186,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   messaged: number;
   replied: number;
   followUps: number;
+  scheduled: number;
 }> {
   const unipile = new UnipileService(opts.accountAlias);
   const accountId = unipile.accountId;
@@ -190,9 +250,53 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   }
 
   let sentCount = 0;
+  let scheduledCount = 0;
 
   for (let i = 0; i < leadsToMessage.length; i++) {
     const lead = leadsToMessage[i];
+
+    const profile: LeadProfile = {
+      name: sanitize(lead.name),
+      headline: sanitize(lead.headline),
+      company: sanitize(lead.company),
+      title: sanitize(lead.title),
+      location: sanitize(lead.location),
+    };
+
+    // Check if now is optimal for this lead's timezone
+    const leadLocation = lead.location || "";
+    if (!opts.dryRun && !isOptimalHourForLocation(leadLocation)) {
+      const sendAt = getNextOptimalSendTime(leadLocation);
+      const offset = getUtcOffset(leadLocation);
+      const localHour = (new Date().getUTCHours() + offset + 24) % 24;
+
+      // Generate message now, schedule send for later
+      const angle = getMessageAngle(opts.dayNumber, i);
+      const systemPrompt = getOutreachSystemPrompt(angle);
+      const userPrompt = [
+        `Lead profile:`,
+        `- Name: ${profile.name}`,
+        profile.headline ? `- Headline: ${profile.headline}` : null,
+        profile.company ? `- Company: ${profile.company}` : null,
+        profile.title ? `- Title: ${profile.title}` : null,
+        profile.location ? `- Location: ${profile.location}` : null,
+        ``,
+        `Message angle: ${angle}`,
+        `Day of campaign: ${opts.dayNumber}`,
+        ``,
+        `Write a hyper-personalized first message for this lead. Make it unique — never repeat the same structure.`,
+      ].filter(Boolean).join("\n");
+
+      const message = await claude.generateWithSystem(systemPrompt, userPrompt);
+
+      await sql`
+        INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, message_angle, scheduled_at)
+        VALUES (${campaign.id}, ${lead.id}, ${message}, 'scheduled', ${angle}, ${sendAt})
+      `;
+      scheduledCount++;
+      clog(chalk.blue(`  ⏱ ${profile.name} [${angle}] scheduled for ${sendAt.toISOString().slice(11, 16)} UTC (local ${Math.floor(((sendAt.getUTCHours() + offset + 24) % 24))}:00, now ${Math.floor(localHour)}:00, UTC+${offset})`));
+      continue;
+    }
 
     const canSend = await checkAndIncrementDaily(accountId, "message", appConfig.maxMessagesPerDay);
     if (!canSend) {
@@ -205,14 +309,6 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       clog(chalk.dim("  Throttling (5/min limit)... waiting 30s"));
       await sleep(30000);
     }
-
-    const profile: LeadProfile = {
-      name: sanitize(lead.name),
-      headline: sanitize(lead.headline),
-      company: sanitize(lead.company),
-      title: sanitize(lead.title),
-      location: sanitize(lead.location),
-    };
 
     const angle = getMessageAngle(opts.dayNumber, i);
     const systemPrompt = getOutreachSystemPrompt(angle);
@@ -320,7 +416,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     }
   }
 
-  clog(chalk.bold(`\n  Outreach: ${opts.dryRun ? leadsToMessage.length + " previewed" : sentCount + " sent"}\n`));
+  clog(chalk.bold(`\n  Outreach: ${opts.dryRun ? leadsToMessage.length + " previewed" : sentCount + " sent" + (scheduledCount ? `, ${scheduledCount} scheduled` : "")}\n`));
 
   // --- Phase 3: Reply to incoming messages ---
   clog(chalk.bold("Phase 3: Processing incoming replies...\n"));
@@ -410,6 +506,15 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     }
   }
 
+  // --- Phase 2.5: Send scheduled messages whose time has come ---
+  if (!opts.dryRun) {
+    const scheduledSent = await processScheduledOutreach(unipile, accountId);
+    if (scheduledSent > 0) {
+      sentCount += scheduledSent;
+      clog(chalk.green(`  + ${scheduledSent} scheduled messages sent`));
+    }
+  }
+
   clog(chalk.bold(`\n  Replies: ${opts.dryRun ? "preview mode" : repliedCount + " sent"}`));
 
   // --- Phase 4: Process due follow-ups ---
@@ -426,5 +531,76 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     messaged: opts.dryRun ? leadsToMessage.length : sentCount,
     replied: repliedCount,
     followUps: followUpCount,
+    scheduled: scheduledCount,
   };
+}
+
+// --- Process scheduled outreach messages whose send time has arrived ---
+
+export async function processScheduledOutreach(
+  unipile: UnipileService,
+  accountId: string,
+): Promise<number> {
+  const due = await sql`
+    SELECT oq.*, l.linkedin_id, l.name, l.location
+    FROM outreach_queue oq
+    JOIN leads l ON oq.lead_id = l.id
+    WHERE oq.status = 'scheduled'
+      AND oq.scheduled_at <= NOW()
+    ORDER BY oq.scheduled_at ASC
+    LIMIT 30
+  `;
+
+  if (due.length === 0) return 0;
+  clog(chalk.bold(`\nProcessing ${due.length} scheduled messages...\n`));
+
+  let sent = 0;
+  for (const item of due) {
+    const canSend = await checkAndIncrementDaily(accountId, "message", appConfig.maxMessagesPerDay);
+    if (!canSend) {
+      clog(chalk.yellow(`  Daily limit reached. Remaining scheduled messages deferred.`));
+      break;
+    }
+
+    if (!checkPerMinuteLimit(`msg:${accountId}`, 5)) {
+      await sleep(30000);
+    }
+
+    try {
+      const chatId = await unipile.startChat(item.linkedin_id, item.message_text);
+      await sql`UPDATE outreach_queue SET status = 'sent', sent_at = NOW() WHERE id = ${item.id}`;
+      await sql`UPDATE leads SET status = 'contacted' WHERE id = ${item.lead_id} AND status = 'prospect'`;
+      sent++;
+      clog(chalk.green(`  ✓ ${item.name} [scheduled]`));
+      await sleep(randomDelay(10, 25));
+    } catch (err: any) {
+      if (err.message?.includes('unreachable') || err.message?.includes('422')) {
+        // Fallback to invitation — regenerate short note if needed
+        let note = item.message_text;
+        if (note.length > INVITATION_NOTE_LIMIT) {
+          const trimmed = note.slice(0, INVITATION_NOTE_LIMIT);
+          const lastSentence = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
+          note = lastSentence > INVITATION_NOTE_LIMIT * 0.5
+            ? trimmed.slice(0, lastSentence + 1)
+            : trimmed.slice(0, trimmed.lastIndexOf(" ")) + "...";
+        }
+        try {
+          await unipile.sendInvitation(item.linkedin_id, note);
+          await incrementDailyCount(accountId, "invitation");
+          await sql`UPDATE outreach_queue SET status = 'sent', message_text = ${note}, sent_at = NOW() WHERE id = ${item.id}`;
+          await sql`UPDATE leads SET status = 'contacted' WHERE id = ${item.lead_id} AND status = 'prospect'`;
+          sent++;
+          clog(chalk.yellow(`  → ${item.name} [scheduled, invitation + note]`));
+          await sleep(randomDelay(10, 25));
+        } catch (invErr: any) {
+          await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${item.id}`;
+          clog(chalk.red(`  ✗ ${item.name}: ${invErr.message}`));
+        }
+      } else {
+        await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${item.id}`;
+        clog(chalk.red(`  ✗ ${item.name}: ${err.message}`));
+      }
+    }
+  }
+  return sent;
 }

@@ -78,6 +78,11 @@ app.get("/login", (_req, res) => {
   res.sendFile(join(__dirname, "web/public/login.html"));
 });
 
+// Blog (public, no auth)
+app.get("/blog", (_req, res) => {
+  res.sendFile(join(__dirname, "web/public/blog.html"));
+});
+
 // Serve static assets
 app.use(express.static(join(__dirname, "web/public")));
 

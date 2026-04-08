@@ -238,11 +238,29 @@ apiRouter.post("/campaign/run", async (req, res) => {
       dryRun: dryRun ?? true,
     });
 
-    log(`Done! Searched: ${result.searched}, Sent: ${result.messaged}, Replied: ${result.replied}, Follow-ups: ${result.followUps}`);
+    log(`Done! Searched: ${result.searched}, Sent: ${result.messaged}, Scheduled: ${result.scheduled}, Replied: ${result.replied}, Follow-ups: ${result.followUps}`);
     broadcast("campaign_done", result);
   } catch (err: any) {
     log(`Error: ${err.message}`);
     broadcast("campaign_done", { error: err.message });
+  }
+});
+
+// --- Process scheduled outreach (for cron) ---
+apiRouter.post("/campaign/send-scheduled", async (req, res) => {
+  const { account } = req.body;
+  res.json({ status: "processing" });
+
+  const log = (msg: string) => broadcast("campaign_log", { msg });
+  try {
+    const { processScheduledOutreach } = await import("../campaigns/engine.js");
+    const { UnipileService } = await import("../services/unipile.service.js");
+    const unipile = new UnipileService(account);
+    const sent = await processScheduledOutreach(unipile, unipile.accountId);
+    log(`Scheduled outreach: ${sent} sent`);
+    broadcast("campaign_done", { scheduled_sent: sent });
+  } catch (err: any) {
+    log(`Scheduled outreach error: ${err.message}`);
   }
 });
 
