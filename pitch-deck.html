@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>selected.ai — Pitch Deck</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  @page{size:1280px 720px;margin:0}
+  html{font-family:'Inter',system-ui,sans-serif;background:#0a0a0a;color:#f1f5f9;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:0;padding:0}
+
+  .slide{
+    width:1280px;height:720px;position:relative;overflow:hidden;
+    padding:60px 80px;display:flex;flex-direction:column;justify-content:center;
+    background:#0a0a0a;page-break-after:always;
+  }
+  .slide::before{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 600px 400px at 20% 30%, rgba(99,102,241,.08), transparent),
+      radial-gradient(ellipse 500px 350px at 80% 70%, rgba(139,92,246,.06), transparent);
+  }
+
+  /* Typography */
+  .badge{
+    display:inline-block;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+    color:#818cf8;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);
+    padding:6px 16px;border-radius:20px;margin-bottom:20px;
+  }
+  h1{font-size:48px;font-weight:800;line-height:1.15;margin-bottom:16px;letter-spacing:-1px}
+  h2{font-size:40px;font-weight:700;line-height:1.2;margin-bottom:12px;letter-spacing:-.5px}
+  h3{font-size:22px;font-weight:700;color:#e2e8f0;margin-bottom:8px}
+  .gradient-text{background:linear-gradient(135deg,#6366f1,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .subtitle{font-size:20px;color:#94a3b8;line-height:1.6;max-width:700px;font-weight:400}
+  .muted{color:#64748b}
+  .small{font-size:14px}
+  .accent{color:#818cf8}
+
+  /* Cards */
+  .card{
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);
+    border-radius:16px;padding:28px;position:relative;
+  }
+  .card:hover{border-color:rgba(99,102,241,.2)}
+
+  /* Grids */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+  .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:20px}
+
+  /* Stat */
+  .stat-number{font-size:42px;font-weight:800;letter-spacing:-1px}
+  .stat-label{font-size:13px;color:#94a3b8;margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+
+  /* Cover orb */
+  .orb{
+    position:absolute;right:-80px;top:50%;transform:translateY(-50%);
+    width:500px;height:500px;border-radius:50%;opacity:.35;
+    background:radial-gradient(circle,rgba(99,102,241,.4),rgba(139,92,246,.2),transparent 70%);
+    filter:blur(60px);
+  }
+
+  /* Logo inline */
+  .logo-mark{display:inline-flex;align-items:center;gap:4px;font-size:28px;font-weight:700;letter-spacing:-.5px}
+  .logo-mark .dot{color:#6366f1}
+
+  /* Divider */
+  .divider{width:60px;height:3px;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:2px;margin:16px 0}
+
+  /* Tag */
+  .tag{
+    display:inline-block;font-size:11px;font-weight:600;letter-spacing:.5px;
+    color:#a78bfa;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.15);
+    padding:4px 10px;border-radius:6px;margin:2px;
+  }
+
+  /* Team */
+  .team-role{font-size:14px;color:#818cf8;font-weight:600;margin-bottom:6px}
+  .team-exp{font-size:13px;color:#94a3b8;line-height:1.6}
+
+  /* Flow arrow */
+  .flow{display:flex;align-items:center;gap:12px;margin:20px 0}
+  .flow-step{
+    flex:1;text-align:center;padding:16px 12px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;font-size:14px;font-weight:600;color:#e2e8f0;
+  }
+  .flow-arrow{color:#6366f1;font-size:24px;flex-shrink:0}
+
+  /* CTA button */
+  .cta{
+    display:inline-block;padding:14px 36px;border-radius:12px;font-size:16px;font-weight:700;
+    background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;
+    margin-top:16px;letter-spacing:.3px;
+  }
+
+  /* Pricing highlight */
+  .price-highlight{
+    background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.25);
+  }
+
+  /* Slide number */
+  .slide-num{position:absolute;bottom:24px;right:40px;font-size:12px;color:#475569;font-weight:500}
+
+  /* Timeline */
+  .timeline-dot{width:10px;height:10px;border-radius:50%;background:#6366f1;margin-bottom:10px}
+
+  /* Why-us icon */
+  .icon-box{
+    width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);margin-bottom:14px;
+    font-size:22px;
+  }
+
+  ul.checklist{list-style:none;padding:0}
+  ul.checklist li{padding:6px 0;font-size:15px;color:#cbd5e1;display:flex;align-items:flex-start;gap:10px}
+  ul.checklist li::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:#6366f1;margin-top:7px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- ======================== SLIDE 1 — COVER ======================== -->
+<div class="slide">
+  <div class="orb"></div>
+  <div style="position:relative;z-index:1">
+    <div class="badge">AI-Powered LinkedIn Automation</div>
+    <h1 style="font-size:56px;margin-bottom:20px">
+      <span class="gradient-text">selected.ai</span>
+    </h1>
+    <p class="subtitle" style="font-size:24px;margin-bottom:12px">
+      Your Synthetic SDR — Hyper-Personalized<br>LinkedIn Outreach at Scale
+    </p>
+    <p class="muted" style="font-size:16px;margin-bottom:32px">AI replaces manual prospecting. 50+ personalized messages/day.<br>3x higher reply rates. Zero spam.</p>
+    <div style="display:flex;align-items:center;gap:32px;margin-top:24px">
+      <span class="logo-mark">selected<span class="dot">.ai</span></span>
+      <span class="muted small">selected.highfunk.uk</span>
+    </div>
+  </div>
+  <div class="slide-num">01</div>
+</div>
+
+<!-- ======================== SLIDE 2 — PROBLEM ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">The Problem</div>
+    <h2 class="gradient-text">LinkedIn Outreach is Broken</h2>
+    <p class="subtitle" style="margin-bottom:32px">Sales teams waste 60% of their time on manual tasks that don't convert.</p>
+    <div class="grid-4">
+      <div class="card">
+        <div style="font-size:32px;margin-bottom:12px">&#128337;</div>
+        <h3 style="font-size:17px">Time Drain</h3>
+        <p class="muted small">SDRs spend 4+ hours/day on manual prospecting, copy-pasting templates, and follow-ups</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;margin-bottom:12px">&#128172;</div>
+        <h3 style="font-size:17px">Generic Messages</h3>
+        <p class="muted small">Template-based outreach gets &lt;5% reply rates. Recipients detect and ignore mass messages</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;margin-bottom:12px">&#9888;&#65039;</div>
+        <h3 style="font-size:17px">Account Bans</h3>
+        <p class="muted small">Aggressive automation tools trigger LinkedIn's detection systems, risking permanent bans</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;margin-bottom:12px">&#128176;</div>
+        <h3 style="font-size:17px">High CAC</h3>
+        <p class="muted small">Hiring SDRs costs $60-80K/year. Low conversion compounds the cost per qualified lead</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">02</div>
+</div>
+
+<!-- ======================== SLIDE 3 — SOLUTION ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">The Solution</div>
+    <h2 class="gradient-text">AI That Sells Like a Human</h2>
+    <p class="subtitle" style="margin-bottom:28px">selected.ai is a synthetic SDR: it discovers leads, writes unique messages using Claude AI, and runs multi-week campaigns — with human approval on every message.</p>
+
+    <div class="flow">
+      <div class="flow-step"><span style="font-size:20px;display:block;margin-bottom:6px">&#128269;</span>Smart Search<br><span class="muted" style="font-size:12px">Rotated queries,<br>lead enrichment</span></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span style="font-size:20px;display:block;margin-bottom:6px">&#129302;</span>AI Personalization<br><span class="muted" style="font-size:12px">Claude crafts unique<br>message per lead</span></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span style="font-size:20px;display:block;margin-bottom:6px">&#128203;</span>Human Approval<br><span class="muted" style="font-size:12px">Review & approve<br>before sending</span></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span style="font-size:20px;display:block;margin-bottom:6px">&#128232;</span>Smart Delivery<br><span class="muted" style="font-size:12px">Timezone-optimal<br>send times</span></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><span style="font-size:20px;display:block;margin-bottom:6px">&#128200;</span>Follow-Up<br><span class="muted" style="font-size:12px">3-step AI cadence<br>+ analytics</span></div>
+    </div>
+
+    <div class="grid-3" style="margin-top:20px">
+      <div class="card" style="text-align:center;padding:20px">
+        <div class="stat-number gradient-text">50+</div>
+        <div class="stat-label">Messages / Day</div>
+      </div>
+      <div class="card" style="text-align:center;padding:20px">
+        <div class="stat-number gradient-text">3x</div>
+        <div class="stat-label">Higher Reply Rate</div>
+      </div>
+      <div class="card" style="text-align:center;padding:20px">
+        <div class="stat-number gradient-text">0</div>
+        <div class="stat-label">Messages Sent Without Approval</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">03</div>
+</div>
+
+<!-- ======================== SLIDE 4 — KEY FEATURES ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">Key Features</div>
+    <h2 class="gradient-text">What Makes Us Different</h2>
+    <div class="grid-3" style="margin-top:28px">
+      <div class="card">
+        <div class="icon-box">&#127919;</div>
+        <h3>7 Message Angles</h3>
+        <p class="muted small" style="margin-bottom:12px">Automatically rotates between pain point, social proof, competitor gap, tech innovation, free bonus, cost savings, and question hook angles.</p>
+        <p class="small accent">Prevents fatigue, maximizes engagement</p>
+      </div>
+      <div class="card">
+        <div class="icon-box">&#127760;</div>
+        <h3>Timezone Intelligence</h3>
+        <p class="muted small" style="margin-bottom:12px">Maps lead locations to UTC offsets. Sends at optimal local times: 8-10am, 12-1pm, 4-6pm — when people actually read LinkedIn.</p>
+        <p class="small accent">Global campaigns, local timing</p>
+      </div>
+      <div class="card">
+        <div class="icon-box">&#128737;</div>
+        <h3>Anti-Detection Safety</h3>
+        <p class="muted small" style="margin-bottom:12px">Daily caps, per-minute throttling, random human-like delays (3-8s), business hours enforcement. Your LinkedIn account stays safe.</p>
+        <p class="small accent">Zero bans in production</p>
+      </div>
+      <div class="card">
+        <div class="icon-box">&#128225;</div>
+        <h3>Real-Time Dashboard</h3>
+        <p class="muted small" style="margin-bottom:12px">Live WebSocket feed of campaign progress. Message preview, approval queue, KPI cards, conversation history — all in one view.</p>
+        <p class="small accent">Full visibility, zero guesswork</p>
+      </div>
+      <div class="card">
+        <div class="icon-box">&#129520;</div>
+        <h3>Campaign Engine</h3>
+        <p class="muted small" style="margin-bottom:12px">Multi-week campaign orchestration with rotated search queries, deduplication, lead enrichment, and automated follow-up sequences.</p>
+        <p class="small accent">Set it up once, runs for weeks</p>
+      </div>
+      <div class="card">
+        <div class="icon-box">&#129309;</div>
+        <h3>Human-in-the-Loop</h3>
+        <p class="muted small" style="margin-bottom:12px">Every AI-generated message requires human approval before sending. Quality control without the manual work of writing each message.</p>
+        <p class="small accent">AI drafts, humans decide</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">04</div>
+</div>
+
+<!-- ======================== SLIDE 5 — TECH STACK ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">Technology</div>
+    <h2 class="gradient-text">Built for Scale & Reliability</h2>
+    <div class="grid-2" style="margin-top:28px;gap:32px">
+      <div>
+        <h3 style="margin-bottom:20px">Architecture</h3>
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+            <span class="tag">AI Core</span>
+          </div>
+          <p class="small" style="color:#cbd5e1">Claude Sonnet 4 via AWS Bedrock — state-of-the-art reasoning for personalized message generation with persona-driven system prompts</p>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+            <span class="tag">LinkedIn API</span>
+          </div>
+          <p class="small" style="color:#cbd5e1">Unipile API proxy — official third-party integration for search, messaging, and connection management. No scraping.</p>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+            <span class="tag">Real-Time</span>
+          </div>
+          <p class="small" style="color:#cbd5e1">WebSocket broadcasting for live campaign monitoring. Every event streams to the dashboard in real time.</p>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:20px">Stack</h3>
+        <div class="card" style="padding:24px">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:12px 20px;font-size:14px">
+            <span class="accent" style="font-weight:600">Runtime</span><span style="color:#cbd5e1">Node.js 20+, TypeScript (ESM)</span>
+            <span class="accent" style="font-weight:600">Web</span><span style="color:#cbd5e1">Express 5, WebSocket (ws)</span>
+            <span class="accent" style="font-weight:600">AI</span><span style="color:#cbd5e1">Claude Sonnet 4, AWS Bedrock</span>
+            <span class="accent" style="font-weight:600">Database</span><span style="color:#cbd5e1">PostgreSQL, Cloud SQL</span>
+            <span class="accent" style="font-weight:600">Auth</span><span style="color:#cbd5e1">JWT cookies, bcrypt</span>
+            <span class="accent" style="font-weight:600">Deploy</span><span style="color:#cbd5e1">Docker &rarr; GCP Cloud Run</span>
+            <span class="accent" style="font-weight:600">CI/CD</span><span style="color:#cbd5e1">GitHub Actions</span>
+            <span class="accent" style="font-weight:600">Testing</span><span style="color:#cbd5e1">vitest</span>
+            <span class="accent" style="font-weight:600">Frontend</span><span style="color:#cbd5e1">Vanilla JS, i18n (EN/UA)</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;padding:20px;text-align:center">
+          <p class="muted small" style="margin-bottom:8px">Infrastructure</p>
+          <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
+            <span class="tag">GCP</span>
+            <span class="tag">Cloud Run</span>
+            <span class="tag">Cloud SQL</span>
+            <span class="tag">Artifact Registry</span>
+            <span class="tag">AWS Bedrock</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">05</div>
+</div>
+
+<!-- ======================== SLIDE 6 — MARKET ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">Market Opportunity</div>
+    <h2 class="gradient-text">$78B Sales Automation Market</h2>
+    <p class="subtitle" style="margin-bottom:32px">LinkedIn has 1B+ users. Sales teams worldwide spend $78B/year on automation tools. The shift to AI-native outreach is just beginning.</p>
+    <div class="grid-3" style="margin-bottom:32px">
+      <div class="card" style="text-align:center;padding:32px">
+        <div class="stat-number gradient-text">$78B</div>
+        <div class="stat-label">TAM</div>
+        <p class="muted small" style="margin-top:8px">Global sales automation & engagement market</p>
+      </div>
+      <div class="card" style="text-align:center;padding:32px">
+        <div class="stat-number gradient-text">$8B</div>
+        <div class="stat-label">SAM</div>
+        <p class="muted small" style="margin-top:8px">LinkedIn-specific sales automation segment</p>
+      </div>
+      <div class="card" style="text-align:center;padding:32px">
+        <div class="stat-number gradient-text">$500M</div>
+        <div class="stat-label">SOM</div>
+        <p class="muted small" style="margin-top:8px">AI-native LinkedIn outreach for SMB/mid-market</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:12px">Target Customers</h3>
+        <ul class="checklist">
+          <li>B2B SaaS sales teams (5-200 SDRs)</li>
+          <li>Growth & marketing agencies</li>
+          <li>Recruiting firms & headhunters</li>
+          <li>Professional service providers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:12px">Why Now</h3>
+        <ul class="checklist">
+          <li>LLMs crossed the quality threshold for sales copy</li>
+          <li>Generic tools are getting banned — smart rate limiting wins</li>
+          <li>SDR hiring costs rising 15% YoY</li>
+          <li>Remote-first makes LinkedIn the #1 B2B channel</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">06</div>
+</div>
+
+<!-- ======================== SLIDE 7 — COMPETITION ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">Competitive Landscape</div>
+    <h2 class="gradient-text">Why We Win</h2>
+    <p class="subtitle" style="margin-bottom:28px">Existing tools automate volume. We automate quality.</p>
+    <div style="overflow:hidden;border-radius:16px;border:1px solid rgba(255,255,255,.06)">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+          <tr style="background:rgba(255,255,255,.03)">
+            <th style="text-align:left;padding:16px 20px;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(255,255,255,.06)">Feature</th>
+            <th style="text-align:center;padding:16px 20px;color:#818cf8;font-weight:700;border-bottom:1px solid rgba(99,102,241,.2);background:rgba(99,102,241,.04)">selected.ai</th>
+            <th style="text-align:center;padding:16px 20px;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(255,255,255,.06)">Lemlist</th>
+            <th style="text-align:center;padding:16px 20px;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(255,255,255,.06)">Expandi</th>
+            <th style="text-align:center;padding:16px 20px;color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(255,255,255,.06)">Dux-Soup</th>
+          </tr>
+        </thead>
+        <tbody style="color:#cbd5e1">
+          <tr><td style="padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04)">AI-written unique messages</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#22c55e;background:rgba(99,102,241,.02)">&#10003;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#64748b">Partial</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td></tr>
+          <tr><td style="padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04)">7 rotating message angles</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#22c55e;background:rgba(99,102,241,.02)">&#10003;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td></tr>
+          <tr><td style="padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04)">Timezone-aware delivery</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#22c55e;background:rgba(99,102,241,.02)">&#10003;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#22c55e">&#10003;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#22c55e">&#10003;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td></tr>
+          <tr><td style="padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04)">Human approval workflow</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#22c55e;background:rgba(99,102,241,.02)">&#10003;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td></tr>
+          <tr><td style="padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04)">Real-time WebSocket monitoring</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#22c55e;background:rgba(99,102,241,.02)">&#10003;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#64748b">Partial</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td><td style="text-align:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ef4444">&#10007;</td></tr>
+          <tr><td style="padding:12px 20px">Anti-detection rate limiting</td><td style="text-align:center;padding:12px;color:#22c55e;background:rgba(99,102,241,.02)">&#10003;</td><td style="text-align:center;padding:12px;color:#22c55e">&#10003;</td><td style="text-align:center;padding:12px;color:#22c55e">&#10003;</td><td style="text-align:center;padding:12px;color:#64748b">Basic</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="slide-num">07</div>
+</div>
+
+<!-- ======================== SLIDE 8 — PRICING ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">Business Model</div>
+    <h2 class="gradient-text">Pricing & Unit Economics</h2>
+    <div class="grid-3" style="margin-top:28px;margin-bottom:28px">
+      <div class="card" style="text-align:center;padding:32px">
+        <p class="muted small" style="margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;font-weight:600">Starter</p>
+        <div class="divider" style="margin:12px auto"></div>
+        <div class="stat-number" style="font-size:36px;color:#e2e8f0">$49<span class="muted" style="font-size:16px">/mo</span></div>
+        <ul class="checklist" style="text-align:left;margin-top:16px">
+          <li>1 LinkedIn account</li>
+          <li>500 messages/month</li>
+          <li>3 active campaigns</li>
+          <li>Basic analytics</li>
+        </ul>
+      </div>
+      <div class="card price-highlight" style="text-align:center;padding:32px">
+        <p class="accent small" style="margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;font-weight:700">Professional</p>
+        <div class="divider" style="margin:12px auto"></div>
+        <div class="stat-number" style="font-size:36px;color:#e2e8f0">$149<span class="muted" style="font-size:16px">/mo</span></div>
+        <ul class="checklist" style="text-align:left;margin-top:16px">
+          <li>3 LinkedIn accounts</li>
+          <li>2,000 messages/month</li>
+          <li>Unlimited campaigns</li>
+          <li>Advanced analytics + API</li>
+        </ul>
+      </div>
+      <div class="card" style="text-align:center;padding:32px">
+        <p class="muted small" style="margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;font-weight:600">Enterprise</p>
+        <div class="divider" style="margin:12px auto"></div>
+        <div class="stat-number" style="font-size:36px;color:#e2e8f0">Custom</div>
+        <ul class="checklist" style="text-align:left;margin-top:16px">
+          <li>Unlimited accounts</li>
+          <li>Unlimited messages</li>
+          <li>White-label option</li>
+          <li>Dedicated support + SLA</li>
+        </ul>
+      </div>
+    </div>
+    <div class="grid-4">
+      <div class="card" style="text-align:center;padding:16px">
+        <div class="stat-number gradient-text" style="font-size:32px">65%</div>
+        <div class="stat-label">Gross Margin</div>
+      </div>
+      <div class="card" style="text-align:center;padding:16px">
+        <div class="stat-number gradient-text" style="font-size:32px">$35</div>
+        <div class="stat-label">CAC Target</div>
+      </div>
+      <div class="card" style="text-align:center;padding:16px">
+        <div class="stat-number gradient-text" style="font-size:32px">18mo</div>
+        <div class="stat-label">Avg LTV</div>
+      </div>
+      <div class="card" style="text-align:center;padding:16px">
+        <div class="stat-number gradient-text" style="font-size:32px">5.1x</div>
+        <div class="stat-label">LTV / CAC</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">08</div>
+</div>
+
+<!-- ======================== SLIDE 9 — TRACTION ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">Traction & Roadmap</div>
+    <h2 class="gradient-text">Where We Are & Where We're Going</h2>
+    <div class="grid-2" style="margin-top:28px;gap:32px">
+      <div>
+        <h3 style="margin-bottom:20px">Current Traction</h3>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="timeline-dot"></div>
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">Product Built & Running</p>
+              <p class="muted small">Full-stack platform in production on GCP Cloud Run</p>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="timeline-dot"></div>
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">Live Campaigns</p>
+              <p class="muted small">Running multi-week outreach campaigns with real results</p>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="timeline-dot"></div>
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">Blog & Content</p>
+              <p class="muted small">10+ technical & marketing articles published (EN/UA)</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="timeline-dot"></div>
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">Proven Campaign Results</p>
+              <p class="muted small">3x reply rate vs. template-based outreach in pilot campaigns</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:20px">Roadmap</h3>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">Multi-Channel Expansion</p>
+              <p class="muted small">Email + Twitter outreach integration</p>
+            </div>
+            <span class="tag">Q3 2026</span>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">AI Reply Analysis</p>
+              <p class="muted small">Auto-categorize responses & suggest next steps</p>
+            </div>
+            <span class="tag">Q3 2026</span>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">CRM Integrations</p>
+              <p class="muted small">HubSpot, Salesforce, Pipedrive sync</p>
+            </div>
+            <span class="tag">Q4 2026</span>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">Team Collaboration</p>
+              <p class="muted small">Multi-user workspace with role-based access</p>
+            </div>
+            <span class="tag">Q4 2026</span>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <p style="font-size:15px;font-weight:600;color:#e2e8f0">Self-Serve SaaS Launch</p>
+              <p class="muted small">Public signup, Stripe billing, onboarding wizard</p>
+            </div>
+            <span class="tag">Q1 2027</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">09</div>
+</div>
+
+<!-- ======================== SLIDE 10 — TEAM ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">Team</div>
+    <h2 class="gradient-text">Who's Building This</h2>
+    <div class="grid-2" style="margin-top:32px;gap:40px">
+      <div class="card" style="padding:36px">
+        <h3 style="font-size:24px;margin-bottom:4px">Volodymyr Ovcharov</h3>
+        <div class="team-role">CTO & Founder</div>
+        <div class="divider"></div>
+        <div class="team-exp">
+          <p style="margin-bottom:8px">15+ years in software engineering. Full-stack Node.js/TypeScript, cloud infrastructure, AI integrations.</p>
+          <p style="margin-bottom:8px">Previously built legal.org.ua — AI legal analytics platform with 120M+ records, MCP architecture, and LLM-powered search.</p>
+          <p>Deep expertise in LinkedIn automation, rate limiting systems, and Claude AI integration via AWS Bedrock.</p>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="tag">Node.js</span>
+          <span class="tag">TypeScript</span>
+          <span class="tag">AI/ML</span>
+          <span class="tag">GCP</span>
+          <span class="tag">PostgreSQL</span>
+        </div>
+      </div>
+      <div class="card" style="padding:36px;display:flex;flex-direction:column;justify-content:center">
+        <h3 style="font-size:20px;margin-bottom:12px;color:#94a3b8">We're Hiring</h3>
+        <div class="divider"></div>
+        <p class="muted" style="font-size:15px;line-height:1.7;margin-bottom:20px">Looking for a co-founder with sales/growth expertise to lead go-to-market strategy, customer acquisition, and partnerships.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="tag">Sales Leader</span>
+          <span class="tag">Growth Hacker</span>
+          <span class="tag">Co-Founder</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">10</div>
+</div>
+
+<!-- ======================== SLIDE 11 — THE ASK ======================== -->
+<div class="slide">
+  <div style="position:relative;z-index:1">
+    <div class="badge">The Ask</div>
+    <h2 class="gradient-text" style="font-size:44px">Raising $100K Pre-Seed</h2>
+    <p class="subtitle" style="margin-bottom:32px">$1M pre-money valuation &middot; 10% equity &middot; SAFE note</p>
+    <div class="grid-2" style="gap:32px">
+      <div>
+        <h3 style="margin-bottom:20px">Use of Funds</h3>
+        <div class="card" style="padding:28px">
+          <div style="margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:14px;color:#e2e8f0;font-weight:600">Sales & Marketing</span><span class="accent" style="font-weight:700">45%</span></div>
+            <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:45%;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:3px"></div></div>
+          </div>
+          <div style="margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:14px;color:#e2e8f0;font-weight:600">Infrastructure & AI</span><span class="accent" style="font-weight:700">25%</span></div>
+            <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:25%;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:3px"></div></div>
+          </div>
+          <div style="margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:14px;color:#e2e8f0;font-weight:600">Product Development</span><span class="accent" style="font-weight:700">20%</span></div>
+            <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:20%;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:3px"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:14px;color:#e2e8f0;font-weight:600">Operations</span><span class="accent" style="font-weight:700">10%</span></div>
+            <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:10%;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:3px"></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:20px">12-Month Targets</h3>
+        <div class="grid-2" style="gap:16px">
+          <div class="card" style="text-align:center;padding:24px">
+            <div class="stat-number gradient-text" style="font-size:32px">200</div>
+            <div class="stat-label">Paying Customers</div>
+          </div>
+          <div class="card" style="text-align:center;padding:24px">
+            <div class="stat-number gradient-text" style="font-size:32px">$25K</div>
+            <div class="stat-label">MRR</div>
+          </div>
+          <div class="card" style="text-align:center;padding:24px">
+            <div class="stat-number gradient-text" style="font-size:32px">3</div>
+            <div class="stat-label">Channels</div>
+          </div>
+          <div class="card" style="text-align:center;padding:24px">
+            <div class="stat-number gradient-text" style="font-size:32px">500%</div>
+            <div class="stat-label">ROI for Customers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">11</div>
+</div>
+
+<!-- ======================== SLIDE 12 — CLOSING ======================== -->
+<div class="slide" style="justify-content:center;align-items:center;text-align:center">
+  <div class="orb" style="left:50%;transform:translate(-50%,-50%);top:50%;opacity:.2"></div>
+  <div style="position:relative;z-index:1">
+    <div class="badge" style="margin-bottom:28px">Let's Talk</div>
+    <h1 style="font-size:60px;margin-bottom:20px">
+      <span class="gradient-text">selected.ai</span>
+    </h1>
+    <p class="subtitle" style="margin:0 auto 32px;text-align:center;max-width:600px">
+      The AI-powered SDR that writes like a human,<br>sends at the perfect moment, and never burns your account.
+    </p>
+    <div class="divider" style="margin:24px auto"></div>
+    <div style="margin-top:24px">
+      <p style="font-size:18px;color:#e2e8f0;font-weight:600;margin-bottom:8px">Volodymyr Ovcharov</p>
+      <p class="muted" style="font-size:15px;margin-bottom:4px">CTO & Founder</p>
+      <p class="accent" style="font-size:15px;margin-bottom:24px">selected.highfunk.uk</p>
+    </div>
+    <div style="display:flex;justify-content:center;gap:24px;margin-top:16px">
+      <div class="card" style="padding:16px 28px;text-align:center">
+        <div class="stat-number gradient-text" style="font-size:28px">200</div>
+        <div class="stat-label" style="font-size:11px">Customers Target</div>
+      </div>
+      <div class="card" style="padding:16px 28px;text-align:center">
+        <div class="stat-number gradient-text" style="font-size:28px">$25K</div>
+        <div class="stat-label" style="font-size:11px">MRR Target</div>
+      </div>
+      <div class="card" style="padding:16px 28px;text-align:center">
+        <div class="stat-number gradient-text" style="font-size:28px">500%</div>
+        <div class="stat-label" style="font-size:11px">Customer ROI</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">12</div>
+</div>
+
+</body>
+</html>

@@ -55,6 +55,15 @@
     }
     .lang-toggle button.active { background: var(--amber); color: var(--bg); }
     .lang-toggle button:not(.active):hover { color: var(--text); }
+    .nav-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    .nav-links a {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 10px; color: var(--text3); letter-spacing: 0.5px; font-weight: 600;
+      text-decoration: none; transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-links svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .nav-links .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--amber); display: inline-block; opacity: 0.6; }
   </style>
 </head>
 <body>
@@ -65,7 +74,17 @@
     </div>
     <div class="logo">selected.ai</div>
     <div class="subtitle">LinkedIn Lead Automation</div>
-    <a href="/blog" style="display:inline-block;margin-bottom:24px;font-size:12px;font-weight:600;color:var(--amber);letter-spacing:0.5px;opacity:0.7;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">READ OUR BLOG &rarr;</a>
+    <div class="nav-links">
+      <a href="/blog">
+        <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span data-i18n="blogLink">BLOG</span>
+        <span class="dot"></span>
+      </a>
+      <a href="/pitch-deck.html">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>PITCH DECK</span>
+      </a>
+    </div>
     <form id="login-form">
       <div class="field">
         <label>Username</label>
@@ -90,6 +109,7 @@
         required: 'Username and password required',
         invalid: 'Invalid credentials',
         connError: 'Connection error',
+        blogLink: 'BLOG',
       },
       ua: {
         subtitle: 'Автоматизація лідів LinkedIn',
@@ -100,6 +120,7 @@
         required: "Ім'я користувача та пароль обов'язкові",
         invalid: 'Невірні дані',
         connError: "Помилка з'єднання",
+        blogLink: 'БЛОГ',
       }
     };
 
@@ -118,6 +139,8 @@
       document.querySelectorAll('.field label')[1].textContent = t.password;
       const btn = document.getElementById('submit-btn');
       if (!btn.disabled) btn.textContent = t.signIn;
+      const blogEl = document.querySelector('[data-i18n="blogLink"]');
+      if (blogEl) blogEl.textContent = t.blogLink;
       document.getElementById('lang-en').classList.toggle('active', currentLang === 'en');
       document.getElementById('lang-ua').classList.toggle('active', currentLang === 'ua');
     }
