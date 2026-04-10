@@ -259,26 +259,53 @@
     .conv-item.conv-active { background: var(--surface2); border-left-color: var(--amber); }
 
     /* ── AI CHAT ── */
-    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-    .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.55; word-wrap: break-word; white-space: pre-wrap; }
-    .chat-bubble.user { align-self: flex-end; background: var(--amber-dim); color: var(--text); border-bottom-right-radius: 3px; }
-    .chat-bubble.ai { align-self: flex-start; background: var(--surface2); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
-    .chat-bubble .bubble-text {}
-    .chat-bubble .tool-badge { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--teal); padding: 2px 8px; background: var(--teal-dim); border-radius: 4px; margin: 6px 0 2px; }
-    .chat-bubble .tool-result { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin: 4px 0; font-size: 11px; line-height: 1.5; overflow-x: auto; }
+    .chat-messages { flex: 1; overflow-y: auto; scroll-behavior: auto; }
+    .chat-messages-inner { max-width: 720px; margin: 0 auto; padding: 24px 20px 12px; display: flex; flex-direction: column; gap: 16px; }
+    .chat-bubble { animation: chatFadeIn 0.2s ease-out; font-size: 13.5px; line-height: 1.65; word-wrap: break-word; }
+    .chat-bubble.user { align-self: flex-end; max-width: 80%; background: var(--amber-dim); color: var(--text); padding: 10px 16px; border-radius: 16px 16px 4px 16px; }
+    .chat-bubble.ai { align-self: stretch; }
+    .chat-bubble .bubble-text { white-space: pre-wrap; }
+    .chat-bubble .bubble-text p { margin: 0 0 8px; } .chat-bubble .bubble-text p:last-child { margin: 0; }
+    .chat-bubble .bubble-text strong { color: var(--text); }
+    .chat-bubble .bubble-text code { font-family: var(--mono); font-size: 12px; background: rgba(240,168,48,0.08); padding: 1px 5px; border-radius: 3px; color: var(--amber); }
+    .chat-bubble .bubble-text pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; overflow-x: auto; margin: 8px 0; font-size: 12px; }
+    .chat-bubble .bubble-text pre code { background: none; padding: 0; }
+    .chat-bubble .bubble-text ul, .chat-bubble .bubble-text ol { margin: 4px 0 8px 18px; }
+    .chat-bubble .bubble-text li { margin-bottom: 2px; }
+    .chat-bubble .tool-badge { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--teal); padding: 3px 10px; background: var(--teal-dim); border-radius: 4px; margin: 8px 0 4px; }
+    .chat-bubble .tool-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); animation: toolPulse 1s infinite; }
+    .chat-bubble .tool-badge.done::before { animation: none; }
+    .chat-bubble .tool-result { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin: 6px 0; font-size: 11px; line-height: 1.5; overflow-x: auto; }
     .chat-bubble .tool-result table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    .chat-bubble .tool-result th { text-align: left; color: var(--text3); font-weight: 600; padding: 2px 8px 2px 0; border-bottom: 1px solid var(--border); }
-    .chat-bubble .tool-result td { padding: 2px 8px 2px 0; }
-    .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg2); }
-    .chat-input-row { display: flex; gap: 8px; }
-    .chat-input-row textarea { flex: 1; resize: none; min-height: 38px; max-height: 140px; font-family: var(--font); font-size: 13px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 8px 12px; outline: none; transition: border-color 0.15s; }
-    .chat-input-row textarea:focus { border-color: var(--amber); }
-    .chat-conv-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; font-size: 12px; border-left: 3px solid transparent; }
+    .chat-bubble .tool-result th { text-align: left; color: var(--text3); font-weight: 600; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--border); }
+    .chat-bubble .tool-result td { padding: 3px 10px 3px 0; }
+    .chat-input-area { padding: 0 20px 16px; background: transparent; }
+    .chat-input-wrap { max-width: 720px; margin: 0 auto; position: relative; }
+    .chat-input-row { display: flex; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px 4px 4px 16px; transition: border-color 0.15s; align-items: flex-end; }
+    .chat-input-row:focus-within { border-color: var(--amber); }
+    .chat-input-row textarea { flex: 1; resize: none; min-height: 32px; max-height: 160px; font-family: var(--font); font-size: 13.5px; background: transparent; border: none; color: var(--text); padding: 8px 0; outline: none; line-height: 1.5; }
+    .chat-input-row .chat-send { width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--amber); color: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.12s; flex-shrink: 0; margin-bottom: 2px; }
+    .chat-input-row .chat-send:hover { opacity: 0.85; }
+    .chat-input-row .chat-send:disabled { opacity: 0.3; cursor: not-allowed; }
+    .chat-input-row .chat-send.stop { background: var(--red); }
+    .chat-scroll-btn { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); width: 32px; height: 32px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); color: var(--text2); cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: opacity 0.15s; }
+    .chat-scroll-btn:hover { border-color: var(--text3); color: var(--text); }
+    .chat-scroll-btn.visible { display: flex; }
+    .chat-conv-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; font-size: 12px; border-left: 3px solid transparent; position: relative; }
     .chat-conv-item:hover { background: var(--surface2); }
     .chat-conv-item.active { background: var(--surface2); border-left-color: var(--amber); }
-    .chat-conv-item .conv-title { font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-conv-item .conv-title { font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 20px; }
     .chat-conv-item .conv-time { font-size: 10px; color: var(--text3); margin-top: 2px; }
-    .chat-typing { color: var(--text3); font-size: 11px; font-style: italic; padding: 4px 14px; }
+    .chat-conv-item .conv-del { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border: none; background: none; color: var(--text3); cursor: pointer; font-size: 14px; display: none; align-items: center; justify-content: center; border-radius: 4px; }
+    .chat-conv-item:hover .conv-del { display: flex; }
+    .chat-conv-item .conv-del:hover { color: var(--red); background: var(--red-dim); }
+    .chat-typing-dots { display: inline-flex; gap: 3px; padding: 4px 0; }
+    .chat-typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); animation: dotBounce 1.4s infinite; }
+    .chat-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .chat-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes chatFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes dotBounce { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
+    @keyframes toolPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
   </style>
 </head>
 <body>
@@ -2063,16 +2090,44 @@ async function checkAuth(){
 /* ── AI CHAT ── */
 window._chatConvId = null;
 window._chatSending = false;
+window._chatUserScrolled = false;
+window._chatAbort = null;
 
 function getChatSuggestions(){
   return [t('chat_s1'), t('chat_s2'), t('chat_s3'), t('chat_s4'), t('chat_s5'), t('chat_s6')];
 }
 
 function useChatSuggestion(el){
-  const input = $('chat-input');
-  input.value = el.textContent;
-  input.focus();
+  $('chat-input').value = el.textContent;
   sendChatMsg();
+}
+
+// Smart scroll: only auto-scroll if user is near bottom
+function chatShouldAutoScroll(){
+  const el = $('chat-msgs');
+  if(!el) return true;
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+}
+function chatScrollToBottom(force){
+  const el = $('chat-msgs');
+  if(!el) return;
+  if(force || !window._chatUserScrolled){
+    el.scrollTop = el.scrollHeight;
+  }
+  chatUpdateScrollBtn();
+}
+function chatUpdateScrollBtn(){
+  const el = $('chat-msgs');
+  const btn = document.getElementById('chat-scroll-btn');
+  if(!el || !btn) return;
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  btn.classList.toggle('visible', !atBottom);
+  window._chatUserScrolled = !atBottom;
+}
+
+function chatAutoGrow(ta){
+  ta.style.height = '0';
+  ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
 }
 
 async function pgChat(el){
@@ -2084,28 +2139,38 @@ async function pgChat(el){
         </div>
         <div id="chat-convs" style="flex:1;overflow-y:auto"></div>
       </div>
-      <div style="display:flex;flex-direction:column;background:var(--bg2)">
-        <div id="chat-msgs" class="chat-messages">
-          <div id="chat-welcome" style="margin:auto;text-align:center;color:var(--text3);font-size:13px;padding:40px 20px;max-width:520px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 12px;display:block;color:var(--amber)"><path d="M12 3l1.5 3.7 3.9.6-2.8 2.8.7 3.9L12 12.4 8.7 14l.7-3.9L6.6 7.3l3.9-.6z"/><path d="M19 15v3a2 2 0 01-2 2H7l-4 4V7a2 2 0 012-2h3"/></svg>
-            ${t('chat_empty')}
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:24px;text-align:left">
-              ${getChatSuggestions().map(s => `<div onclick="useChatSuggestion(this)" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;transition:border-color 0.15s;font-size:12px;line-height:1.45;color:var(--text2)" onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='var(--border)'">${s}</div>`).join('')}
+      <div style="display:flex;flex-direction:column;background:var(--bg2);position:relative">
+        <div id="chat-msgs" class="chat-messages" onscroll="chatUpdateScrollBtn()">
+          <div class="chat-messages-inner" id="chat-inner">
+            <div id="chat-welcome" style="margin:auto;text-align:center;color:var(--text3);font-size:13px;padding:60px 20px;max-width:520px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px;display:block;color:var(--amber)"><path d="M12 3l1.5 3.7 3.9.6-2.8 2.8.7 3.9L12 12.4 8.7 14l.7-3.9L6.6 7.3l3.9-.6z"/><path d="M19 15v3a2 2 0 01-2 2H7l-4 4V7a2 2 0 012-2h3"/></svg>
+              ${t('chat_empty')}
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:24px;text-align:left">
+                ${getChatSuggestions().map(s => `<div onclick="useChatSuggestion(this)" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s,background 0.15s;font-size:12px;line-height:1.45;color:var(--text2)" onmouseover="this.style.borderColor='var(--amber)';this.style.background='var(--surface2)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">${s}</div>`).join('')}
+              </div>
             </div>
           </div>
         </div>
+        <button id="chat-scroll-btn" class="chat-scroll-btn" onclick="chatScrollToBottom(true)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
         <div class="chat-input-area">
-          <div class="chat-input-row">
-            <textarea id="chat-input" placeholder="${t('chat_placeholder')}" rows="1"
-              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg()}"
-              oninput="this.style.height='38px';this.style.height=Math.min(this.scrollHeight,140)+'px'"></textarea>
-            <button class="btn primary" id="chat-send-btn" onclick="sendChatMsg()">${t('chat_send')}</button>
+          <div class="chat-input-wrap">
+            <div class="chat-input-row">
+              <textarea id="chat-input" placeholder="${t('chat_placeholder')}" rows="1"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg()}"
+                oninput="chatAutoGrow(this)"></textarea>
+              <button class="chat-send" id="chat-send-btn" onclick="sendChatMsg()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>`;
   await loadChatConvs();
   if(window._chatConvId) await openChatConv(window._chatConvId);
+  else $('chat-input').focus();
 }
 
 async function loadChatConvs(){
@@ -2119,59 +2184,95 @@ async function loadChatConvs(){
     <div class="chat-conv-item${window._chatConvId==c.id?' active':''}" onclick="openChatConv(${c.id})">
       <div class="conv-title">${esc(c.title||t('chat_new'))}</div>
       <div class="conv-time">${new Date(c.updated_at).toLocaleDateString()}</div>
+      <button class="conv-del" onclick="event.stopPropagation();deleteChatConv(${c.id})" title="Delete">&times;</button>
     </div>
   `).join('');
+}
+
+async function deleteChatConv(id){
+  await api('/chat/conversations/'+id,{method:'DELETE'});
+  if(window._chatConvId == id){
+    window._chatConvId = null;
+    showChatWelcome();
+  }
+  loadChatConvs();
+}
+
+function showChatWelcome(){
+  const inner = $('chat-inner');
+  if(!inner) return;
+  inner.innerHTML = `<div id="chat-welcome" style="margin:auto;text-align:center;color:var(--text3);font-size:13px;padding:60px 20px;max-width:520px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px;display:block;color:var(--amber)"><path d="M12 3l1.5 3.7 3.9.6-2.8 2.8.7 3.9L12 12.4 8.7 14l.7-3.9L6.6 7.3l3.9-.6z"/><path d="M19 15v3a2 2 0 01-2 2H7l-4 4V7a2 2 0 012-2h3"/></svg>
+    ${t('chat_empty')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:24px;text-align:left">
+      ${getChatSuggestions().map(s => `<div onclick="useChatSuggestion(this)" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s,background 0.15s;font-size:12px;line-height:1.45;color:var(--text2)" onmouseover="this.style.borderColor='var(--amber)';this.style.background='var(--surface2)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">${s}</div>`).join('')}
+    </div>
+  </div>`;
 }
 
 async function newChatConv(){
   const r = await api('/chat/conversations',{method:'POST',body:{}});
   window._chatConvId = r.id;
   await loadChatConvs();
-  $('chat-msgs').innerHTML = '';
+  showChatWelcome();
   $('chat-input').focus();
 }
 
 async function openChatConv(id){
   window._chatConvId = id;
-  // Highlight active
   document.querySelectorAll('.chat-conv-item').forEach(el=>{
-    el.classList.toggle('active', el.onclick.toString().includes(id));
+    el.classList.toggle('active', el.onclick && el.onclick.toString().includes(id));
   });
-  // Load messages
   const d = await api('/chat/conversations/'+id+'/messages');
-  const msgs = $('chat-msgs');
-  msgs.innerHTML = '';
+  const inner = $('chat-inner');
+  if(!inner) return;
+  inner.innerHTML = '';
   for(const m of (d.items||[])){
-    if(m.tool_use_id){
-      // Tool result — skip, it's rendered inline in the AI bubble
-      continue;
-    }
+    if(m.tool_use_id) continue;
     if(m.role === 'user'){
       appendChatBubble('user', esc(m.content));
     } else {
-      // Assistant — could be plain text or JSON content blocks
       let text = m.content;
       try {
         const parsed = JSON.parse(m.content);
-        if(Array.isArray(parsed)){
-          text = parsed.filter(b=>b.type==='text').map(b=>b.text).join('');
-        }
+        if(Array.isArray(parsed)) text = parsed.filter(b=>b.type==='text').map(b=>b.text).join('');
       } catch{}
       if(text) appendChatBubble('ai', text);
     }
   }
-  msgs.scrollTop = msgs.scrollHeight;
+  window._chatUserScrolled = false;
+  chatScrollToBottom(true);
   $('chat-input').focus();
 }
 
 function appendChatBubble(role, html){
-  const msgs = $('chat-msgs');
+  const inner = $('chat-inner');
+  if(!inner) return;
+  // Remove welcome screen
+  const welcome = document.getElementById('chat-welcome');
+  if(welcome) welcome.remove();
   const div = document.createElement('div');
   div.className = 'chat-bubble ' + (role==='user'?'user':'ai');
   div.innerHTML = '<div class="bubble-text">' + html + '</div>';
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+  inner.appendChild(div);
+  if(chatShouldAutoScroll()) chatScrollToBottom(false);
   return div;
+}
+
+function setChatSending(sending){
+  window._chatSending = sending;
+  const btn = $('chat-send-btn');
+  if(!btn) return;
+  if(sending){
+    btn.classList.add('stop');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+    btn.onclick = ()=> { if(window._chatAbort) window._chatAbort.abort(); };
+  } else {
+    btn.classList.remove('stop');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+    btn.onclick = sendChatMsg;
+    btn.disabled = false;
+  }
 }
 
 async function sendChatMsg(){
@@ -2179,37 +2280,39 @@ async function sendChatMsg(){
   const text = input.value.trim();
   if(!text || window._chatSending) return;
   input.value = '';
-  input.style.height = '38px';
-  window._chatSending = true;
-  $('chat-send-btn').disabled = true;
+  chatAutoGrow(input);
+  setChatSending(true);
+  window._chatUserScrolled = false;
 
-  // Create conversation if needed
   if(!window._chatConvId){
     const r = await api('/chat/conversations',{method:'POST',body:{}});
     window._chatConvId = r.id;
   }
 
-  // Show user bubble
   appendChatBubble('user', esc(text));
 
-  // Create AI bubble for streaming
+  // Create AI bubble with typing indicator
   const aiBubble = appendChatBubble('ai', '');
   const bubbleText = aiBubble.querySelector('.bubble-text');
-  bubbleText.textContent = '';
+  bubbleText.innerHTML = '<div class="chat-typing-dots"><span></span><span></span><span></span></div>';
+
+  const controller = new AbortController();
+  window._chatAbort = controller;
+  let gotText = false;
 
   try {
     const res = await fetch(A+'/chat/conversations/'+window._chatConvId+'/messages', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       credentials:'same-origin',
-      body: JSON.stringify({message: text})
+      body: JSON.stringify({message: text}),
+      signal: controller.signal
     });
 
     if(!res.ok){
       const err = await res.json().catch(()=>({error:'Unknown error'}));
       bubbleText.textContent = 'Error: ' + (err.error||res.statusText);
-      window._chatSending = false;
-      $('chat-send-btn').disabled = false;
+      setChatSending(false);
       return;
     }
 
@@ -2217,6 +2320,7 @@ async function sendChatMsg(){
     const decoder = new TextDecoder();
     let buffer = '';
     let currentEvent = '';
+    let lastBadge = null;
 
     while(true){
       const {done, value} = await reader.read();
@@ -2233,31 +2337,40 @@ async function sendChatMsg(){
           try {
             const data = JSON.parse(line.slice(6));
             if(currentEvent === 'text_delta'){
+              if(!gotText){ bubbleText.textContent = ''; gotText = true; }
+              if(lastBadge){ lastBadge.classList.add('done'); lastBadge = null; }
               bubbleText.textContent += data.text;
             } else if(currentEvent === 'tool_use'){
+              if(!gotText){ bubbleText.textContent = ''; gotText = true; }
               const badge = document.createElement('div');
               badge.className = 'tool-badge';
               badge.textContent = data.name.replace(/_/g,' ');
               aiBubble.appendChild(badge);
+              lastBadge = badge;
             } else if(currentEvent === 'tool_result'){
+              if(lastBadge) lastBadge.classList.add('done');
               const resultDiv = document.createElement('div');
               resultDiv.className = 'tool-result';
               resultDiv.innerHTML = formatChatToolResult(data.name, data.result);
               aiBubble.appendChild(resultDiv);
             } else if(currentEvent === 'error'){
-              bubbleText.textContent += '\n\nError: ' + data.message;
+              if(!gotText){ bubbleText.textContent = ''; gotText = true; }
+              bubbleText.textContent += '\nError: ' + data.message;
             }
           } catch{}
-          $('chat-msgs').scrollTop = $('chat-msgs').scrollHeight;
+          if(chatShouldAutoScroll()) chatScrollToBottom(false);
         }
       }
     }
   } catch(err){
-    bubbleText.textContent = 'Connection error: ' + err.message;
+    if(err.name !== 'AbortError'){
+      bubbleText.textContent = 'Connection error: ' + err.message;
+    }
   }
 
-  window._chatSending = false;
-  $('chat-send-btn').disabled = false;
+  window._chatAbort = null;
+  setChatSending(false);
+  input.focus();
   loadChatConvs();
 }
 
