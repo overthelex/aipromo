@@ -1,7 +1,7 @@
 import { sql } from "../storage/store.js";
 import { getAccounts, resolveAccountId, resolveAccountName } from "../config.js";
 import { runCampaignDay } from "../campaigns/engine.js";
-import { CAMPAIGN_NAME, DAILY_SEARCH_QUERIES, PRODUCT_CONTEXT } from "../campaigns/registry-access-2w.js";
+import { getCampaign, listCampaigns } from "../campaigns/registry.js";
 import { logger } from "../utils/logger.js";
 
 // ─── System prompt for the AI chat assistant ───────────────────────────────────
@@ -20,9 +20,9 @@ You help users create, configure, and run LinkedIn outreach campaigns through co
 ## Accounts
 ${getAccounts().map(a => `- **${a.alias}** (${a.name})`).join("\n")}
 
-## Current campaign
-Active campaign: "${CAMPAIGN_NAME}" — 14-day rotating campaign.
-${PRODUCT_CONTEXT.slice(0, 500)}
+## Campaigns
+Available: ${listCampaigns().join(", ")}
+${listCampaigns().map(n => { const c = getCampaign(n); return `- **${c.name}**: ${c.dailySearchQueries.length} days, channels: ${c.channels.join("+")}`; }).join("\n")}
 
 ## Guidelines
 - Always confirm before running campaigns with dry_run=false (real sends)
@@ -190,7 +190,9 @@ export async function executeTool(
     }
 
     case "run_campaign_day": {
+      const cam = getCampaign((input.campaign as string) || listCampaigns()[0]);
       const result = await runCampaignDay({
+        campaign: cam,
         accountAlias: input.account as string,
         dayNumber: (input.day as number) || 1,
         maxNewLeads: (input.max_leads as number) || 25,
@@ -201,24 +203,26 @@ export async function executeTool(
     }
 
     case "get_campaign_status": {
+      const camName = (input.campaign as string) || listCampaigns()[0];
+      const cam = getCampaign(camName);
       const accounts = getAccounts();
       const results = [];
       for (const acc of accounts) {
         const [leadCount] = await sql`
           SELECT COUNT(*) as count FROM leads
-          WHERE account_id = ${acc.id} AND tags LIKE ${"%" + CAMPAIGN_NAME + "%"}
+          WHERE account_id = ${acc.id} AND tags LIKE ${"%" + cam.name + "%"}
         `;
-        const [campaign] = await sql`
-          SELECT id FROM outreach_campaigns WHERE account_id = ${acc.id} AND name = ${CAMPAIGN_NAME}
+        const [campaignRow] = await sql`
+          SELECT id FROM outreach_campaigns WHERE account_id = ${acc.id} AND name = ${cam.name}
         `;
         let sent = 0, failed = 0, pending = 0;
-        if (campaign) {
+        if (campaignRow) {
           const [counts] = await sql`
             SELECT
               COUNT(*) FILTER (WHERE status = 'sent') as sent,
               COUNT(*) FILTER (WHERE status = 'failed') as failed,
               COUNT(*) FILTER (WHERE status = 'pending') as pending
-            FROM outreach_queue WHERE campaign_id = ${campaign.id}
+            FROM outreach_queue WHERE campaign_id = ${campaignRow.id}
           `;
           sent = Number(counts.sent);
           failed = Number(counts.failed);
@@ -233,7 +237,7 @@ export async function executeTool(
           pending,
         });
       }
-      return { campaign: CAMPAIGN_NAME, accounts: results };
+      return { campaign: cam.name, channels: cam.channels, accounts: results };
     }
 
     case "search_leads": {
@@ -355,11 +359,14 @@ export async function executeTool(
     }
 
     case "get_daily_plan": {
+      const camName = (input.campaign as string) || listCampaigns()[0];
+      const cam = getCampaign(camName);
       return {
-        campaign: CAMPAIGN_NAME,
-        days: DAILY_SEARCH_QUERIES,
-        angles: ["pain_point_time", "pain_point_cost", "social_proof", "free_bonus", "tech_innovation", "competitor_gap", "question_hook"],
-        rotation: "angle = (dayNumber + leadIndex) % 7",
+        campaign: cam.name,
+        channels: cam.channels,
+        days: cam.dailySearchQueries,
+        angles: cam.messageAngles,
+        rotation: `angle = (dayNumber + leadIndex) % ${cam.messageAngles.length}`,
       };
     }
 

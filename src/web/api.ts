@@ -1,6 +1,6 @@
-import { Router } from "express";
+import { Router, Request } from "express";
 import { sql } from "../storage/store.js";
-import { appConfig, getAccounts, resolveAccountId, resolveAccountName } from "../config.js";
+import { appConfig, getAccounts, resolveAccountId, resolveAccountName, type AccountConfig } from "../config.js";
 import { UnipileService } from "../services/unipile.service.js";
 import { ClaudeService } from "../services/claude.service.js";
 import { syncLeads } from "../core/leads.js";
@@ -8,17 +8,27 @@ import { syncConversations } from "../core/conversations.js";
 import { syncPosts, syncCompanyPosts } from "../core/posts.js";
 import { searchLeads } from "../core/search.js";
 import { runCampaignDay } from "../campaigns/engine.js";
-import { CAMPAIGN_NAME, DAILY_SEARCH_QUERIES } from "../campaigns/registry-access-2w.js";
+import { getCampaign, listCampaigns } from "../campaigns/registry.js";
 import { broadcast } from "../server.js";
 import { chatRouter } from "./chat.js";
+import { getAllowedAccounts } from "./auth.js";
 
 export const apiRouter = Router();
+
+/** Filter accounts to only those the current user is allowed to see */
+function getUserAccounts(req: Request): AccountConfig[] {
+  const user = (req as any).user;
+  const allowed = getAllowedAccounts(user);
+  if (allowed === null) return getAccounts(); // unrestricted
+  const all = getAccounts();
+  return all.filter(a => allowed.includes(a.alias));
+}
 
 // Chat routes
 apiRouter.use("/chat", chatRouter);
 
 // --- Dashboard Stats ---
-apiRouter.get("/stats", async (_req, res) => {
+apiRouter.get("/stats", async (req, res) => {
   const [leads] = await sql`SELECT COUNT(*) as count FROM leads`;
   const [conversations] = await sql`SELECT COUNT(*) as count FROM conversations`;
   const [messages] = await sql`SELECT COUNT(*) as count FROM messages`;
@@ -46,7 +56,7 @@ apiRouter.get("/stats", async (_req, res) => {
     campaignLeads: Number(campaignLeads.count),
     sentMessages: Number(sentMessages.count),
     unreadConversations: Number(unread.count),
-    accounts: getAccounts(),
+    accounts: getUserAccounts(req),
   });
 });
 
@@ -192,49 +202,57 @@ apiRouter.get("/posts", async (req, res) => {
 });
 
 // --- Campaign ---
+apiRouter.get("/campaign/list", (_req, res) => {
+  res.json({ campaigns: listCampaigns() });
+});
+
 apiRouter.get("/campaign/status", async (req, res) => {
-  const accounts = getAccounts();
+  const campaignName = (req.query.campaign as string) || listCampaigns()[0];
+  const cam = getCampaign(campaignName);
+  const accounts = getUserAccounts(req);
   const results = [];
 
   for (const acc of accounts) {
     const [leadCount] = await sql`
       SELECT COUNT(*) as count FROM leads
-      WHERE account_id = ${acc.id} AND tags LIKE ${"%" + CAMPAIGN_NAME + "%"}
+      WHERE account_id = ${acc.id} AND tags LIKE ${"%" + cam.name + "%"}
     `;
-    const [campaign] = await sql`
-      SELECT id FROM outreach_campaigns WHERE account_id = ${acc.id} AND name = ${CAMPAIGN_NAME}
+    const [campaignRow] = await sql`
+      SELECT id FROM outreach_campaigns WHERE account_id = ${acc.id} AND name = ${cam.name}
     `;
 
-    let sent = 0, failed = 0, pending = 0;
-    if (campaign) {
+    let sent = 0, failed = 0, pending = 0, scheduled = 0;
+    if (campaignRow) {
       const [counts] = await sql`
         SELECT
           COUNT(*) FILTER (WHERE status = 'sent') as sent,
           COUNT(*) FILTER (WHERE status = 'failed') as failed,
-          COUNT(*) FILTER (WHERE status = 'pending') as pending
-        FROM outreach_queue WHERE campaign_id = ${campaign.id}
+          COUNT(*) FILTER (WHERE status = 'pending') as pending,
+          COUNT(*) FILTER (WHERE status = 'scheduled') as scheduled
+        FROM outreach_queue WHERE campaign_id = ${campaignRow.id}
       `;
-      sent = Number(counts.sent); failed = Number(counts.failed); pending = Number(counts.pending);
+      sent = Number(counts.sent); failed = Number(counts.failed); pending = Number(counts.pending); scheduled = Number(counts.scheduled);
     }
 
-    results.push({ account: acc, leads: Number(leadCount.count), sent, failed, pending });
+    results.push({ account: acc, leads: Number(leadCount.count), sent, failed, pending, scheduled });
   }
 
-  res.json({ campaign: CAMPAIGN_NAME, plan: DAILY_SEARCH_QUERIES, accounts: results });
+  res.json({ campaign: cam.name, channels: cam.channels, plan: cam.dailySearchQueries, accounts: results });
 });
 
 apiRouter.post("/campaign/run", async (req, res) => {
-  const { account, day, maxLeads, maxMessages, dryRun } = req.body;
+  const { account, campaign: campaignName, day, maxLeads, maxMessages, dryRun } = req.body;
+  const cam = getCampaign(campaignName || listCampaigns()[0]);
 
-  // Return immediately, run in background with WS progress
-  res.json({ status: "running" });
+  res.json({ status: "running", campaign: cam.name });
 
   const log = (msg: string) => broadcast("campaign_log", { msg });
 
   try {
-    log(`Starting campaign day ${day || 1} for ${account}...`);
+    log(`Starting ${cam.name} day ${day || 1} for ${account}...`);
 
     const result = await runCampaignDay({
+      campaign: cam,
       accountAlias: account,
       dayNumber: day || 1,
       maxNewLeads: maxLeads || 25,
@@ -242,7 +260,7 @@ apiRouter.post("/campaign/run", async (req, res) => {
       dryRun: dryRun ?? true,
     });
 
-    log(`Done! Searched: ${result.searched}, Sent: ${result.messaged}, Scheduled: ${result.scheduled}, Replied: ${result.replied}, Follow-ups: ${result.followUps}`);
+    log(`Done! Searched: ${result.searched}, Sent: ${result.messaged}, Scheduled: ${result.scheduled}, IG: ${result.instagramDMs}, Replied: ${result.replied}, Follow-ups: ${result.followUps}`);
     broadcast("campaign_done", result);
   } catch (err: any) {
     log(`Error: ${err.message}`);
@@ -323,7 +341,7 @@ apiRouter.get("/messages", async (req, res) => {
   const type = req.query.type as string;
   const sentParam = req.query.sent as string;
 
-  const accountMap = Object.fromEntries(getAccounts().map(a => [a.id, a.name.split(" ")[0]]));
+  const accountMap = Object.fromEntries(getUserAccounts(req).map(a => [a.id, a.name.split(" ")[0]]));
 
   const rows = await sql`
     SELECT m.*,
@@ -780,9 +798,9 @@ apiRouter.post("/follow-ups/:id/reschedule", async (req, res) => {
 });
 
 // --- Config ---
-apiRouter.get("/config", async (_req, res) => {
+apiRouter.get("/config", async (req, res) => {
   res.json({
-    accounts: getAccounts(),
+    accounts: getUserAccounts(req),
     defaultAccount: appConfig.unipileDefaultAccount,
     model: appConfig.bedrockModel,
     limits: {

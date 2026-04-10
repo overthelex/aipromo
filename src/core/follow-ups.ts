@@ -5,13 +5,13 @@ import { ClaudeService } from "../services/claude.service.js";
 import { checkAndIncrementDaily, checkPerMinuteLimit, sleep } from "../utils/rate-limiter.js";
 import { appConfig } from "../config.js";
 import { logger } from "../utils/logger.js";
-import { PRODUCT_CONTEXT } from "../campaigns/registry-access-2w.js";
+import type { CampaignConfig } from "../campaigns/types.js";
 
 function randomDelay(min: number, max: number): number {
   return (min + Math.random() * (max - min)) * 1000;
 }
 
-export async function processDueFollowUps(accountAlias?: string): Promise<number> {
+export async function processDueFollowUps(campaign: CampaignConfig, accountAlias?: string): Promise<number> {
   const unipile = new UnipileService(accountAlias);
   const accountId = unipile.accountId;
   const claude = new ClaudeService();
@@ -20,9 +20,11 @@ export async function processDueFollowUps(accountAlias?: string): Promise<number
     SELECT f.*, l.name, l.headline, l.linkedin_id, l.company, l.title
     FROM follow_ups f
     JOIN leads l ON f.lead_id = l.id
+    JOIN outreach_campaigns oc ON f.campaign_id = oc.id
     WHERE f.account_id = ${accountId}
       AND f.status = 'pending'
       AND f.scheduled_for <= NOW()
+      AND oc.name = ${campaign.name}
     ORDER BY f.scheduled_for ASC
     LIMIT 20
   `;
@@ -43,7 +45,6 @@ export async function processDueFollowUps(accountAlias?: string): Promise<number
       await sleep(30000);
     }
 
-    // Check if lead already responded (double-check)
     const [lead] = await sql`SELECT status FROM leads WHERE id = ${fu.lead_id}`;
     if (lead && lead.status !== 'contacted') {
       await sql`UPDATE follow_ups SET status = 'cancelled' WHERE id = ${fu.id}`;
@@ -51,16 +52,14 @@ export async function processDueFollowUps(accountAlias?: string): Promise<number
       continue;
     }
 
-    // Find existing conversation
     const convs = await sql`
       SELECT chat_id FROM conversations
       WHERE account_id = ${accountId} AND attendee_provider_id = ${fu.linkedin_id}
       LIMIT 1
     `;
 
-    // Generate follow-up message
-    const systemPrompt = `You are writing a follow-up LinkedIn message on behalf of legal.org.ua team.
-${PRODUCT_CONTEXT}
+    const systemPrompt = `You are writing a follow-up LinkedIn message for the ${campaign.name} campaign.
+${campaign.productContext}
 This is follow-up #${fu.step}. The lead was contacted before but hasn't replied.
 RULES:
 - Write in Ukrainian
@@ -80,10 +79,8 @@ Generate a follow-up message.`;
 
     try {
       if (convs.length > 0) {
-        // Reply in existing conversation
         await unipile.sendMessage(convs[0].chat_id, message);
       } else {
-        // Start new chat
         await unipile.startChat(fu.linkedin_id, message);
       }
 

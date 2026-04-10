@@ -13,18 +13,12 @@ import {
 import { appConfig } from "../config.js";
 import { logger } from "../utils/logger.js";
 import { broadcast } from "../server.js";
+import type { CampaignConfig } from "./types.js";
 
 function clog(msg: string) {
   console.log(msg);
   broadcast("campaign_log", { msg: msg.replace(/\x1b\[[0-9;]*m/g, "") }); // strip ANSI colors
 }
-import {
-  CAMPAIGN_NAME,
-  PRODUCT_CONTEXT,
-  DAILY_SEARCH_QUERIES,
-  OPTIMAL_HOURS_UTC,
-  getMessageAngle,
-} from "./registry-access-2w.js";
 
 // Ukraine location ID for LinkedIn search
 const UKRAINE_LOCATION_ID = "102264497";
@@ -92,9 +86,9 @@ function getNextOptimalSendTime(location: string): Date {
   return new Date(now.getTime() + hoursToWait * 3600_000 + jitterMs);
 }
 
-function isOptimalHour(): boolean {
+function isOptimalHourForCampaign(cam: CampaignConfig): boolean {
   const hour = new Date().getUTCHours();
-  return OPTIMAL_HOURS_UTC.includes(hour);
+  return cam.optimalHoursUtc.includes(hour);
 }
 
 function randomDelay(minSec: number, maxSec: number): number {
@@ -105,58 +99,42 @@ function randomDelay(minSec: number, maxSec: number): number {
 
 const INVITATION_NOTE_LIMIT = 290;
 
-function getOutreachSystemPrompt(angle: string, maxChars?: number): string {
+function getOutreachSystemPrompt(campaign: CampaignConfig, angle: string, channel: "linkedin" | "instagram", maxChars?: number): string {
   const charLimit = maxChars
     ? `\n- HARD LIMIT: message MUST be under ${maxChars} characters total (this is a LinkedIn invitation note limit). Count carefully. Be concise — 2-3 short sentences max.`
     : "";
-  return `You are writing a LinkedIn first-touch message on behalf of the legal.org.ua team.
+  const channelRules = channel === "instagram"
+    ? `- This is an Instagram DM — be casual and brief, 2-3 sentences MAX
+- Don't mention LinkedIn or connection requests
+- Use a friendly, approachable tone suitable for Instagram`
+    : `- ${maxChars ? "2-3 sentences MAX" : "3-5 sentences MAX"}. LinkedIn messages must be short.${charLimit}`;
 
-${PRODUCT_CONTEXT}
+  return `You are writing a ${channel === "instagram" ? "Instagram DM" : "LinkedIn first-touch message"} for the ${campaign.name} campaign.
+
+${campaign.productContext}
 
 MESSAGE ANGLE for this specific message: "${angle}"
-${getAngleInstruction(angle)}
+${campaign.getAngleInstruction(angle)}
 
 CRITICAL RULES:
 - Write in Ukrainian (unless lead profile is clearly English-only)
-- ${maxChars ? "2-3 sentences MAX" : "3-5 sentences MAX"}. LinkedIn messages must be short.${charLimit}
+${channelRules}
 - Start with something specific to THIS person's profile (their headline, company, role, location)
 - DO NOT start with generic "Привіт, [name]" — find a creative opener based on their work
 - DO NOT list all features — focus on ONE angle from above
 - End with a soft CTA — question or invitation to see a demo
 - Be warm, professional, NOT salesy or spammy
 - NEVER copy-paste the same message structure — each message must feel hand-written
-- Do NOT mention the price unless the angle is "pain_point_cost"
 - Do NOT use bullet points or numbered lists
 - Output ONLY the message text, nothing else`;
 }
 
-function getAngleInstruction(angle: string): string {
-  switch (angle) {
-    case "pain_point_time":
-      return "Focus on how much time lawyers waste on manual registry checks. Contrast with instant AI responses.";
-    case "pain_point_cost":
-      return "Focus on cost savings: 60-150 грн per extract via intermediaries vs 8 грн per query through legal.org.ua.";
-    case "social_proof":
-      return "Mention that AWS supports the platform, Google Cloud recognizes it as a high-scale AI project, and Ukrainian experts rate it 23/25.";
-    case "free_bonus":
-      return "Lead with the bonus: ALL databases (court decisions, company registry, debtor registry, parliament data) are FREE with any paid plan.";
-    case "tech_innovation":
-      return "Focus on tech: Дія.Підпис authentication, official НАІС API, AI-powered court decision analysis.";
-    case "competitor_gap":
-      return "Subtly note that no other platform in Ukraine offers official registry access through an AI chat interface.";
-    case "question_hook":
-      return "Start with a thought-provoking question about their daily work with registries or legal research.";
-    default:
-      return "";
-  }
-}
-
 // --- Auto-Responder System Prompt ---
 
-function getResponderSystemPrompt(): string {
-  return `You are a helpful sales assistant for legal.org.ua responding to incoming LinkedIn messages.
+function getResponderSystemPrompt(campaign: CampaignConfig): string {
+  return `You are a helpful sales assistant responding to incoming messages for the ${campaign.name} campaign.
 
-${PRODUCT_CONTEXT}
+${campaign.productContext}
 
 RESPONSE RULES:
 - Write in the same language the lead uses (Ukrainian or Russian or English)
@@ -174,6 +152,7 @@ RESPONSE RULES:
 // --- Campaign Runner ---
 
 export interface RunCampaignDayOptions {
+  campaign: CampaignConfig;
   accountAlias?: string;
   dayNumber: number;
   maxNewLeads: number;
@@ -187,16 +166,19 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   replied: number;
   followUps: number;
   scheduled: number;
+  instagramDMs: number;
 }> {
+  const cam = opts.campaign;
   const unipile = new UnipileService(opts.accountAlias);
   const accountId = unipile.accountId;
   const claude = new ClaudeService();
 
-  const dayQuery = DAILY_SEARCH_QUERIES[(opts.dayNumber - 1) % DAILY_SEARCH_QUERIES.length];
+  const dayQuery = cam.dailySearchQueries[(opts.dayNumber - 1) % cam.dailySearchQueries.length];
 
-  clog(chalk.bold(`\n=== Campaign Day ${opts.dayNumber} ===`));
+  clog(chalk.bold(`\n=== ${cam.name} — Day ${opts.dayNumber} ===`));
+  clog(chalk.dim(`Channels: ${cam.channels.join(", ")}`));
   clog(chalk.dim(`Search: "${dayQuery.keywords}" | Title: "${dayQuery.title}"`));
-  clog(chalk.dim(`Optimal hour: ${isOptimalHour() ? "YES" : "NO (sending anyway)"}\n`));
+  clog(chalk.dim(`Optimal hour: ${isOptimalHourForCampaign(cam) ? "YES" : "NO (sending anyway)"}\n`));
 
   // --- Phase 1: Search new leads ---
   clog(chalk.bold("Phase 1: Searching new leads...\n"));
@@ -208,21 +190,18 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     title: dayQuery.title,
     limit: opts.maxNewLeads,
     save: true,
-    tag: `campaign-${CAMPAIGN_NAME}-d${opts.dayNumber}`,
+    tag: `campaign-${cam.name}-d${opts.dayNumber}`,
   });
 
   clog(chalk.green(`  Found ${searchResults.length} new leads\n`));
 
-  // --- Phase 2: Send outreach to unsent leads ---
-  clog(chalk.bold("Phase 2: Sending outreach messages...\n"));
+  // --- Phase 2: Send LinkedIn outreach to unsent leads ---
+  clog(chalk.bold("Phase 2: Sending LinkedIn outreach...\n"));
 
-  // Get leads tagged for this campaign that:
-  // 1. Haven't been messaged in ANY campaign
-  // 2. Don't have an existing conversation (already talked to)
   const leadsToMessage = await sql`
     SELECT l.* FROM leads l
     WHERE l.account_id = ${accountId}
-      AND l.tags LIKE ${'%campaign-' + CAMPAIGN_NAME + '%'}
+      AND l.tags LIKE ${'%campaign-' + cam.name + '%'}
       AND l.id NOT IN (
         SELECT oq.lead_id FROM outreach_queue oq
         WHERE oq.lead_id IS NOT NULL AND oq.status = 'sent'
@@ -237,14 +216,14 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   `;
 
   // Ensure campaign record exists
-  let [campaign] = await sql`
+  let [campaignRow] = await sql`
     SELECT id FROM outreach_campaigns
-    WHERE account_id = ${accountId} AND name = ${CAMPAIGN_NAME}
+    WHERE account_id = ${accountId} AND name = ${cam.name}
   `;
-  if (!campaign) {
-    [campaign] = await sql`
+  if (!campaignRow) {
+    [campaignRow] = await sql`
       INSERT INTO outreach_campaigns (account_id, name, template, target_tags, status)
-      VALUES (${accountId}, ${CAMPAIGN_NAME}, 'hyper-personalized', ${CAMPAIGN_NAME}, 'active')
+      VALUES (${accountId}, ${cam.name}, 'hyper-personalized', ${cam.name}, 'active')
       RETURNING id
     `;
   }
@@ -263,55 +242,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       location: sanitize(lead.location),
     };
 
-    // Check if now is optimal for this lead's timezone
-    const leadLocation = lead.location || "";
-    if (!opts.dryRun && !isOptimalHourForLocation(leadLocation)) {
-      const sendAt = getNextOptimalSendTime(leadLocation);
-      const offset = getUtcOffset(leadLocation);
-      const localHour = (new Date().getUTCHours() + offset + 24) % 24;
-
-      // Generate message now, schedule send for later
-      const angle = getMessageAngle(opts.dayNumber, i);
-      const systemPrompt = getOutreachSystemPrompt(angle);
-      const userPrompt = [
-        `Lead profile:`,
-        `- Name: ${profile.name}`,
-        profile.headline ? `- Headline: ${profile.headline}` : null,
-        profile.company ? `- Company: ${profile.company}` : null,
-        profile.title ? `- Title: ${profile.title}` : null,
-        profile.location ? `- Location: ${profile.location}` : null,
-        ``,
-        `Message angle: ${angle}`,
-        `Day of campaign: ${opts.dayNumber}`,
-        ``,
-        `Write a hyper-personalized first message for this lead. Make it unique — never repeat the same structure.`,
-      ].filter(Boolean).join("\n");
-
-      const message = await claude.generateWithSystem(systemPrompt, userPrompt);
-
-      await sql`
-        INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, message_angle, scheduled_at)
-        VALUES (${campaign.id}, ${lead.id}, ${message}, 'scheduled', ${angle}, ${sendAt})
-      `;
-      scheduledCount++;
-      clog(chalk.blue(`  ⏱ ${profile.name} [${angle}] scheduled for ${sendAt.toISOString().slice(11, 16)} UTC (local ${Math.floor(((sendAt.getUTCHours() + offset + 24) % 24))}:00, now ${Math.floor(localHour)}:00, UTC+${offset})`));
-      continue;
-    }
-
-    const canSend = await checkAndIncrementDaily(accountId, "message", appConfig.maxMessagesPerDay);
-    if (!canSend) {
-      clog(chalk.yellow(`  Daily limit reached (${appConfig.maxMessagesPerDay}). Stopping outreach.`));
-      break;
-    }
-
-    // Per-minute throttle (max 5 messages/minute to avoid LinkedIn detection)
-    if (!checkPerMinuteLimit(`msg:${accountId}`, 5)) {
-      clog(chalk.dim("  Throttling (5/min limit)... waiting 30s"));
-      await sleep(30000);
-    }
-
-    const angle = getMessageAngle(opts.dayNumber, i);
-    const systemPrompt = getOutreachSystemPrompt(angle);
+    const angle = cam.getMessageAngle(opts.dayNumber, i);
 
     const userPrompt = [
       `Lead profile:`,
@@ -327,33 +258,59 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       `Write a hyper-personalized first message for this lead. Make it unique — never repeat the same structure.`,
     ].filter(Boolean).join("\n");
 
+    // Check if now is optimal for this lead's timezone
+    const leadLocation = lead.location || "";
+    if (!opts.dryRun && !isOptimalHourForLocation(leadLocation)) {
+      const sendAt = getNextOptimalSendTime(leadLocation);
+      const offset = getUtcOffset(leadLocation);
+      const localHour = (new Date().getUTCHours() + offset + 24) % 24;
+
+      const systemPrompt = getOutreachSystemPrompt(cam, angle, "linkedin");
+      const message = await claude.generateWithSystem(systemPrompt, userPrompt);
+
+      await sql`
+        INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, message_angle, scheduled_at)
+        VALUES (${campaignRow.id}, ${lead.id}, ${message}, 'scheduled', ${angle}, ${sendAt})
+      `;
+      scheduledCount++;
+      clog(chalk.blue(`  ⏱ ${profile.name} [${angle}] scheduled for ${sendAt.toISOString().slice(11, 16)} UTC (local ${Math.floor(((sendAt.getUTCHours() + offset + 24) % 24))}:00, now ${Math.floor(localHour)}:00, UTC+${offset})`));
+      continue;
+    }
+
+    const canSend = await checkAndIncrementDaily(accountId, "message", appConfig.maxMessagesPerDay);
+    if (!canSend) {
+      clog(chalk.yellow(`  Daily limit reached (${appConfig.maxMessagesPerDay}). Stopping outreach.`));
+      break;
+    }
+
+    if (!checkPerMinuteLimit(`msg:${accountId}`, 5)) {
+      clog(chalk.dim("  Throttling (5/min limit)... waiting 30s"));
+      await sleep(30000);
+    }
+
+    const systemPrompt = getOutreachSystemPrompt(cam, angle, "linkedin");
     const message = await claude.generateWithSystem(systemPrompt, userPrompt);
 
     if (opts.dryRun) {
       console.log(`  ${chalk.bold(profile.name)} [${chalk.cyan(angle)}]:`);
       console.log(`  ${chalk.green(message)}\n`);
     } else {
-      // Reserve slot in outreach_queue BEFORE sending (idempotency)
       const [queued] = await sql`
         INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, message_angle)
-        VALUES (${campaign.id}, ${lead.id}, ${message}, 'pending', ${angle})
+        VALUES (${campaignRow.id}, ${lead.id}, ${message}, 'pending', ${angle})
         RETURNING id
       `;
       try {
-        // Try direct message first
         const chatId = await unipile.startChat(lead.linkedin_id, message);
         sentCount++;
 
         await sql`UPDATE outreach_queue SET status = 'sent', sent_at = NOW() WHERE id = ${queued.id}`;
-
-        // Update lead status to 'contacted'
         await sql`UPDATE leads SET status = 'contacted' WHERE id = ${lead.id} AND status = 'prospect'`;
 
-        // Schedule follow-ups (day+3, day+5, day+7)
         for (const dayOffset of [3, 5, 7]) {
           await sql`
             INSERT INTO follow_ups (lead_id, account_id, campaign_id, step, scheduled_for, status)
-            VALUES (${lead.id}, ${accountId}, ${campaign.id}, ${dayOffset === 3 ? 1 : dayOffset === 5 ? 2 : 3},
+            VALUES (${lead.id}, ${accountId}, ${campaignRow.id}, ${dayOffset === 3 ? 1 : dayOffset === 5 ? 2 : 3},
               NOW() + ${dayOffset + ' days'}::interval, 'pending')
           `;
         }
@@ -367,19 +324,16 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         clog(chalk.green(`  ✓ ${profile.name} [${angle}]`));
         await sleep(randomDelay(10, 25));
       } catch (err: any) {
-        // If direct message fails (unreachable), try connection request with note
         if (err.message?.includes('unreachable') || err.message?.includes('422')) {
           let invSent = false;
 
-          // Re-generate a short message that fits invitation note limit
           let note: string;
           if (message.length <= INVITATION_NOTE_LIMIT) {
             note = message;
           } else {
             clog(chalk.dim(`  Regenerating short note for ${profile.name} (${message.length} > ${INVITATION_NOTE_LIMIT})...`));
-            const shortPrompt = getOutreachSystemPrompt(angle, INVITATION_NOTE_LIMIT);
+            const shortPrompt = getOutreachSystemPrompt(cam, angle, "linkedin", INVITATION_NOTE_LIMIT);
             note = await claude.generateWithSystem(shortPrompt, userPrompt);
-            // Safety net: if AI still exceeds limit, trim at last sentence boundary
             if (note.length > INVITATION_NOTE_LIMIT) {
               const trimmed = note.slice(0, INVITATION_NOTE_LIMIT);
               const lastSentence = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
@@ -416,7 +370,23 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     }
   }
 
-  clog(chalk.bold(`\n  Outreach: ${opts.dryRun ? leadsToMessage.length + " previewed" : sentCount + " sent" + (scheduledCount ? `, ${scheduledCount} scheduled` : "")}\n`));
+  clog(chalk.bold(`\n  LinkedIn outreach: ${opts.dryRun ? leadsToMessage.length + " previewed" : sentCount + " sent" + (scheduledCount ? `, ${scheduledCount} scheduled` : "")}\n`));
+
+  // --- Phase 2b: Instagram DM outreach ---
+  let igDMCount = 0;
+  if (cam.channels.includes("instagram") && cam.instagramAccountId) {
+    clog(chalk.bold("Phase 2b: Instagram DM outreach...\n"));
+    igDMCount = await sendInstagramDMs(cam, campaignRow.id, accountId, claude, opts);
+  }
+
+  // --- Phase 2c: Send scheduled messages whose time has come ---
+  if (!opts.dryRun) {
+    const scheduledSent = await processScheduledOutreach(unipile, accountId);
+    if (scheduledSent > 0) {
+      sentCount += scheduledSent;
+      clog(chalk.green(`  + ${scheduledSent} scheduled messages sent`));
+    }
+  }
 
   // --- Phase 3: Reply to incoming messages ---
   clog(chalk.bold("Phase 3: Processing incoming replies...\n"));
@@ -427,13 +397,14 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   for (const chat of chatsPage.items) {
     if ((chat.unread_count ?? 0) === 0) continue;
 
-    // Check if this is from a campaign lead
     const attendeeId = chat.attendee_provider_id ?? "";
     const campaignLead = await sql`
       SELECT l.* FROM leads l
       JOIN outreach_queue oq ON oq.lead_id = l.id
+      JOIN outreach_campaigns oc ON oc.id = oq.campaign_id
       WHERE l.linkedin_id = ${attendeeId}
         AND l.account_id = ${accountId}
+        AND oc.name = ${cam.name}
         AND oq.status = 'sent'
       LIMIT 1
     `;
@@ -442,12 +413,11 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
 
     const lead = campaignLead[0];
 
-    // Get conversation messages
     const messagesPage = await unipile.getChatMessages(chat.id);
     const messages = messagesPage.items.reverse();
 
     const lastMsg = messages[messages.length - 1];
-    if (!lastMsg || lastMsg.is_sender) continue; // Skip if we sent last
+    if (!lastMsg || lastMsg.is_sender) continue;
 
     const profile: LeadProfile = {
       name: sanitize(lead.name),
@@ -473,7 +443,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
       `Generate a helpful reply to the lead's last message.`,
     ].filter(Boolean).join("\n");
 
-    const reply = await claude.generateWithSystem(getResponderSystemPrompt(), replyPrompt);
+    const reply = await claude.generateWithSystem(getResponderSystemPrompt(cam), replyPrompt);
 
     if (opts.dryRun) {
       console.log(`  ${chalk.bold(profile.name)} replied: "${chalk.dim(lastMsg.text.slice(0, 80))}"`);
@@ -484,7 +454,6 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         await incrementDailyCount(accountId, "message");
         repliedCount++;
 
-        // Link to conversation
         const convRow = await sql`SELECT id FROM conversations WHERE chat_id = ${chat.id} LIMIT 1`;
         const convId = convRow.length > 0 ? convRow[0].id : null;
 
@@ -494,7 +463,6 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
           ON CONFLICT (message_id) DO NOTHING
         `;
 
-        // Mark as read after reply
         await sql`UPDATE conversations SET unread_count = 0, status = 'read' WHERE chat_id = ${chat.id}`;
 
         clog(chalk.green(`  ↩ Replied to ${profile.name}`));
@@ -506,15 +474,6 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     }
   }
 
-  // --- Phase 2.5: Send scheduled messages whose time has come ---
-  if (!opts.dryRun) {
-    const scheduledSent = await processScheduledOutreach(unipile, accountId);
-    if (scheduledSent > 0) {
-      sentCount += scheduledSent;
-      clog(chalk.green(`  + ${scheduledSent} scheduled messages sent`));
-    }
-  }
-
   clog(chalk.bold(`\n  Replies: ${opts.dryRun ? "preview mode" : repliedCount + " sent"}`));
 
   // --- Phase 4: Process due follow-ups ---
@@ -522,7 +481,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   if (!opts.dryRun) {
     clog(chalk.bold("\nPhase 4: Processing follow-ups...\n"));
     const { processDueFollowUps } = await import("../core/follow-ups.js");
-    followUpCount = await processDueFollowUps(opts.accountAlias);
+    followUpCount = await processDueFollowUps(cam, opts.accountAlias);
     clog(chalk.bold(`\n  Follow-ups: ${followUpCount} sent`));
   }
 
@@ -532,7 +491,120 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     replied: repliedCount,
     followUps: followUpCount,
     scheduled: scheduledCount,
+    instagramDMs: igDMCount,
   };
+}
+
+// --- Instagram DM outreach ---
+// Sends hyper-personalized Instagram DMs to contacted leads who haven't been reached via IG yet
+
+async function sendInstagramDMs(
+  cam: CampaignConfig,
+  campaignId: number,
+  linkedinAccountId: string,
+  claude: ClaudeService,
+  opts: RunCampaignDayOptions,
+): Promise<number> {
+  const igAccountId = cam.instagramAccountId!;
+
+  // Get contacted leads from this campaign that haven't received an IG DM yet
+  const leads = await sql`
+    SELECT l.* FROM leads l
+    JOIN outreach_queue oq ON oq.lead_id = l.id
+    WHERE oq.campaign_id = ${campaignId}
+      AND oq.status = 'sent'
+      AND l.id NOT IN (
+        SELECT oq2.lead_id FROM outreach_queue oq2
+        WHERE oq2.lead_id IS NOT NULL
+          AND oq2.message_angle LIKE 'ig_%'
+      )
+    ORDER BY oq.sent_at ASC
+    LIMIT ${Math.min(opts.maxMessages, 10)}
+  `;
+
+  if (leads.length === 0) {
+    clog(chalk.dim("  No leads pending for Instagram DM"));
+    return 0;
+  }
+
+  let sent = 0;
+  for (let i = 0; i < leads.length; i++) {
+    const lead = leads[i];
+    const profile: LeadProfile = {
+      name: sanitize(lead.name),
+      headline: sanitize(lead.headline),
+      company: sanitize(lead.company),
+      title: sanitize(lead.title),
+      location: sanitize(lead.location),
+    };
+
+    // Try to find their name on Instagram — use LinkedIn name
+    // Instagram DMs via Unipile use attendee_provider_id which is their IG username
+    // We'll try to match by name; if we can't find them, skip
+    const igAngle = "ig_" + cam.getMessageAngle(opts.dayNumber, i);
+    const systemPrompt = getOutreachSystemPrompt(cam, igAngle.replace("ig_", ""), "instagram");
+
+    const userPrompt = [
+      `Lead profile:`,
+      `- Name: ${profile.name}`,
+      profile.headline ? `- Headline: ${profile.headline}` : null,
+      profile.company ? `- Company: ${profile.company}` : null,
+      profile.title ? `- Title: ${profile.title}` : null,
+      profile.location ? `- Location: ${profile.location}` : null,
+      ``,
+      `This person was already contacted on LinkedIn. Now write a short Instagram DM as a second touchpoint.`,
+      `Don't repeat the LinkedIn message. Offer something new — a free audit, a quick demo link, or an interesting insight.`,
+      `Keep it very casual and brief — 2 sentences max.`,
+    ].filter(Boolean).join("\n");
+
+    const message = await claude.generateWithSystem(systemPrompt, userPrompt);
+
+    if (opts.dryRun) {
+      console.log(`  ${chalk.magenta("[IG]")} ${chalk.bold(profile.name)} [${chalk.cyan(igAngle)}]:`);
+      console.log(`  ${chalk.green(message)}\n`);
+      sent++;
+    } else {
+      const [queued] = await sql`
+        INSERT INTO outreach_queue (campaign_id, lead_id, message_text, status, message_angle)
+        VALUES (${campaignId}, ${lead.id}, ${message}, 'pending', ${igAngle})
+        RETURNING id
+      `;
+      try {
+        // Use Instagram account to start chat by LinkedIn name (best-effort)
+        const baseUrl = `https://${appConfig.unipileDsn}/api/v1`;
+        const res = await fetch(`${baseUrl}/chats`, {
+          method: "POST",
+          headers: {
+            "X-API-KEY": appConfig.unipileAccessToken,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            account_id: igAccountId,
+            attendees_ids: [lead.linkedin_id],
+            text: message,
+          }),
+          signal: AbortSignal.timeout(30000),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Instagram DM failed: ${res.status} — ${text}`);
+        }
+
+        await sql`UPDATE outreach_queue SET status = 'sent', sent_at = NOW() WHERE id = ${queued.id}`;
+        sent++;
+        clog(chalk.magenta(`  ✓ [IG] ${profile.name}`));
+        await sleep(randomDelay(15, 40)); // Longer delays for IG
+      } catch (err: any) {
+        await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${queued.id}`;
+        clog(chalk.red(`  ✗ [IG] ${profile.name}: ${err.message}`));
+      }
+    }
+  }
+
+  clog(chalk.bold(`\n  Instagram DMs: ${opts.dryRun ? sent + " previewed" : sent + " sent"}\n`));
+  return sent;
 }
 
 // --- Process scheduled outreach messages whose send time has arrived ---
@@ -575,7 +647,6 @@ export async function processScheduledOutreach(
       await sleep(randomDelay(10, 25));
     } catch (err: any) {
       if (err.message?.includes('unreachable') || err.message?.includes('422')) {
-        // Fallback to invitation — regenerate short note if needed
         let note = item.message_text;
         if (note.length > INVITATION_NOTE_LIMIT) {
           const trimmed = note.slice(0, INVITATION_NOTE_LIMIT);
