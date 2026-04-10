@@ -286,6 +286,29 @@ export async function initDatabase(): Promise<void> {
       )
     `;
   } catch (e: any) { if (e.code !== '23505') throw e; }
+
+  // Chat conversations & messages
+  await sql`
+    CREATE TABLE IF NOT EXISTS chat_conversations (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      title TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id SERIAL PRIMARY KEY,
+      conversation_id INTEGER REFERENCES chat_conversations(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      tool_use_id TEXT,
+      tool_name TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id)`;
 }
 
 export async function closeDatabase(): Promise<void> {
