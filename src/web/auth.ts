@@ -11,6 +11,23 @@ const JWT_SECRET = appConfig.dashboardApiKey || "aipromo-default-secret";
 const TOKEN_EXPIRY = "7d";
 const COOKIE_NAME = "aipromo_token";
 
+// Access control: which emails can see campaign accounts (igor/vladimir)
+// Users not in this list see no campaign accounts; listed users see only their permitted accounts
+const ACCOUNT_ACCESS: Record<string, string[]> = {
+  "teosoph@gmail.com": ["ihor", "vladimir"],
+  "shepherdvovkes@gmail.com": ["ihor", "vladimir"],
+};
+
+/** Returns account aliases the user is allowed to see, or null if unrestricted (admin fallback) */
+export function getAllowedAccounts(user: { email?: string; role?: string }): string[] | null {
+  if (user.email && ACCOUNT_ACCESS[user.email]) {
+    return ACCOUNT_ACCESS[user.email];
+  }
+  // No entry = no access to campaign accounts (unless admin without email, e.g. API key)
+  if (user.role === "admin" && !user.email) return null; // unrestricted (API key access)
+  return [];
+}
+
 // --- i18n error messages ---
 const messages = {
   usernamePasswordRequired: {
@@ -87,7 +104,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
   if (!valid) return res.status(401).json({ error: t(req, "invalidCredentials") });
 
   const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role, displayName: user.display_name },
+    { id: user.id, username: user.username, role: user.role, displayName: user.display_name, email: user.email || "" },
     JWT_SECRET,
     { expiresIn: TOKEN_EXPIRY }
   );
@@ -109,7 +126,7 @@ authRouter.get("/me", (req: Request, res: Response) => {
   if (!token) return res.status(401).json({ error: t(req, "notAuthenticated") });
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    res.json({ username: decoded.username, displayName: decoded.displayName, role: decoded.role });
+    res.json({ username: decoded.username, displayName: decoded.displayName, role: decoded.role, email: decoded.email });
   } catch {
     res.clearCookie(COOKIE_NAME);
     res.status(401).json({ error: t(req, "sessionExpired") });
@@ -201,7 +218,7 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
 
     const user = found[0];
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role, displayName: user.display_name },
+      { id: user.id, username: user.username, role: user.role, displayName: user.display_name, email: user.email || email },
       JWT_SECRET,
       { expiresIn: TOKEN_EXPIRY }
     );

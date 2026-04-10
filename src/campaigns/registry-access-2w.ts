@@ -4,6 +4,8 @@
  * Offer: Business tariff 4999 грн/міс + all other databases free
  */
 
+import type { CampaignConfig } from "./types.js";
+
 export const CAMPAIGN_NAME = "registry-access-2w";
 
 export const PRODUCT_CONTEXT = `
@@ -71,3 +73,35 @@ export const MESSAGE_ANGLES = [
 export function getMessageAngle(dayNumber: number, leadIndex: number): string {
   return MESSAGE_ANGLES[(dayNumber + leadIndex) % MESSAGE_ANGLES.length];
 }
+
+export function getAngleInstruction(angle: string): string {
+  switch (angle) {
+    case "pain_point_time":
+      return "Focus on how much time lawyers waste on manual registry checks. Contrast with instant AI responses.";
+    case "pain_point_cost":
+      return "Focus on cost savings: 60-150 грн per extract via intermediaries vs 8 грн per query through legal.org.ua.";
+    case "social_proof":
+      return "Mention that AWS supports the platform, Google Cloud recognizes it as a high-scale AI project, and Ukrainian experts rate it 23/25.";
+    case "free_bonus":
+      return "Lead with the bonus: ALL databases (court decisions, company registry, debtor registry, parliament data) are FREE with any paid plan.";
+    case "tech_innovation":
+      return "Focus on tech: Дія.Підпис authentication, official НАІС API, AI-powered court decision analysis.";
+    case "competitor_gap":
+      return "Subtly note that no other platform in Ukraine offers official registry access through an AI chat interface.";
+    case "question_hook":
+      return "Start with a thought-provoking question about their daily work with registries or legal research.";
+    default:
+      return "";
+  }
+}
+
+export const config: CampaignConfig = {
+  name: CAMPAIGN_NAME,
+  productContext: PRODUCT_CONTEXT,
+  dailySearchQueries: DAILY_SEARCH_QUERIES,
+  optimalHoursUtc: OPTIMAL_HOURS_UTC,
+  messageAngles: MESSAGE_ANGLES,
+  getMessageAngle,
+  getAngleInstruction,
+  channels: ["linkedin"],
+};
