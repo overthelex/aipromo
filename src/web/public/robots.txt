@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /blog
+Allow: /pitch-deck.html
+Allow: /pitch-deck
+Allow: /og-image.png
+Disallow: /api/
+Disallow: /auth/
+Disallow: /webhook/
+Disallow: /ws
+Disallow: /dashboard
+Disallow: /leads
+Disallow: /conversations
+Disallow: /messages
+Disallow: /outreach
+Disallow: /campaigns
+Disallow: /posts
+Disallow: /search
+Disallow: /sync
+Disallow: /activity
+Disallow: /analytics
+Disallow: /pipeline
+Disallow: /deals
+Disallow: /follow-ups
+
+Sitemap: https://selected.highfunk.uk/sitemap.xml

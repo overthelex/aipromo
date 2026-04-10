@@ -2,6 +2,7 @@ import express from "express";
 import { createServer, IncomingMessage } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
 import { WebSocketServer, WebSocket } from "ws";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
@@ -78,9 +79,54 @@ app.get("/login", (_req, res) => {
   res.sendFile(join(__dirname, "web/public/login.html"));
 });
 
-// Blog (public, no auth)
-app.get("/blog", (_req, res) => {
-  res.sendFile(join(__dirname, "web/public/blog.html"));
+// Crawler detection
+const CRAWLER_RE = /googlebot|bingbot|yandexbot|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegrambot|applebot|duckduckbot|ia_archiver|semrushbot|ahrefsbot|mj12bot/i;
+
+function isCrawler(req: express.Request): boolean {
+  return CRAWLER_RE.test(req.headers["user-agent"] || "");
+}
+
+// Blog (public, no auth) — serve pre-rendered HTML for crawlers
+app.get("/blog", (req, res) => {
+  if (!isCrawler(req)) {
+    return res.sendFile(join(__dirname, "web/public/blog.html"));
+  }
+  // Serve a crawler-friendly version with article content inline
+  try {
+    const articlesPath = join(__dirname, "web/public/articles.json");
+    const articles = JSON.parse(readFileSync(articlesPath, "utf-8")) as Array<{
+      id: string; title: string; excerpt: string; content: string;
+      date: string; readTime: string; tags: string[]; category: string;
+    }>;
+    const articlesList = articles.map(a =>
+      `<article><h2>${a.title}</h2><p>${a.excerpt}</p><time>${a.date}</time><span>${a.readTime}</span><div>${a.content}</div></article>`
+    ).join("\n");
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>selected.ai — Blog</title>
+<meta name="description" content="How we built an AI-powered LinkedIn outreach engine — from architecture to conversion.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://selected.highfunk.uk/blog">
+<meta property="og:title" content="selected.ai — Blog">
+<meta property="og:description" content="How we built an AI-powered LinkedIn outreach engine — from architecture to conversion.">
+<meta property="og:image" content="https://selected.highfunk.uk/og-image.png">
+</head>
+<body>
+<h1>The selected.ai Blog</h1>
+<p>How we built an AI-powered LinkedIn outreach engine — from architecture to conversion. For growth managers and engineers alike.</p>
+${articlesList}
+</body>
+</html>`);
+  } catch {
+    res.sendFile(join(__dirname, "web/public/blog.html"));
+  }
+});
+
+// Pitch deck — add crawler route so /pitch-deck works without .html
+app.get("/pitch-deck", (req, res) => {
+  res.sendFile(join(__dirname, "web/public/pitch-deck.html"));
 });
 
 // Serve static assets
