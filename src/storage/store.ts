@@ -287,6 +287,10 @@ export async function initDatabase(): Promise<void> {
     `;
   } catch (e: any) { if (e.code !== '23505') throw e; }
 
+  // Add google_id and email columns for OAuth2 (idempotent)
+  try { await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE`; } catch {}
+  try { await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`; } catch {}
+
   // Chat conversations & messages
   await sql`
     CREATE TABLE IF NOT EXISTS chat_conversations (

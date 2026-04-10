@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import { sql } from "../storage/store.js";
 import { appConfig } from "../config.js";
 
@@ -127,6 +128,94 @@ authRouter.post("/reset-password", async (req: Request, res: Response) => {
   const result = await sql`UPDATE users SET password_hash = ${hash} WHERE username = ${username} RETURNING username`;
   if (result.length === 0) return res.status(404).json({ error: "User not found" });
   res.json({ ok: true, username: result[0].username });
+});
+
+// --- Google OAuth2 ---
+
+function getOAuth2Client(): OAuth2Client | null {
+  if (!appConfig.googleClientId || !appConfig.googleClientSecret) return null;
+  return new OAuth2Client(
+    appConfig.googleClientId,
+    appConfig.googleClientSecret,
+    appConfig.googleCallbackUrl || "https://selected.highfunk.uk/auth/google/callback"
+  );
+}
+
+// Redirect to Google consent screen
+authRouter.get("/google", (_req: Request, res: Response) => {
+  const client = getOAuth2Client();
+  if (!client) return res.status(500).json({ error: "Google OAuth not configured" });
+
+  const url = client.generateAuthUrl({
+    access_type: "offline",
+    scope: ["openid", "email", "profile"],
+    prompt: "select_account",
+  });
+  res.redirect(url);
+});
+
+// Google OAuth callback
+authRouter.get("/google/callback", async (req: Request, res: Response) => {
+  const client = getOAuth2Client();
+  if (!client) return res.redirect("/login?error=oauth_not_configured");
+
+  const code = req.query.code as string;
+  if (!code) return res.redirect("/login?error=no_code");
+
+  try {
+    const { tokens } = await client.getToken(code);
+    const ticket = await client.verifyIdToken({
+      idToken: tokens.id_token!,
+      audience: appConfig.googleClientId,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub) return res.redirect("/login?error=invalid_token");
+
+    const googleId = payload.sub;
+    const email = payload.email || "";
+    const displayName = payload.name || email;
+
+    // Find user by google_id
+    let found = await sql`SELECT * FROM users WHERE google_id = ${googleId}`;
+
+    if (found.length === 0 && email) {
+      // Try matching by email
+      found = await sql`SELECT * FROM users WHERE email = ${email}`;
+      if (found.length > 0) {
+        // Link google_id to existing user
+        await sql`UPDATE users SET google_id = ${googleId} WHERE id = ${found[0].id}`;
+      }
+    }
+
+    if (found.length === 0) {
+      // Auto-create user from Google account
+      const username = (email.split("@")[0] || `google_${googleId}`).toLowerCase().replace(/[^a-z0-9_]/g, "_");
+      const dummyHash = await bcrypt.hash(Math.random().toString(36), 10);
+      found = await sql`
+        INSERT INTO users (username, password_hash, display_name, role, google_id, email)
+        VALUES (${username}, ${dummyHash}, ${displayName}, 'user', ${googleId}, ${email})
+        ON CONFLICT (username) DO UPDATE SET google_id = ${googleId}, email = ${email}
+        RETURNING *
+      `;
+    }
+
+    const user = found[0];
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role, displayName: user.display_name },
+      JWT_SECRET,
+      { expiresIn: TOKEN_EXPIRY }
+    );
+    res.cookie(COOKIE_NAME, token, { httpOnly: true, sameSite: "lax", maxAge: 7 * 24 * 60 * 60 * 1000, path: "/" });
+    res.redirect("/dashboard");
+  } catch (err: any) {
+    console.error("Google OAuth error:", err.message);
+    res.redirect("/login?error=oauth_failed");
+  }
+});
+
+// Check if Google OAuth is configured (public endpoint for login page)
+authRouter.get("/google/enabled", (_req: Request, res: Response) => {
+  res.json({ enabled: Boolean(appConfig.googleClientId && appConfig.googleClientSecret) });
 });
 
 // --- Auth middleware ---
