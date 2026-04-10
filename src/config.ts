@@ -16,6 +16,11 @@ const configSchema = z.object({
   // Dashboard auth
   dashboardApiKey: z.string().default(""),
 
+  // Google OAuth2
+  googleClientId: z.string().default(""),
+  googleClientSecret: z.string().default(""),
+  googleCallbackUrl: z.string().default(""),
+
   // Unipile
   unipileDsn: z.string().min(1),
   unipileAccessToken: z.string().min(1),
@@ -51,6 +56,9 @@ export type AppConfig = z.infer<typeof configSchema>;
 function loadConfig(): AppConfig {
   const raw = {
     dashboardApiKey: process.env.DASHBOARD_API_KEY,
+    googleClientId: process.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL,
     databaseUrl: process.env.DATABASE_URL,
     unipileDsn: process.env.UNIPILE_DSN,
     unipileAccessToken: process.env.UNIPILE_ACCESS_TOKEN,
