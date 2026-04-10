@@ -1,5 +1,8 @@
 User-agent: *
+Allow: /
+Allow: /login
 Allow: /blog
+Allow: /blog/
 Allow: /pitch-deck.html
 Allow: /pitch-deck
 Allow: /og-image.png

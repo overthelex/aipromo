@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>selected.ai — AI-Powered LinkedIn Lead Automation Platform</title>
+  <meta name="description" content="AI-powered LinkedIn outreach platform: Claude-crafted messages, automated lead discovery, timezone-aware scheduling, real-time campaign analytics. Built on GCP Cloud Run.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://selected.highfunk.uk/">
+  <meta property="og:title" content="selected.ai — AI-Powered LinkedIn Lead Automation">
+  <meta property="og:description" content="Automated LinkedIn outreach with AI-crafted messages via Claude/AWS Bedrock, smart lead discovery, timezone-aware delivery, and real-time campaign analytics.">
+  <meta property="og:image" content="https://selected.highfunk.uk/og-image.png">
+  <meta property="og:site_name" content="selected.ai">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="uk_UA">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="selected.ai — AI LinkedIn Lead Automation">
+  <meta name="twitter:description" content="Automated LinkedIn outreach with AI-crafted messages, smart lead discovery, and campaign analytics.">
+  <meta name="twitter:image" content="https://selected.highfunk.uk/og-image.png">
+  <link rel="canonical" href="https://selected.highfunk.uk/">
+  <link rel="alternate" hreflang="en" href="https://selected.highfunk.uk/">
+  <link rel="alternate" hreflang="uk" href="https://selected.highfunk.uk/">
+  <link rel="alternate" hreflang="x-default" href="https://selected.highfunk.uk/">
+  <script type="application/ld+json">
+  [{
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "selected.ai",
+    "url": "https://selected.highfunk.uk",
+    "description": "AI-powered LinkedIn lead automation platform",
+    "sameAs": ["https://selected.highfunk.uk/blog", "https://selected.highfunk.uk/pitch-deck"]
+  }, {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "selected.ai",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "AI-powered LinkedIn lead automation platform with Claude/AWS Bedrock for intelligent outreach, timezone-aware messaging, and real-time campaign analytics.",
+    "url": "https://selected.highfunk.uk",
+    "author": { "@type": "Organization", "name": "selected.ai", "url": "https://selected.highfunk.uk" },
+    "featureList": [
+      "AI-powered message crafting via Claude (AWS Bedrock)",
+      "Automated LinkedIn lead discovery and enrichment",
+      "Timezone-aware message scheduling",
+      "Real-time WebSocket dashboard",
+      "Rate limiting and business hours enforcement",
+      "Bilingual interface (EN/UA)"
+    ]
+  }]
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#f0a830">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #101014; --surface: #1e1e24; --border: #2e2e38;
+      --text: #dcdce0; --text2: #a0a0ae; --text3: #68687a;
+      --amber: #f0a830; --amber2: #d49020; --amber-dim: rgba(240,168,48,0.08);
+      --teal: #2dd4a8; --mono: 'JetBrains Mono', monospace;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ::selection { background: var(--amber); color: var(--bg); }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* NAV */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 40px; display: flex; align-items: center; justify-content: space-between; background: rgba(16,16,20,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .nav-logo { font-family: var(--mono); font-weight: 700; font-size: 18px; color: var(--amber); }
+    .nav-links { display: flex; align-items: center; gap: 24px; }
+    .nav-links a { font-size: 13px; font-weight: 500; color: var(--text2); transition: color 0.15s; text-decoration: none; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .lang-toggle { display: flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-left: 8px; }
+    .lang-toggle button { background: transparent; border: none; color: var(--text3); padding: 4px 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; transition: background 0.15s, color 0.15s; }
+    .lang-toggle button.active { background: var(--amber); color: var(--bg); }
+    .btn-nav { padding: 7px 18px; font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif; background: var(--amber); color: var(--bg); border: none; border-radius: 5px; cursor: pointer; transition: opacity 0.12s; text-decoration: none; }
+    .btn-nav:hover { opacity: 0.88; text-decoration: none; }
+
+    /* HERO */
+    .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 120px 24px 80px; position: relative; }
+    .hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(240,168,48,0.06) 0%, transparent 70%); pointer-events: none; }
+    .hero-prompt { font-family: var(--mono); font-size: 13px; color: var(--text3); margin-bottom: 24px; letter-spacing: 0.5px; }
+    .hero-prompt span { color: var(--amber); }
+    .hero h1 { font-family: var(--mono); font-size: clamp(32px, 5vw, 52px); font-weight: 700; color: var(--text); line-height: 1.15; max-width: 700px; margin-bottom: 20px; }
+    .hero h1 em { font-style: normal; color: var(--amber); }
+    .hero p { font-size: 17px; color: var(--text2); max-width: 540px; line-height: 1.6; margin-bottom: 36px; }
+    .hero-cta { display: inline-flex; align-items: center; gap: 8px; padding: 13px 32px; font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif; background: var(--amber); color: var(--bg); border: none; border-radius: 6px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; text-decoration: none; }
+    .hero-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(240,168,48,0.25); text-decoration: none; }
+    .hero-cursor { display: inline-block; width: 2px; height: 18px; background: var(--amber); animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 2px; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* SECTIONS */
+    section { padding: 80px 24px; max-width: 1060px; margin: 0 auto; }
+    .section-label { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--amber); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+    .section-title { font-size: 28px; font-weight: 700; margin-bottom: 48px; }
+
+    /* FEATURES */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 28px 24px; transition: border-color 0.2s, transform 0.2s; }
+    .feature-card:hover { border-color: var(--amber); transform: translateY(-2px); }
+    .feature-icon { font-family: var(--mono); font-size: 20px; color: var(--amber); margin-bottom: 14px; }
+    .feature-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { font-size: 13px; color: var(--text2); line-height: 1.55; }
+
+    /* HOW IT WORKS */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; counter-reset: step; }
+    .step { position: relative; padding: 32px 24px; }
+    .step::before { counter-increment: step; content: counter(step, decimal-leading-zero); font-family: var(--mono); font-size: 48px; font-weight: 700; color: var(--amber-dim); position: absolute; top: 0; left: 24px; line-height: 1; color: rgba(240,168,48,0.15); }
+    .step h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; margin-top: 36px; }
+    .step p { font-size: 13px; color: var(--text2); line-height: 1.55; }
+    .step-connector { display: none; }
+
+    /* TECH */
+    .tech-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .tech-badge { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text2); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 8px 16px; transition: border-color 0.15s, color 0.15s; }
+    .tech-badge:hover { border-color: var(--amber); color: var(--text); }
+
+    /* BOTTOM CTA */
+    .bottom-cta { text-align: center; padding: 80px 24px 60px; border-top: 1px solid var(--border); }
+    .bottom-cta h2 { font-size: 26px; font-weight: 700; margin-bottom: 16px; }
+    .bottom-cta p { font-size: 15px; color: var(--text2); margin-bottom: 32px; }
+
+    /* FOOTER */
+    footer { padding: 32px 40px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text3); }
+    footer a { color: var(--text3); margin-left: 20px; transition: color 0.15s; }
+    footer a:hover { color: var(--text); text-decoration: none; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      nav { padding: 12px 20px; }
+      .nav-links a.hide-mobile { display: none; }
+      .steps { grid-template-columns: 1fr; }
+      .hero { padding: 100px 20px 60px; }
+      footer { flex-direction: column; gap: 12px; text-align: center; }
+      footer a { margin-left: 0; margin: 0 10px; }
+    }
+  </style>
+</head>
+<body>
+  <noscript>
+    <div style="max-width:720px;margin:40px auto;font-family:system-ui,sans-serif;color:#dcdce0;background:#101014;padding:40px">
+      <h1>selected.ai — AI-Powered LinkedIn Lead Automation</h1>
+      <p>Automated LinkedIn outreach platform with AI-crafted messages via Claude (AWS Bedrock), smart lead discovery, timezone-aware delivery, and real-time campaign analytics.</p>
+      <h2>Features</h2>
+      <ul>
+        <li>AI-powered message crafting via Claude (AWS Bedrock)</li>
+        <li>Automated LinkedIn lead discovery and enrichment</li>
+        <li>Timezone-aware message scheduling for peak engagement</li>
+        <li>Multi-campaign management with real-time WebSocket dashboard</li>
+        <li>Rate limiting and business hours enforcement</li>
+        <li>Bilingual interface (EN/UA)</li>
+      </ul>
+      <h2>How It Works</h2>
+      <ol><li>Connect your LinkedIn account</li><li>Configure campaign parameters</li><li>AI handles personalized outreach</li></ol>
+      <h2>Resources</h2>
+      <ul><li><a href="/blog">Blog</a></li><li><a href="/pitch-deck">Pitch Deck</a></li></ul>
+    </div>
+  </noscript>
+
+  <nav>
+    <span class="nav-logo">selected.ai</span>
+    <div class="nav-links">
+      <a href="/blog" class="hide-mobile" data-i18n="navBlog">Blog</a>
+      <a href="/pitch-deck" class="hide-mobile" data-i18n="navDeck">Pitch Deck</a>
+      <div class="lang-toggle">
+        <button id="lang-en" onclick="setLang('en')">EN</button>
+        <button id="lang-ua" onclick="setLang('ua')">UA</button>
+      </div>
+      <a href="/login" class="btn-nav" data-i18n="navLogin">Sign In</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-prompt">$ selected-ai <span>--outreach</span><span class="hero-cursor"></span></div>
+    <h1 data-i18n="heroTitle">LinkedIn outreach on <em>autopilot</em></h1>
+    <p data-i18n="heroSub">AI-crafted messages, automated lead discovery, timezone-aware scheduling. Your LinkedIn campaigns run themselves.</p>
+    <a href="/login" class="hero-cta" data-i18n="heroCta">Get Started</a>
+  </div>
+
+  <section>
+    <div class="section-label" data-i18n="featLabel">Features</div>
+    <h2 class="section-title" data-i18n="featTitle">Everything you need for LinkedIn outreach</h2>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon">&gt;_</div><h3 data-i18n="f1t">AI Message Crafting</h3><p data-i18n="f1d">Claude (AWS Bedrock) writes hyper-personalized messages for each lead. No templates — every message is unique.</p></div>
+      <div class="feature-card"><div class="feature-icon">&#x1F50E;</div><h3 data-i18n="f2t">Automated Lead Discovery</h3><p data-i18n="f2d">Search, filter, and enrich LinkedIn profiles automatically. Build targeted lead lists without manual work.</p></div>
+      <div class="feature-card"><div class="feature-icon">&#x231A;</div><h3 data-i18n="f3t">Timezone-Aware Scheduling</h3><p data-i18n="f3d">Messages land during business hours in your lead's timezone. Higher open rates, better engagement.</p></div>
+      <div class="feature-card"><div class="feature-icon">&#x25C8;</div><h3 data-i18n="f4t">Real-Time Dashboard</h3><p data-i18n="f4d">WebSocket-powered live updates. Watch campaigns run, track replies, monitor conversion — all in real time.</p></div>
+      <div class="feature-card"><div class="feature-icon">&#x2696;</div><h3 data-i18n="f5t">Smart Rate Limiting</h3><p data-i18n="f5d">Daily caps, per-minute throttle, business hours enforcement. Keeps your LinkedIn account safe and compliant.</p></div>
+      <div class="feature-card"><div class="feature-icon">&#x2194;</div><h3 data-i18n="f6t">Bilingual EN/UA</h3><p data-i18n="f6d">Full interface and AI responses in English and Ukrainian. Reach leads in their preferred language.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label" data-i18n="howLabel">How it works</div>
+    <h2 class="section-title" data-i18n="howTitle">Three steps to automated outreach</h2>
+    <div class="steps">
+      <div class="step"><h3 data-i18n="s1t">Connect LinkedIn</h3><p data-i18n="s1d">Link your account via Unipile. Secure proxy — your credentials stay safe.</p></div>
+      <div class="step"><h3 data-i18n="s2t">Configure Campaigns</h3><p data-i18n="s2d">Set search queries, message angles, daily limits. Or use our preset templates.</p></div>
+      <div class="step"><h3 data-i18n="s3t">AI Handles the Rest</h3><p data-i18n="s3d">Claude crafts personalized messages, schedules sends, manages follow-ups automatically.</p></div>
+    </div>
+  </section>
+
+  <section style="text-align:center">
+    <div class="section-label" data-i18n="techLabel">Built with</div>
+    <div class="tech-row">
+      <span class="tech-badge">Node.js</span>
+      <span class="tech-badge">TypeScript</span>
+      <span class="tech-badge">Claude AI</span>
+      <span class="tech-badge">GCP Cloud Run</span>
+      <span class="tech-badge">PostgreSQL</span>
+      <span class="tech-badge">WebSocket</span>
+    </div>
+  </section>
+
+  <div class="bottom-cta">
+    <h2 data-i18n="ctaTitle">Start automating your LinkedIn outreach</h2>
+    <p data-i18n="ctaSub">Let AI handle the repetitive work. You focus on closing deals.</p>
+    <a href="/login" class="hero-cta" data-i18n="ctaBtn">Get Started</a>
+  </div>
+
+  <footer>
+    <span>&copy; 2026 selected.ai</span>
+    <div>
+      <a href="/blog" data-i18n="footBlog">Blog</a>
+      <a href="/pitch-deck" data-i18n="footDeck">Pitch Deck</a>
+      <a href="/login" data-i18n="footLogin">Sign In</a>
+    </div>
+  </footer>
+
+  <script>
+    const i18n = {
+      en: {
+        navBlog: 'Blog', navDeck: 'Pitch Deck', navLogin: 'Sign In',
+        heroTitle: 'LinkedIn outreach on <em>autopilot</em>',
+        heroSub: 'AI-crafted messages, automated lead discovery, timezone-aware scheduling. Your LinkedIn campaigns run themselves.',
+        heroCta: 'Get Started',
+        featLabel: 'Features', featTitle: 'Everything you need for LinkedIn outreach',
+        f1t: 'AI Message Crafting', f1d: 'Claude (AWS Bedrock) writes hyper-personalized messages for each lead. No templates — every message is unique.',
+        f2t: 'Automated Lead Discovery', f2d: 'Search, filter, and enrich LinkedIn profiles automatically. Build targeted lead lists without manual work.',
+        f3t: 'Timezone-Aware Scheduling', f3d: "Messages land during business hours in your lead's timezone. Higher open rates, better engagement.",
+        f4t: 'Real-Time Dashboard', f4d: 'WebSocket-powered live updates. Watch campaigns run, track replies, monitor conversion — all in real time.',
+        f5t: 'Smart Rate Limiting', f5d: 'Daily caps, per-minute throttle, business hours enforcement. Keeps your LinkedIn account safe and compliant.',
+        f6t: 'Bilingual EN/UA', f6d: 'Full interface and AI responses in English and Ukrainian. Reach leads in their preferred language.',
+        howLabel: 'How it works', howTitle: 'Three steps to automated outreach',
+        s1t: 'Connect LinkedIn', s1d: 'Link your account via Unipile. Secure proxy — your credentials stay safe.',
+        s2t: 'Configure Campaigns', s2d: 'Set search queries, message angles, daily limits. Or use our preset templates.',
+        s3t: 'AI Handles the Rest', s3d: 'Claude crafts personalized messages, schedules sends, manages follow-ups automatically.',
+        techLabel: 'Built with',
+        ctaTitle: 'Start automating your LinkedIn outreach', ctaSub: 'Let AI handle the repetitive work. You focus on closing deals.', ctaBtn: 'Get Started',
+        footBlog: 'Blog', footDeck: 'Pitch Deck', footLogin: 'Sign In',
+      },
+      ua: {
+        navBlog: 'Блог', navDeck: 'Презентація', navLogin: 'Увійти',
+        heroTitle: 'LinkedIn-аутріч на <em>автопілоті</em>',
+        heroSub: 'AI-повідомлення, автоматичний пошук лідів, планування за часовими зонами. Ваші LinkedIn-кампанії працюють самі.',
+        heroCta: 'Розпочати',
+        featLabel: 'Можливості', featTitle: 'Все необхідне для LinkedIn-аутрічу',
+        f1t: 'AI-повідомлення', f1d: 'Claude (AWS Bedrock) пише гіперперсоналізовані повідомлення для кожного ліда. Без шаблонів — кожне повідомлення унікальне.',
+        f2t: 'Автоматичний пошук лідів', f2d: 'Шукайте, фільтруйте та збагачуйте LinkedIn-профілі автоматично. Цільові списки без ручної роботи.',
+        f3t: 'Планування за часовими зонами', f3d: 'Повідомлення приходять у робочий час у часовій зоні ліда. Вища відкриваність, краще залучення.',
+        f4t: 'Дашборд у реальному часі', f4d: 'WebSocket-оновлення наживо. Спостерігайте за кампаніями, відстежуйте відповіді та конверсію.',
+        f5t: 'Розумні ліміти', f5d: 'Денні ліміти, хвилинний тротлінг, робочі години. Ваш LinkedIn-акаунт у безпеці.',
+        f6t: 'Двомовність EN/UA', f6d: 'Повний інтерфейс та AI-відповіді англійською та українською. Спілкуйтеся з лідами їхньою мовою.',
+        howLabel: 'Як це працює', howTitle: 'Три кроки до автоматизованого аутрічу',
+        s1t: "Під'єднайте LinkedIn", s1d: "Зв'яжіть акаунт через Unipile. Безпечний проксі — ваші дані захищені.",
+        s2t: 'Налаштуйте кампанії', s2d: 'Задайте пошукові запити, кути повідомлень, денні ліміти. Або використовуйте готові шаблони.',
+        s3t: 'AI зробить решту', s3d: 'Claude створює персоналізовані повідомлення, планує відправку, керує фолоу-апами автоматично.',
+        techLabel: 'Побудовано на',
+        ctaTitle: 'Автоматизуйте ваш LinkedIn-аутріч', ctaSub: 'Нехай AI бере на себе рутину. Ви фокусуйтесь на закритті угод.', ctaBtn: 'Розпочати',
+        footBlog: 'Блог', footDeck: 'Презентація', footLogin: 'Увійти',
+      }
+    };
+    let lang = localStorage.getItem('lang') || 'ua';
+    function setLang(l) { lang = l; localStorage.setItem('lang', l); apply(); }
+    function apply() {
+      document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+      document.getElementById('lang-ua').classList.toggle('active', lang === 'ua');
+      const t = i18n[lang];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const k = el.dataset.i18n;
+        if (t[k]) { if (t[k].includes('<')) el.innerHTML = t[k]; else el.textContent = t[k]; }
+      });
+    }
+    apply();
+    fetch('/auth/me').then(r => { if (r.ok) window.location.href = '/dashboard'; });
+  </script>
+</body>
+</html>
