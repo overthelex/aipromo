@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: aipromo
       POSTGRES_PASSWORD: aipromo_secret
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - aipromo_pgdata:/var/lib/postgresql/data
     healthcheck:

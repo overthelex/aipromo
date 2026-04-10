@@ -52,4 +52,5 @@ jobs:
             --image=${{ env.REGISTRY }}:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --platform=managed \
-            --project=${{ env.PROJECT_ID }}
+            --project=${{ env.PROJECT_ID }} \
+            --port=3000
