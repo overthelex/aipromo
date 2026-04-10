@@ -74,6 +74,11 @@ app.use(authMiddleware);
 // API routes
 app.use("/api", apiRouter);
 
+// Landing page (public homepage)
+app.get("/", (_req, res) => {
+  res.sendFile(join(__dirname, "web/public/landing.html"));
+});
+
 // Login page
 app.get("/login", (_req, res) => {
   res.sendFile(join(__dirname, "web/public/login.html"));
@@ -99,7 +104,7 @@ app.get("/blog", (req, res) => {
       date: string; readTime: string; tags: string[]; category: string;
     }>;
     const articlesList = articles.map(a =>
-      `<article><h2>${a.title}</h2><p>${a.excerpt}</p><time>${a.date}</time><span>${a.readTime}</span><div>${a.content}</div></article>`
+      `<article><h2><a href="/blog/${a.id}">${a.title}</a></h2><p>${a.excerpt}</p><time>${a.date}</time><span>${a.readTime}</span></article>`
     ).join("\n");
     res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -121,6 +126,79 @@ ${articlesList}
 </html>`);
   } catch {
     res.sendFile(join(__dirname, "web/public/blog.html"));
+  }
+});
+
+// Blog article page (public, no auth)
+app.get("/blog/:slug", (req, res) => {
+  const { slug } = req.params;
+  try {
+    const articlesPath = join(__dirname, "web/public/articles.json");
+    const articles = JSON.parse(readFileSync(articlesPath, "utf-8")) as Array<{
+      id: string; title: string; excerpt: string; content: string;
+      title_ua?: string; excerpt_ua?: string; content_ua?: string;
+      date: string; readTime: string; tags: string[]; category: string;
+    }>;
+    const article = articles.find(a => a.id === slug);
+    if (!article) {
+      return res.redirect("/blog");
+    }
+
+    if (!isCrawler(req)) {
+      return res.sendFile(join(__dirname, "web/public/blog.html"));
+    }
+
+    // SSR for crawlers: full article HTML with structured data
+    const jsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": article.title,
+      "description": article.excerpt,
+      "datePublished": article.date,
+      "author": { "@type": "Organization", "name": "selected.ai", "url": "https://selected.highfunk.uk" },
+      "publisher": { "@type": "Organization", "name": "selected.ai", "url": "https://selected.highfunk.uk" },
+      "mainEntityOfPage": `https://selected.highfunk.uk/blog/${article.id}`,
+      "keywords": article.tags.join(", "),
+      "articleSection": article.category,
+      "inLanguage": "en",
+      ...(article.content_ua ? { "workTranslation": { "@type": "BlogPosting", "headline": article.title_ua, "inLanguage": "uk" } } : {}),
+    });
+
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${article.title} — selected.ai Blog</title>
+<meta name="description" content="${article.excerpt}">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://selected.highfunk.uk/blog/${article.id}">
+<meta property="og:title" content="${article.title} — selected.ai">
+<meta property="og:description" content="${article.excerpt}">
+<meta property="og:image" content="https://selected.highfunk.uk/og-image.png">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${article.title} — selected.ai">
+<meta name="twitter:description" content="${article.excerpt}">
+<meta name="twitter:image" content="https://selected.highfunk.uk/og-image.png">
+<link rel="canonical" href="https://selected.highfunk.uk/blog/${article.id}">
+<link rel="alternate" hreflang="en" href="https://selected.highfunk.uk/blog/${article.id}">
+<link rel="alternate" hreflang="uk" href="https://selected.highfunk.uk/blog/${article.id}">
+<link rel="alternate" hreflang="x-default" href="https://selected.highfunk.uk/blog/${article.id}">
+<script type="application/ld+json">${jsonLd}</script>
+</head>
+<body>
+<nav><a href="/blog">&larr; Blog</a></nav>
+<article>
+<h1>${article.title}</h1>
+<div class="meta"><time datetime="${article.date}">${article.date}</time> &middot; ${article.readTime} read</div>
+<div class="tags">${article.tags.map(t => `<span>${t}</span>`).join(" ")}</div>
+<div class="content">${article.content}</div>
+</article>
+</body>
+</html>`);
+  } catch {
+    res.redirect("/blog");
   }
 });
 

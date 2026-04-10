@@ -1,0 +1,12 @@
+{
+  "name": "selected.ai",
+  "short_name": "selected.ai",
+  "description": "AI-Powered LinkedIn Lead Automation",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#101014",
+  "theme_color": "#f0a830",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

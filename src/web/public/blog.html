@@ -14,6 +14,18 @@
   <meta name="twitter:title" content="selected.ai — Blog">
   <meta name="twitter:description" content="How we built an AI-powered LinkedIn outreach engine — from architecture to conversion.">
   <meta name="twitter:image" content="https://selected.highfunk.uk/og-image.png">
+  <link rel="canonical" href="https://selected.highfunk.uk/blog">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="uk_UA">
+  <link rel="alternate" hreflang="en" href="https://selected.highfunk.uk/blog">
+  <link rel="alternate" hreflang="uk" href="https://selected.highfunk.uk/blog">
+  <link rel="alternate" hreflang="x-default" href="https://selected.highfunk.uk/blog">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Blog","name":"selected.ai Blog","url":"https://selected.highfunk.uk/blog","description":"How we built an AI-powered LinkedIn outreach engine — from architecture to conversion.","publisher":{"@type":"Organization","name":"selected.ai","url":"https://selected.highfunk.uk"}}
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#f0a830">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -626,7 +638,7 @@ function openArticle(id) {
   });
 
   // Update URL
-  history.pushState(null, "", `/blog?article=${id}`);
+  history.pushState(null, "", `/blog/${id}`);
 }
 
 function closeModal(e) {
@@ -644,8 +656,10 @@ fetch("/articles.json").then(r => r.json()).then(data => {
   ARTICLES = data;
   setLang(currentLang);
   renderCards("all");
-  const params = new URLSearchParams(location.search);
-  if (params.get("article")) openArticle(params.get("article"));
+  // Support both /blog/:slug and /blog?article=slug
+  const slugMatch = location.pathname.match(/^\/blog\/(.+)$/);
+  const articleId = slugMatch ? slugMatch[1] : new URLSearchParams(location.search).get("article");
+  if (articleId) openArticle(articleId);
 });
 </script>
 </body>
