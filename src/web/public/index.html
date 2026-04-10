@@ -259,7 +259,7 @@
     .conv-item.conv-active { background: var(--surface2); border-left-color: var(--amber); }
 
     /* ── AI CHAT ── */
-    .chat-messages { flex: 1; overflow-y: auto; scroll-behavior: auto; }
+    .chat-messages { flex: 1; overflow-y: auto; scroll-behavior: auto; min-height: 0; }
     .chat-messages-inner { max-width: 720px; margin: 0 auto; padding: 24px 20px 12px; display: flex; flex-direction: column; gap: 16px; }
     .chat-bubble { animation: chatFadeIn 0.2s ease-out; font-size: 13.5px; line-height: 1.65; word-wrap: break-word; }
     .chat-bubble.user { align-self: flex-end; max-width: 80%; background: var(--amber-dim); color: var(--text); padding: 10px 16px; border-radius: 16px 16px 4px 16px; }
@@ -2139,8 +2139,8 @@ async function pgChat(el){
         </div>
         <div id="chat-convs" style="flex:1;overflow-y:auto"></div>
       </div>
-      <div style="display:flex;flex-direction:column;background:var(--bg2);position:relative">
-        <div id="chat-msgs" class="chat-messages" onscroll="chatUpdateScrollBtn()">
+      <div style="display:flex;flex-direction:column;background:var(--bg2);position:relative;overflow:hidden;min-height:0">
+        <div id="chat-msgs" class="chat-messages" onscroll="chatUpdateScrollBtn()" style="min-height:0">
           <div class="chat-messages-inner" id="chat-inner">
             <div id="chat-welcome" style="margin:auto;text-align:center;color:var(--text3);font-size:13px;padding:60px 20px;max-width:520px">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px;display:block;color:var(--amber)"><path d="M12 3l1.5 3.7 3.9.6-2.8 2.8.7 3.9L12 12.4 8.7 14l.7-3.9L6.6 7.3l3.9-.6z"/><path d="M19 15v3a2 2 0 01-2 2H7l-4 4V7a2 2 0 012-2h3"/></svg>
