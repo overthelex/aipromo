@@ -201,7 +201,7 @@ process.on("SIGTERM", async () => {
 });
 
 // Start server
-const PORT = parseInt(process.env.PORT ?? "8080", 10);
+const PORT = parseInt(process.env.PORT ?? "3000", 10);
 
 async function start() {
   await initDatabase();

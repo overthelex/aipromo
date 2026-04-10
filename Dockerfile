@@ -9,7 +9,7 @@ COPY tsconfig.json ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 
-EXPOSE 8080
+EXPOSE 3000
 
 # Default: run webhook server. Override with args for CLI commands.
 CMD ["npx", "tsx", "src/server.ts"]

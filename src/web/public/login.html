@@ -3,7 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>selected.ai — Login</title>
+  <title>selected.ai — AI-Powered LinkedIn Lead Automation Platform</title>
+  <meta name="description" content="LinkedIn lead automation platform: AI-powered outreach with Claude (AWS Bedrock), timezone-aware messaging, campaign management, real-time analytics dashboard. Built on GCP Cloud Run." />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="selected.ai — AI-Powered LinkedIn Lead Automation" />
+  <meta property="og:description" content="Automated LinkedIn outreach: AI-crafted messages via Claude/AWS Bedrock, smart lead discovery, timezone-aware delivery, campaign analytics. Built on GCP Cloud Run." />
+  <meta property="og:image" content="https://selected.ai/og-image.png" />
+  <meta property="og:url" content="https://selected.ai" />
+  <meta property="og:site_name" content="selected.ai" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="selected.ai — AI LinkedIn Lead Automation" />
+  <meta name="twitter:description" content="Automated LinkedIn outreach with AI-crafted messages, smart lead discovery, and campaign analytics." />
+  <meta name="twitter:image" content="https://selected.ai/og-image.png" />
+
+  <!-- Structured data -->
+  <link rel="canonical" href="https://selected.ai" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "selected.ai",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "AI-powered LinkedIn lead automation platform with Claude/AWS Bedrock for intelligent outreach, timezone-aware messaging, and real-time campaign analytics.",
+    "url": "https://selected.ai",
+    "sameAs": [
+      "https://selected.ai/blog",
+      "https://selected.ai/pitch-deck.html"
+    ],
+    "author": {
+      "@type": "Organization",
+      "name": "selected.ai",
+      "url": "https://selected.ai"
+    },
+    "featureList": [
+      "AI-powered message crafting via Claude (AWS Bedrock)",
+      "Automated LinkedIn lead discovery and enrichment",
+      "Timezone-aware message scheduling for peak engagement",
+      "Multi-campaign management with real-time WebSocket dashboard",
+      "Rate limiting and business hours enforcement",
+      "Bilingual interface (EN/UA)"
+    ]
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -67,6 +115,28 @@
   </style>
 </head>
 <body>
+  <noscript>
+    <div style="max-width:720px;margin:40px auto;font-family:system-ui,sans-serif;color:#dcdce0;background:#101014;padding:40px">
+      <h1>selected.ai — AI-Powered LinkedIn Lead Automation</h1>
+      <p>Automated LinkedIn outreach platform with AI-crafted messages via Claude (AWS Bedrock), smart lead discovery, timezone-aware delivery, and real-time campaign analytics.</p>
+      <h2>Features</h2>
+      <ul>
+        <li>AI-powered message crafting via Claude (AWS Bedrock)</li>
+        <li>Automated LinkedIn lead discovery and enrichment</li>
+        <li>Timezone-aware message scheduling for peak engagement</li>
+        <li>Multi-campaign management with real-time WebSocket dashboard</li>
+        <li>Rate limiting and business hours enforcement</li>
+        <li>Bilingual interface (EN/UA)</li>
+      </ul>
+      <h2>Resources</h2>
+      <ul>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/pitch-deck.html">Pitch Deck</a></li>
+      </ul>
+      <h2>Technology</h2>
+      <p>Built on GCP (Cloud Run, Cloud SQL, Artifact Registry). AI via AWS Bedrock (Claude). Node.js, TypeScript, Express, WebSocket, PostgreSQL.</p>
+    </div>
+  </noscript>
   <div class="login-card">
     <div class="lang-toggle">
       <button id="lang-en" onclick="setLang('en')">EN</button>
