@@ -264,7 +264,7 @@
     .chat-bubble { animation: chatFadeIn 0.2s ease-out; font-size: 13.5px; line-height: 1.65; word-wrap: break-word; }
     .chat-bubble.user { align-self: flex-end; max-width: 80%; background: var(--amber-dim); color: var(--text); padding: 10px 16px; border-radius: 16px 16px 4px 16px; }
     .chat-bubble.ai { align-self: stretch; }
-    .chat-bubble .bubble-text { white-space: pre-wrap; }
+    .chat-bubble .bubble-text { }
     .chat-bubble .bubble-text p { margin: 0 0 8px; } .chat-bubble .bubble-text p:last-child { margin: 0; }
     .chat-bubble .bubble-text strong { color: var(--text); }
     .chat-bubble .bubble-text code { font-family: var(--mono); font-size: 12px; background: rgba(240,168,48,0.08); padding: 1px 5px; border-radius: 3px; color: var(--amber); }
@@ -2088,6 +2088,52 @@ async function checkAuth(){
 }
 
 /* ── AI CHAT ── */
+
+// Lightweight markdown → HTML (no deps)
+function mdToHtml(md){
+  let html = esc(md);
+  // Code blocks (``` ... ```)
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_,lang,code) => `<pre><code>${code.replace(/\n$/,'')}</code></pre>`);
+  // Inline code
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  // Bold **text** or __text__
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+  // Italic *text* or _text_ (but not inside words with underscores)
+  html = html.replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, '<em>$1</em>');
+  // Headers ### ## #
+  html = html.replace(/^### (.+)$/gm, '<h4 style="font-size:13px;font-weight:700;color:var(--text);margin:12px 0 4px">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 style="font-size:14px;font-weight:700;color:var(--text);margin:14px 0 6px">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 style="font-size:15px;font-weight:700;color:var(--text);margin:16px 0 6px">$1</h2>');
+  // Horizontal rule
+  html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
+  // Unordered lists
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>');
+  // Ordered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Blockquote
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote style="border-left:2px solid var(--amber);padding:4px 12px;margin:6px 0;color:var(--text2)">$1</blockquote>');
+  // Line breaks: double newline → paragraph break, single → <br>
+  html = html.replace(/\n{2,}/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+  // Wrap in paragraph
+  html = '<p>' + html + '</p>';
+  // Clean empty paragraphs
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  // Fix pre/code inside p tags
+  html = html.replace(/<p>(<pre>)/g, '$1');
+  html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<h[234])/g, '$1');
+  html = html.replace(/(<\/h[234]>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<hr[^>]*>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<ul>)/g, '$1');
+  html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<blockquote)/g, '$1');
+  html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+  return html;
+}
+
 window._chatConvId = null;
 window._chatSending = false;
 window._chatUserScrolled = false;
@@ -2237,7 +2283,7 @@ async function openChatConv(id){
         const parsed = JSON.parse(m.content);
         if(Array.isArray(parsed)) text = parsed.filter(b=>b.type==='text').map(b=>b.text).join('');
       } catch{}
-      if(text) appendChatBubble('ai', text);
+      if(text){ const b = appendChatBubble('ai',''); b.querySelector('.bubble-text').innerHTML = mdToHtml(text); }
     }
   }
   window._chatUserScrolled = false;
@@ -2321,6 +2367,17 @@ async function sendChatMsg(){
     let buffer = '';
     let currentEvent = '';
     let lastBadge = null;
+    let rawText = '';
+    let mdTimer = null;
+
+    function renderMd(){
+      bubbleText.innerHTML = mdToHtml(rawText);
+      bubbleText.style.whiteSpace = 'normal';
+    }
+    // Throttled markdown render — at most every 80ms during streaming
+    function scheduleMdRender(){
+      if(!mdTimer) mdTimer = setTimeout(()=>{ mdTimer=null; renderMd(); }, 80);
+    }
 
     while(true){
       const {done, value} = await reader.read();
@@ -2339,9 +2396,12 @@ async function sendChatMsg(){
             if(currentEvent === 'text_delta'){
               if(!gotText){ bubbleText.textContent = ''; gotText = true; }
               if(lastBadge){ lastBadge.classList.add('done'); lastBadge = null; }
-              bubbleText.textContent += data.text;
+              rawText += data.text;
+              scheduleMdRender();
             } else if(currentEvent === 'tool_use'){
               if(!gotText){ bubbleText.textContent = ''; gotText = true; }
+              // Flush pending markdown before tool badge
+              if(rawText){ clearTimeout(mdTimer); mdTimer=null; renderMd(); }
               const badge = document.createElement('div');
               badge.className = 'tool-badge';
               badge.textContent = data.name.replace(/_/g,' ');
@@ -2355,13 +2415,17 @@ async function sendChatMsg(){
               aiBubble.appendChild(resultDiv);
             } else if(currentEvent === 'error'){
               if(!gotText){ bubbleText.textContent = ''; gotText = true; }
-              bubbleText.textContent += '\nError: ' + data.message;
+              rawText += '\nError: ' + data.message;
+              scheduleMdRender();
             }
           } catch{}
           if(chatShouldAutoScroll()) chatScrollToBottom(false);
         }
       }
     }
+    // Final render
+    if(mdTimer){ clearTimeout(mdTimer); mdTimer=null; }
+    if(rawText) renderMd();
   } catch(err){
     if(err.name !== 'AbortError'){
       bubbleText.textContent = 'Connection error: ' + err.message;
