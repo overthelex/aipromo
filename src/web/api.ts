@@ -10,8 +10,12 @@ import { searchLeads } from "../core/search.js";
 import { runCampaignDay } from "../campaigns/engine.js";
 import { CAMPAIGN_NAME, DAILY_SEARCH_QUERIES } from "../campaigns/registry-access-2w.js";
 import { broadcast } from "../server.js";
+import { chatRouter } from "./chat.js";
 
 export const apiRouter = Router();
+
+// Chat routes
+apiRouter.use("/chat", chatRouter);
 
 // --- Dashboard Stats ---
 apiRouter.get("/stats", async (_req, res) => {
