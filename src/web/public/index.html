@@ -423,7 +423,10 @@ const i18n = {
     msg_direct:'Direct', msg_accepted:'Accepted', msg_declined:'Declined',
     msg_in:'messages in', msg_threads:'threads', msg_msgs:'msgs', msg_show_more:'show more',
     chat:'AI Chat', chat_new:'New Chat', chat_placeholder:'Ask about campaigns, leads, analytics...',
-    chat_send:'Send', chat_empty:'Start a conversation to manage campaigns with AI', chat_no_convs:'No conversations yet'
+    chat_send:'Send', chat_empty:'Start a conversation to manage campaigns with AI', chat_no_convs:'No conversations yet',
+    chat_s1:'Show campaign status and stats', chat_s2:'Show analytics and reply rates',
+    chat_s3:'Run campaign day 1 in dry run mode', chat_s4:'Search leads by company or role',
+    chat_s5:'Show the 14-day campaign plan', chat_s6:'Show the lead pipeline'
   },
   ua: {
     dashboard:'Панель', leads:'Ліди', conversations:'Переписки', messages:'Повідомлення',
@@ -485,7 +488,10 @@ const i18n = {
     msg_direct:'Прямі', msg_accepted:'Прийняті', msg_declined:'Відхилені',
     msg_in:'повідомлень у', msg_threads:'тредах', msg_msgs:'повідомлень', msg_show_more:'показати більше',
     chat:'AI Чат', chat_new:'Новий чат', chat_placeholder:'Запитайте про кампанії, ліди, аналітику...',
-    chat_send:'Надіслати', chat_empty:'Почніть розмову для управління кампаніями з AI', chat_no_convs:'Немає розмов'
+    chat_send:'Надіслати', chat_empty:'Почніть розмову для управління кампаніями з AI', chat_no_convs:'Немає розмов',
+    chat_s1:'Покажи статус кампаній', chat_s2:'Покажи аналітику та відсоток відповідей',
+    chat_s3:'Запусти день 1 кампанії в тестовому режимі', chat_s4:'Знайди лідів за компанією або посадою',
+    chat_s5:'Покажи план кампанії на 14 днів', chat_s6:'Покажи воронку лідів'
   }
 };
 let lang = localStorage.getItem('lang') || 'ua';
@@ -2058,6 +2064,17 @@ async function checkAuth(){
 window._chatConvId = null;
 window._chatSending = false;
 
+function getChatSuggestions(){
+  return [t('chat_s1'), t('chat_s2'), t('chat_s3'), t('chat_s4'), t('chat_s5'), t('chat_s6')];
+}
+
+function useChatSuggestion(el){
+  const input = $('chat-input');
+  input.value = el.textContent;
+  input.focus();
+  sendChatMsg();
+}
+
 async function pgChat(el){
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:240px 1fr;height:calc(100vh - 120px);gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden">
@@ -2069,9 +2086,12 @@ async function pgChat(el){
       </div>
       <div style="display:flex;flex-direction:column;background:var(--bg2)">
         <div id="chat-msgs" class="chat-messages">
-          <div style="margin:auto;text-align:center;color:var(--text3);font-size:13px;padding:40px 20px">
+          <div id="chat-welcome" style="margin:auto;text-align:center;color:var(--text3);font-size:13px;padding:40px 20px;max-width:520px">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 12px;display:block;color:var(--amber)"><path d="M12 3l1.5 3.7 3.9.6-2.8 2.8.7 3.9L12 12.4 8.7 14l.7-3.9L6.6 7.3l3.9-.6z"/><path d="M19 15v3a2 2 0 01-2 2H7l-4 4V7a2 2 0 012-2h3"/></svg>
             ${t('chat_empty')}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:24px;text-align:left">
+              ${getChatSuggestions().map(s => `<div onclick="useChatSuggestion(this)" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;transition:border-color 0.15s;font-size:12px;line-height:1.45;color:var(--text2)" onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='var(--border)'">${s}</div>`).join('')}
+            </div>
           </div>
         </div>
         <div class="chat-input-area">
