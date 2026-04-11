@@ -7,10 +7,9 @@ on:
     branches: [main]
 
 env:
-  PROJECT_ID: infra-tempo-488211-h0
-  REGION: europe-west1
-  SERVICE: aipromo
-  REGISTRY: europe-west1-docker.pkg.dev/infra-tempo-488211-h0/aipromo/aipromo
+  EC2_HOST: 63.180.21.221
+  EC2_USER: ubuntu
+  REMOTE_DIR: /home/ubuntu/aipromo
 
 jobs:
   test:
@@ -27,30 +26,29 @@ jobs:
       - name: Run tests
         run: npm test
 
-  build-deploy:
-    name: Build & Deploy
+  deploy:
+    name: Deploy to EC2
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
-      - name: Auth Docker to Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-
-      - name: Build Docker image
-        run: docker build --platform linux/amd64 -t ${{ env.REGISTRY }}:${{ github.sha }} -t ${{ env.REGISTRY }}:latest .
-
-      - name: Push Docker image
+      - name: Sync files to EC2
         run: |
-          docker push ${{ env.REGISTRY }}:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}:latest
+          rsync -avz --delete \
+            --exclude node_modules \
+            --exclude .git \
+            --exclude data \
+            --exclude .env \
+            --exclude .env.test \
+            --exclude .env.cloudflare \
+            --exclude .claude \
+            --exclude logos \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.REMOTE_DIR }}/
 
-      - name: Deploy to Cloud Run
+      - name: Build and restart containers
         run: |
-          gcloud run deploy ${{ env.SERVICE }} \
-            --image=${{ env.REGISTRY }}:${{ github.sha }} \
-            --region=${{ env.REGION }} \
-            --platform=managed \
-            --project=${{ env.PROJECT_ID }} \
-            --port=3000
+          ssh -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} \
+            "cd ${{ env.REMOTE_DIR }} && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build"
