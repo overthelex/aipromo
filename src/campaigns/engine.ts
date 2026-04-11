@@ -99,15 +99,12 @@ function randomDelay(minSec: number, maxSec: number): number {
 
 const INVITATION_NOTE_LIMIT = 290;
 
-function getOutreachSystemPrompt(campaign: CampaignConfig, angle: string, channel: "linkedin" | "instagram", maxChars?: number): string {
-  const charLimit = maxChars
-    ? `\n- HARD LIMIT: message MUST be under ${maxChars} characters total (this is a LinkedIn invitation note limit). Count carefully. Be concise — 2-3 short sentences max.`
-    : "";
+function getOutreachSystemPrompt(campaign: CampaignConfig, angle: string, channel: "linkedin" | "instagram"): string {
   const channelRules = channel === "instagram"
     ? `- This is an Instagram DM — be casual and brief, 2-3 sentences MAX
 - Don't mention LinkedIn or connection requests
 - Use a friendly, approachable tone suitable for Instagram`
-    : `- ${maxChars ? "2-3 sentences MAX" : "3-5 sentences MAX"}. LinkedIn messages must be short.${charLimit}`;
+    : `- 3-5 sentences MAX. LinkedIn messages must be short.`;
 
   return `You are writing a ${channel === "instagram" ? "Instagram DM" : "LinkedIn first-touch message"} for the ${campaign.name} campaign.
 
@@ -127,6 +124,24 @@ ${channelRules}
 - NEVER copy-paste the same message structure — each message must feel hand-written
 - Do NOT use bullet points or numbered lists
 - Output ONLY the message text, nothing else`;
+}
+
+function getInvitationNotePrompt(campaign: CampaignConfig, angle: string): string {
+  return `You are writing a LinkedIn CONNECTION REQUEST note (max ${INVITATION_NOTE_LIMIT} characters).
+
+Product: ${campaign.name}
+Angle: "${angle}" — ${campaign.getAngleInstruction(angle)}
+
+STRICT RULES:
+- ABSOLUTE MAX: ${INVITATION_NOTE_LIMIT} characters. Count carefully. This is a hard technical limit.
+- Write in Ukrainian (unless lead profile is clearly English-only)
+- 2 sentences MAXIMUM. Be extremely concise.
+- First sentence: hook based on the person's role/company (personalized)
+- Second sentence: one compelling reason to connect + soft CTA (question or "давайте обговоримо")
+- DO NOT start with "Привіт, [name]" — use their name creatively in context
+- NO bullet points, NO lists, NO line breaks
+- The message must feel COMPLETE — no trailing "...", no cut-off thoughts
+- Output ONLY the note text, nothing else`;
 }
 
 // --- Auto-Responder System Prompt ---
@@ -327,21 +342,23 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
         if (err.message?.includes('unreachable') || err.message?.includes('422')) {
           let invSent = false;
 
-          let note: string;
-          if (message.length <= INVITATION_NOTE_LIMIT) {
-            note = message;
-          } else {
-            clog(chalk.dim(`  Regenerating short note for ${profile.name} (${message.length} > ${INVITATION_NOTE_LIMIT})...`));
-            const shortPrompt = getOutreachSystemPrompt(cam, angle, "linkedin", INVITATION_NOTE_LIMIT);
-            note = await claude.generateWithSystem(shortPrompt, userPrompt);
-            if (note.length > INVITATION_NOTE_LIMIT) {
-              const trimmed = note.slice(0, INVITATION_NOTE_LIMIT);
-              const lastSentence = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
-              note = lastSentence > INVITATION_NOTE_LIMIT * 0.5
-                ? trimmed.slice(0, lastSentence + 1)
-                : trimmed.slice(0, trimmed.lastIndexOf(" ")) + "...";
-              logger.warn({ lead: profile.name, length: note.length }, "Invitation note trimmed at sentence boundary");
-            }
+          clog(chalk.dim(`  Generating invitation note for ${profile.name}...`));
+          const notePrompt = getInvitationNotePrompt(cam, angle);
+          let note = await claude.generateWithSystem(notePrompt, userPrompt);
+          // Retry once if still over limit
+          if (note.length > INVITATION_NOTE_LIMIT) {
+            clog(chalk.dim(`  Note too long (${note.length}), retrying...`));
+            note = await claude.generateWithSystem(
+              notePrompt + `\n\nPREVIOUS ATTEMPT WAS ${note.length} CHARS — TOO LONG. Write SHORTER. Max ${INVITATION_NOTE_LIMIT} chars.`,
+              userPrompt,
+            );
+          }
+          if (note.length > INVITATION_NOTE_LIMIT) {
+            // Last resort: trim at sentence boundary
+            const trimmed = note.slice(0, INVITATION_NOTE_LIMIT);
+            const lastEnd = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
+            note = lastEnd > INVITATION_NOTE_LIMIT * 0.5 ? trimmed.slice(0, lastEnd + 1) : trimmed.slice(0, trimmed.lastIndexOf(" "));
+            logger.warn({ lead: profile.name, length: note.length }, "Invitation note trimmed");
           }
 
           for (let retry = 0; retry < 2 && !invSent; retry++) {
@@ -614,9 +631,11 @@ export async function processScheduledOutreach(
   accountId: string,
 ): Promise<number> {
   const due = await sql`
-    SELECT oq.*, l.linkedin_id, l.name, l.location
+    SELECT oq.*, l.linkedin_id, l.name, l.headline, l.company, l.title, l.location,
+           oc.name as campaign_name
     FROM outreach_queue oq
     JOIN leads l ON oq.lead_id = l.id
+    JOIN outreach_campaigns oc ON oq.campaign_id = oc.id
     WHERE oq.status = 'scheduled'
       AND oq.scheduled_at <= NOW()
     ORDER BY oq.scheduled_at ASC
@@ -626,6 +645,7 @@ export async function processScheduledOutreach(
   if (due.length === 0) return 0;
   clog(chalk.bold(`\nProcessing ${due.length} scheduled messages...\n`));
 
+  const claude = new ClaudeService();
   let sent = 0;
   for (const item of due) {
     const canSend = await checkAndIncrementDaily(accountId, "message", appConfig.maxMessagesPerDay);
@@ -647,13 +667,39 @@ export async function processScheduledOutreach(
       await sleep(randomDelay(10, 25));
     } catch (err: any) {
       if (err.message?.includes('unreachable') || err.message?.includes('422')) {
-        let note = item.message_text;
+        // Generate a proper short invitation note via AI
+        let cam: CampaignConfig | undefined;
+        try {
+          const { getCampaign } = await import("./registry.js");
+          cam = getCampaign(item.campaign_name);
+        } catch { /* campaign not found, use fallback */ }
+
+        let note: string;
+        if (cam) {
+          const angle = item.message_angle || "question_hook";
+          const notePrompt = getInvitationNotePrompt(cam, angle);
+          const userPrompt = [
+            `Lead profile:`,
+            `- Name: ${sanitize(item.name)}`,
+            item.headline ? `- Headline: ${sanitize(item.headline)}` : null,
+            item.company ? `- Company: ${sanitize(item.company)}` : null,
+            item.title ? `- Title: ${sanitize(item.title)}` : null,
+            item.location ? `- Location: ${sanitize(item.location)}` : null,
+          ].filter(Boolean).join("\n");
+          note = await claude.generateWithSystem(notePrompt, userPrompt);
+          if (note.length > INVITATION_NOTE_LIMIT) {
+            note = await claude.generateWithSystem(
+              notePrompt + `\n\nPREVIOUS ATTEMPT WAS ${note.length} CHARS — TOO LONG. Write SHORTER. Max ${INVITATION_NOTE_LIMIT} chars.`,
+              userPrompt,
+            );
+          }
+        } else {
+          note = item.message_text;
+        }
         if (note.length > INVITATION_NOTE_LIMIT) {
           const trimmed = note.slice(0, INVITATION_NOTE_LIMIT);
-          const lastSentence = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
-          note = lastSentence > INVITATION_NOTE_LIMIT * 0.5
-            ? trimmed.slice(0, lastSentence + 1)
-            : trimmed.slice(0, trimmed.lastIndexOf(" ")) + "...";
+          const lastEnd = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
+          note = lastEnd > INVITATION_NOTE_LIMIT * 0.5 ? trimmed.slice(0, lastEnd + 1) : trimmed.slice(0, trimmed.lastIndexOf(" "));
         }
         try {
           await unipile.sendInvitation(item.linkedin_id, note);
@@ -661,7 +707,7 @@ export async function processScheduledOutreach(
           await sql`UPDATE outreach_queue SET status = 'sent', message_text = ${note}, sent_at = NOW() WHERE id = ${item.id}`;
           await sql`UPDATE leads SET status = 'contacted' WHERE id = ${item.lead_id} AND status = 'prospect'`;
           sent++;
-          clog(chalk.yellow(`  → ${item.name} [scheduled, invitation + note]`));
+          clog(chalk.yellow(`  → ${item.name} [invitation, ${note.length} chars]`));
           await sleep(randomDelay(10, 25));
         } catch (invErr: any) {
           await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${item.id}`;
