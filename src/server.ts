@@ -10,7 +10,9 @@ import { sql, initDatabase, closeDatabase } from "./storage/store.js";
 import { logger } from "./utils/logger.js";
 import { apiRouter } from "./web/api.js";
 import { authRouter, authMiddleware, seedUsers } from "./web/auth.js";
-import { appConfig } from "./config.js";
+import { appConfig, getAccounts } from "./config.js";
+import { processScheduledOutreach } from "./campaigns/engine.js";
+import { UnipileService } from "./services/unipile.service.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -327,12 +329,40 @@ process.on("SIGTERM", async () => {
 // Start server
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 
+// --- Scheduled outreach cron (every 10 min) ---
+let cronRunning = false;
+
+async function processScheduledCron() {
+  if (cronRunning) return;
+  cronRunning = true;
+  try {
+    for (const acc of getAccounts()) {
+      const unipile = new UnipileService(acc.alias);
+      const sent = await processScheduledOutreach(unipile, unipile.accountId);
+      if (sent > 0) {
+        logger.info({ account: acc.alias, sent }, "Cron: scheduled outreach sent");
+        broadcast("campaign_log", { msg: `Cron: ${sent} scheduled messages sent for ${acc.alias}` });
+      }
+    }
+  } catch (err: any) {
+    logger.error({ error: err.message }, "Cron: scheduled outreach failed");
+  } finally {
+    cronRunning = false;
+  }
+}
+
 async function start() {
   await initDatabase();
   await seedUsers();
   server.listen(PORT, () => {
     logger.info({ port: PORT }, "aipromo server started (HTTP + WS)");
     console.log(`Server running on port ${PORT}`);
+
+    // Process scheduled outreach every 10 minutes
+    setInterval(processScheduledCron, 10 * 60 * 1000);
+    // Also run once on startup after 30s delay
+    setTimeout(processScheduledCron, 30_000);
+    logger.info("Scheduled outreach cron enabled (every 10 min)");
   });
 }
 
