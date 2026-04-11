@@ -1,0 +1,3 @@
+selected.highfunk.uk {
+	reverse_proxy app:3000
+}
