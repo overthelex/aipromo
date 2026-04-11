@@ -45,10 +45,10 @@ jobs:
             --exclude .env.cloudflare \
             --exclude .claude \
             --exclude logos \
-            -e "ssh -o StrictHostKeyChecking=no" \
+            -e "ssh -i ~/.ssh/aipromo-deploy -o StrictHostKeyChecking=no" \
             ./ ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.REMOTE_DIR }}/
 
       - name: Build and restart containers
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} \
+          ssh -i ~/.ssh/aipromo-deploy -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} \
             "cd ${{ env.REMOTE_DIR }} && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build"
