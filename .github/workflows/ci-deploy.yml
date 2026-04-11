@@ -41,6 +41,7 @@ jobs:
             --exclude .git \
             --exclude data \
             --exclude .env \
+            --exclude .env.prod \
             --exclude .env.test \
             --exclude .env.cloudflare \
             --exclude .claude \
