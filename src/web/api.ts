@@ -797,6 +797,59 @@ apiRouter.post("/follow-ups/:id/reschedule", async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Public Holidays ---
+apiRouter.get("/holidays/countries", async (_req, res) => {
+  const rows = await sql`
+    SELECT country_code, COUNT(*) as holiday_count,
+      MIN(date) as first_date, MAX(date) as last_date
+    FROM public_holidays
+    GROUP BY country_code
+    ORDER BY country_code
+  `;
+  res.json({ countries: rows });
+});
+
+apiRouter.get("/holidays/:country", async (req, res) => {
+  const rows = await sql`
+    SELECT id, country_code, date, name
+    FROM public_holidays
+    WHERE country_code = ${req.params.country.toUpperCase()}
+    ORDER BY date
+  `;
+  res.json({ holidays: rows });
+});
+
+apiRouter.post("/holidays", async (req, res) => {
+  const { country_code, date, name } = req.body;
+  if (!country_code || !date || !name) return res.status(400).json({ error: "country_code, date, name required" });
+  const [row] = await sql`
+    INSERT INTO public_holidays (country_code, date, name)
+    VALUES (${country_code.toUpperCase()}, ${date}, ${name})
+    ON CONFLICT (country_code, date) DO UPDATE SET name = ${name}
+    RETURNING *
+  `;
+  res.json(row);
+});
+
+apiRouter.patch("/holidays/:id", async (req, res) => {
+  const { date, name } = req.body;
+  const sets = [];
+  if (date) sets.push(sql`date = ${date}`);
+  if (name) sets.push(sql`name = ${name}`);
+  if (!sets.length) return res.status(400).json({ error: "Nothing to update" });
+  const [row] = await sql`
+    UPDATE public_holidays SET ${sets.reduce((a, b) => sql`${a}, ${b}`)}
+    WHERE id = ${req.params.id} RETURNING *
+  `;
+  if (!row) return res.status(404).json({ error: "Not found" });
+  res.json(row);
+});
+
+apiRouter.delete("/holidays/:id", async (req, res) => {
+  await sql`DELETE FROM public_holidays WHERE id = ${req.params.id}`;
+  res.json({ ok: true });
+});
+
 // --- Config ---
 apiRouter.get("/config", async (req, res) => {
   res.json({
