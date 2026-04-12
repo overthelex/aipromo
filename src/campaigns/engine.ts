@@ -712,6 +712,11 @@ export async function processScheduledOutreach(
         } catch (invErr: any) {
           await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${item.id}`;
           clog(chalk.red(`  ✗ ${item.name}: ${invErr.message}`));
+          // Stop entire batch on provider rate limit — further attempts will also fail
+          if (invErr.message?.includes('cannot_resend_yet') || invErr.message?.includes('provider limit')) {
+            clog(chalk.yellow(`  ⏸ Provider rate limit hit — stopping batch to avoid burning limit.`));
+            break;
+          }
         }
       } else {
         await sql`UPDATE outreach_queue SET status = 'failed' WHERE id = ${item.id}`;

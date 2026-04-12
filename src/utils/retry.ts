@@ -17,7 +17,11 @@ export async function withRetry<T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error) {
+    } catch (error: any) {
+      // Don't retry 422 errors — they are client errors that won't resolve on retry
+      // (e.g. LinkedIn "cannot_resend_yet", "already_invited_recently")
+      if (error.message?.includes("422")) throw error;
+
       if (attempt === maxRetries) throw error;
 
       const delay = Math.min(baseDelayMs * 2 ** attempt, maxDelayMs);
