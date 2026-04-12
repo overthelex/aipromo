@@ -137,6 +137,18 @@ export const CHAT_TOOLS = [
       required: [] as string[],
     },
   },
+  {
+    name: "get_campaign_replies",
+    description: "Get conversations where leads actually replied to outreach messages. Shows real back-and-forth dialogues with message text, timestamps, and whether a call was booked. Filter by account alias (e.g. 'ihor', 'vladimir').",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        account: { type: "string", description: "Account alias to filter by (e.g. 'ihor', 'vladimir'). Optional — shows all if omitted." },
+        limit: { type: "number", description: "Max conversations to return (default 20)" },
+      },
+      required: [] as string[],
+    },
+  },
 ];
 
 // ─── Tool executor ─────────────────────────────────────────────────────────────
@@ -368,6 +380,48 @@ export async function executeTool(
         angles: cam.messageAngles,
         rotation: `angle = (dayNumber + leadIndex) % ${cam.messageAngles.length}`,
       };
+    }
+
+    case "get_campaign_replies": {
+      const limit = Math.min((input.limit as number) || 20, 50);
+      const accountId = input.account ? resolveAccountId(input.account as string) : null;
+
+      // Find conversations with real back-and-forth (at least 1 sent + 1 received)
+      const convos = await sql`
+        SELECT c.id, c.chat_id, c.attendee_name, c.subject, c.last_message_at, c.account_id,
+          (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.is_sender = false) as from_them,
+          (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.is_sender = true) as from_us
+        FROM conversations c
+        WHERE ${accountId ? sql`c.account_id = ${accountId} AND` : sql``}
+          (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.is_sender = true) > 0
+          AND (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.is_sender = false) > 1
+        ORDER BY c.last_message_at DESC
+        LIMIT ${limit}
+      `;
+
+      const conversations = [];
+      for (const c of convos) {
+        const msgs = await sql`
+          SELECT is_sender, timestamp, LEFT(text, 300) as text
+          FROM messages WHERE conversation_id = ${c.id}
+          ORDER BY timestamp ASC
+        `;
+        conversations.push({
+          id: c.id,
+          account: resolveAccountName(c.account_id),
+          attendee: c.attendee_name || c.subject || "(no name)",
+          last_message_at: c.last_message_at,
+          messages_from_them: Number(c.from_them),
+          messages_from_us: Number(c.from_us),
+          messages: msgs.map((m: any) => ({
+            from: m.is_sender ? "us" : "them",
+            time: m.timestamp,
+            text: m.text,
+          })),
+        });
+      }
+
+      return { total: conversations.length, conversations };
     }
 
     default:
