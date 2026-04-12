@@ -409,7 +409,18 @@ const i18n = {
     dashboard:'Dashboard', leads:'Leads', conversations:'Conversations', messages:'All Messages',
     outreach:'Outreach Queue', campaigns:'Campaigns', posts:'Posts', search:'Search',
     pipeline:'Pipeline', analytics:'Analytics', deals:'Deals', 'follow-ups':'Follow-ups',
+    holidays:'Public Holidays',
     sync:'Sync', activity:'Activity Log', logout:'Logout',
+    hol_title:'Public Holidays', hol_countries:'countries', hol_holidays:'holidays',
+    hol_filter:'Filter countries...', hol_add_country:'+ Add Country',
+    hol_days:'days', hol_add:'+ Add Holiday', hol_edit:'edit', hol_del:'del',
+    hol_date:'Date', hol_name:'Name', hol_actions:'Actions',
+    hol_save:'Save', hol_create:'Create', hol_country_code:'Country code (e.g. TR)',
+    hol_holiday_name:'Holiday name', hol_first_holiday:'First holiday name',
+    hol_add_title:'Add Holiday', hol_edit_title:'Edit Holiday', hol_add_country_title:'Add Country',
+    hol_date_name_req:'Date and name required', hol_all_req:'All fields required',
+    hol_added:'Holiday added', hol_updated:'Holiday updated', hol_deleted:'Holiday deleted',
+    hol_country_added:'Country added', hol_confirm_delete:'Delete this holiday?',
     conv_all:'All', conv_unread:'Unread', conv_select:'Select a conversation',
     conv_new:'new', conv_conversation:'Conversation', conv_ai_draft:'AI Draft',
     conv_placeholder:'Type reply...', conv_send:'Send', conv_sending:'Sending...',
@@ -472,7 +483,18 @@ const i18n = {
     dashboard:'Панель', leads:'Ліди', conversations:'Переписки', messages:'Повідомлення',
     outreach:'Розсилка', campaigns:'Кампанії', posts:'Пости', search:'Пошук',
     pipeline:'Воронка', analytics:'Аналітика', deals:'Угоди', 'follow-ups':'Фоллоу-апи',
+    holidays:'Святкові дні',
     sync:'Синхронізація', activity:'Активність', logout:'Вийти',
+    hol_title:'Святкові дні', hol_countries:'країн', hol_holidays:'свят',
+    hol_filter:'Фільтр країн...', hol_add_country:'+ Додати країну',
+    hol_days:'днів', hol_add:'+ Додати свято', hol_edit:'ред.', hol_del:'вид.',
+    hol_date:'Дата', hol_name:'Назва', hol_actions:'Дії',
+    hol_save:'Зберегти', hol_create:'Створити', hol_country_code:'Код країни (напр. TR)',
+    hol_holiday_name:'Назва свята', hol_first_holiday:'Перше свято',
+    hol_add_title:'Додати свято', hol_edit_title:'Редагувати свято', hol_add_country_title:'Додати країну',
+    hol_date_name_req:'Дата та назва обов\'язкові', hol_all_req:'Всі поля обов\'язкові',
+    hol_added:'Свято додано', hol_updated:'Свято оновлено', hol_deleted:'Свято видалено',
+    hol_country_added:'Країну додано', hol_confirm_delete:'Видалити це свято?',
     sentToday:'Відправлено сьогодні', campaignLeads:'Ліди кампанії', outreachSent:'Розсилка відправлена', unread:'Непрочитані',
     accounts:'Акаунти', alias:'Псевдонім', name:"Ім'я", id:'ID',
     conv_all:'Всі', conv_unread:'Непрочитані', conv_select:'Оберіть переписку',
@@ -2516,28 +2538,29 @@ function formatChatToolResult(name, result){
 }
 
 /* ═══════════════ HOLIDAYS ═══════════════ */
+const COUNTRY_NAMES={UA:'Ukraine',AT:'Austria',BE:'Belgium',BG:'Bulgaria',HR:'Croatia',CY:'Cyprus',CZ:'Czechia',DK:'Denmark',EE:'Estonia',FI:'Finland',FR:'France',DE:'Germany',GR:'Greece',HU:'Hungary',IE:'Ireland',IT:'Italy',LV:'Latvia',LT:'Lithuania',LU:'Luxembourg',MT:'Malta',NL:'Netherlands',PL:'Poland',PT:'Portugal',RO:'Romania',SK:'Slovakia',SI:'Slovenia',ES:'Spain',SE:'Sweden',US:'United States',CA:'Canada',GB:'United Kingdom',AU:'Australia',NZ:'New Zealand',JP:'Japan',KR:'South Korea',SG:'Singapore',HK:'Hong Kong',TW:'Taiwan',AE:'UAE',SA:'Saudi Arabia',IL:'Israel',QA:'Qatar',BH:'Bahrain',IN:'India',BR:'Brazil',MX:'Mexico',CL:'Chile',CO:'Colombia',CH:'Switzerland',NO:'Norway',IS:'Iceland',RS:'Serbia',BA:'Bosnia & Herzegovina',ZA:'South Africa',NG:'Nigeria',KE:'Kenya',EG:'Egypt',MA:'Morocco'};
 async function pgHolidays(el){
   const data = await api('/holidays/countries');
   const countries = data.countries || [];
   window._holidayCountries = countries;
 
   el.innerHTML = `
-    <div class="page-title">Public Holidays <span style="color:var(--text3);font-size:12px">${countries.length} countries, ${countries.reduce((s,c)=>s+Number(c.holiday_count),0)} holidays</span></div>
+    <div class="page-title">${t('hol_title')} <span style="color:var(--text3);font-size:12px">${countries.length} ${t('hol_countries')}, ${countries.reduce((s,c)=>s+Number(c.holiday_count),0)} ${t('hol_holidays')}</span></div>
     <div style="display:flex;gap:12px;margin-bottom:12px;align-items:center">
-      <input id="hol-search" placeholder="Filter countries..." style="flex:1;padding:6px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono);font-size:12px">
-      <button onclick="holidayAddCountry()" style="padding:6px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:11px">+ Add Country</button>
+      <input id="hol-search" placeholder="${t('hol_filter')}" style="flex:1;padding:6px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono);font-size:12px">
+      <button onclick="holidayAddCountry()" style="padding:6px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:11px">${t('hol_add_country')}</button>
     </div>
     <div id="hol-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
   `;
 
   function renderGrid(filter=''){
     const f = filter.toLowerCase();
-    const filtered = countries.filter(c => c.country_code.toLowerCase().includes(f));
+    const filtered = countries.filter(c => c.country_code.toLowerCase().includes(f) || (COUNTRY_NAMES[c.country_code]||'').toLowerCase().includes(f));
     $('hol-grid').innerHTML = filtered.map(c => `
       <div class="card" style="padding:12px;cursor:pointer;border:1px solid var(--border);border-radius:6px;background:var(--surface)" onclick="holidayOpenCountry('${c.country_code}')">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:16px;font-weight:700;font-family:var(--mono)">${esc(c.country_code)}</span>
-          <span style="font-size:11px;color:var(--text3)">${c.holiday_count} days</span>
+          <span><span style="font-size:16px;font-weight:700;font-family:var(--mono)">${esc(c.country_code)}</span> <span style="font-size:11px;color:var(--text3)">${COUNTRY_NAMES[c.country_code]||''}</span></span>
+          <span style="font-size:11px;color:var(--text3)">${c.holiday_count} ${t('hol_days')}</span>
         </div>
       </div>
     `).join('');
@@ -2558,30 +2581,30 @@ async function holidayOpenCountry(cc){
       <td style="white-space:nowrap">${d}</td>
       <td>${esc(h.name)}</td>
       <td style="white-space:nowrap">
-        <button onclick="holidayEdit(${h.id},'${d}','${esc(h.name).replace(/'/g,"\\'")}','${cc}')" style="background:none;border:none;color:var(--amber);cursor:pointer;font-size:11px;font-family:var(--mono)">edit</button>
-        <button onclick="holidayDelete(${h.id},'${cc}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;font-family:var(--mono);margin-left:4px">del</button>
+        <button onclick="holidayEdit(${h.id},'${d}','${esc(h.name).replace(/'/g,"\\'")}','${cc}')" style="background:none;border:none;color:var(--amber);cursor:pointer;font-size:11px;font-family:var(--mono)">${t('hol_edit')}</button>
+        <button onclick="holidayDelete(${h.id},'${cc}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;font-family:var(--mono);margin-left:4px">${t('hol_del')}</button>
       </td>
     </tr>
   `}).join('');
 
   const html = `
     <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
-      <button onclick="holidayAdd('${cc}')" style="padding:4px 10px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:11px">+ Add Holiday</button>
+      <button onclick="holidayAdd('${cc}')" style="padding:4px 10px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:11px">${t('hol_add')}</button>
     </div>
     <table style="width:100%">
-      <tr><th style="text-align:left">Date</th><th style="text-align:left">Name</th><th>Actions</th></tr>
+      <tr><th style="text-align:left">${t('hol_date')}</th><th style="text-align:left">${t('hol_name')}</th><th>${t('hol_actions')}</th></tr>
       ${rows}
     </table>
   `;
-  modal(cc + ' — ' + holidays.length + ' holidays', html);
+  modal(cc + ' ' + (COUNTRY_NAMES[cc]||'') + ' — ' + holidays.length + ' ' + t('hol_holidays'), html);
 }
 
 function holidayAdd(cc){
-  const m = modal('Add Holiday — ' + cc, `
+  const m = modal(t('hol_add_title') + ' — ' + cc, `
     <div style="display:flex;flex-direction:column;gap:8px">
       <input id="hol-new-date" type="date" value="2026-01-01" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono)">
-      <input id="hol-new-name" placeholder="Holiday name" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono)">
-      <button onclick="holidaySaveNew('${cc}')" style="padding:6px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono)">Save</button>
+      <input id="hol-new-name" placeholder="${t('hol_holiday_name')}" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono)">
+      <button onclick="holidaySaveNew('${cc}')" style="padding:6px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono)">${t('hol_save')}</button>
     </div>
   `);
 }
@@ -2589,21 +2612,21 @@ function holidayAdd(cc){
 async function holidaySaveNew(cc){
   const date = $('hol-new-date').value;
   const name = $('hol-new-name').value;
-  if(!date||!name) return toast('Date and name required', false);
+  if(!date||!name) return toast(t('hol_date_name_req'), false);
   await api('/holidays', {method:'POST', body:{country_code:cc, date, name}});
   document.querySelector('.modal-overlay')?.remove();
-  toast('Holiday added');
+  toast(t('hol_added'));
   holidayOpenCountry(cc);
   pgHolidays(vp());
 }
 
 function holidayEdit(id, date, name, cc){
   document.querySelector('.modal-overlay')?.remove();
-  const m = modal('Edit Holiday', `
+  const m = modal(t('hol_edit_title'), `
     <div style="display:flex;flex-direction:column;gap:8px">
       <input id="hol-edit-date" type="date" value="${date}" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono)">
       <input id="hol-edit-name" value="${name}" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono)">
-      <button onclick="holidaySaveEdit(${id},'${cc}')" style="padding:6px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono)">Save</button>
+      <button onclick="holidaySaveEdit(${id},'${cc}')" style="padding:6px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono)">${t('hol_save')}</button>
     </div>
   `);
 }
@@ -2611,30 +2634,30 @@ function holidayEdit(id, date, name, cc){
 async function holidaySaveEdit(id, cc){
   const date = $('hol-edit-date').value;
   const name = $('hol-edit-name').value;
-  if(!date||!name) return toast('Date and name required', false);
+  if(!date||!name) return toast(t('hol_date_name_req'), false);
   await api('/holidays/' + id, {method:'PATCH', body:{date, name}});
   document.querySelector('.modal-overlay')?.remove();
-  toast('Holiday updated');
+  toast(t('hol_updated'));
   holidayOpenCountry(cc);
   pgHolidays(vp());
 }
 
 async function holidayDelete(id, cc){
-  if(!confirm('Delete this holiday?')) return;
+  if(!confirm(t('hol_confirm_delete'))) return;
   await api('/holidays/' + id, {method:'DELETE'});
   document.querySelector('.modal-overlay')?.remove();
-  toast('Holiday deleted');
+  toast(t('hol_deleted'));
   holidayOpenCountry(cc);
   pgHolidays(vp());
 }
 
 function holidayAddCountry(){
-  const m = modal('Add Country', `
+  const m = modal(t('hol_add_country_title'), `
     <div style="display:flex;flex-direction:column;gap:8px">
-      <input id="hol-new-cc" placeholder="Country code (e.g. TR)" maxlength="2" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono);text-transform:uppercase">
+      <input id="hol-new-cc" placeholder="${t('hol_country_code')}" maxlength="2" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono);text-transform:uppercase">
       <input id="hol-new-cc-date" type="date" value="2026-01-01" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono)">
-      <input id="hol-new-cc-name" placeholder="First holiday name" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono)">
-      <button onclick="holidaySaveNewCountry()" style="padding:6px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono)">Create</button>
+      <input id="hol-new-cc-name" placeholder="${t('hol_first_holiday')}" style="padding:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;font-family:var(--mono)">
+      <button onclick="holidaySaveNewCountry()" style="padding:6px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:var(--mono)">${t('hol_create')}</button>
     </div>
   `);
 }
@@ -2643,10 +2666,10 @@ async function holidaySaveNewCountry(){
   const cc = $('hol-new-cc').value.toUpperCase();
   const date = $('hol-new-cc-date').value;
   const name = $('hol-new-cc-name').value;
-  if(!cc||!date||!name) return toast('All fields required', false);
+  if(!cc||!date||!name) return toast(t('hol_all_req'), false);
   await api('/holidays', {method:'POST', body:{country_code:cc, date, name}});
   document.querySelector('.modal-overlay')?.remove();
-  toast('Country added');
+  toast(t('hol_country_added'));
   pgHolidays(vp());
 }
 
