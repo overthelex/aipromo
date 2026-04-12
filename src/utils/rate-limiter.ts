@@ -66,6 +66,24 @@ export function isBusinessHours(): boolean {
   return hour >= appConfig.businessHoursStart && hour < appConfig.businessHoursEnd;
 }
 
+export async function isPublicHoliday(countryCode: string, date?: Date): Promise<boolean> {
+  const d = date || new Date();
+  const dateStr = d.toISOString().slice(0, 10);
+  const rows = await sql`
+    SELECT 1 FROM public_holidays
+    WHERE country_code = ${countryCode} AND date = ${dateStr}
+    LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
+export async function isWorkingDay(countryCode: string, date?: Date): Promise<boolean> {
+  const d = date || new Date();
+  const day = d.getDay();
+  if (day === 0 || day === 6) return false; // weekend
+  return !(await isPublicHoliday(countryCode, d));
+}
+
 // Per-minute rate limiting (in-memory sliding window)
 const minuteWindows = new Map<string, number[]>();
 
