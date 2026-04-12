@@ -313,6 +313,18 @@ export async function initDatabase(): Promise<void> {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id)`;
+
+  // --- Public holidays per country ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS public_holidays (
+      id SERIAL PRIMARY KEY,
+      country_code TEXT NOT NULL,
+      date DATE NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      UNIQUE(country_code, date)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_public_holidays_lookup ON public_holidays(country_code, date)`;
 }
 
 export async function closeDatabase(): Promise<void> {
