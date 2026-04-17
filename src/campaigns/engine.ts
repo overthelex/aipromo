@@ -98,13 +98,14 @@ function randomDelay(minSec: number, maxSec: number): number {
 // --- Outreach System Prompt ---
 
 const INVITATION_NOTE_LIMIT = 290;
+const MESSAGE_LIMIT = 500;
 
 function getOutreachSystemPrompt(campaign: CampaignConfig, angle: string, channel: "linkedin" | "instagram"): string {
   const channelRules = channel === "instagram"
     ? `- This is an Instagram DM — be casual and brief, 2-3 sentences MAX
 - Don't mention LinkedIn or connection requests
 - Use a friendly, approachable tone suitable for Instagram`
-    : `- 3-5 sentences MAX. LinkedIn messages must be short.`;
+    : `- 2-3 sentences MAX, under 500 characters. LinkedIn truncates longer messages.`;
 
   return `You are writing a ${channel === "instagram" ? "Instagram DM" : "LinkedIn first-touch message"} for the ${campaign.name} campaign.
 
@@ -304,7 +305,12 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     }
 
     const systemPrompt = getOutreachSystemPrompt(cam, angle, "linkedin");
-    const message = await claude.generateWithSystem(systemPrompt, userPrompt);
+    let message = await claude.generateWithSystem(systemPrompt, userPrompt);
+    if (message.length > MESSAGE_LIMIT) {
+      const trimmed = message.slice(0, MESSAGE_LIMIT);
+      const lastEnd = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
+      message = lastEnd > MESSAGE_LIMIT * 0.5 ? trimmed.slice(0, lastEnd + 1) : trimmed.slice(0, trimmed.lastIndexOf(" "));
+    }
 
     if (opts.dryRun) {
       console.log(`  ${chalk.bold(profile.name)} [${chalk.cyan(angle)}]:`);
@@ -396,12 +402,12 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
     igDMCount = await sendInstagramDMs(cam, campaignRow.id, accountId, claude, opts);
   }
 
-  // --- Phase 2c: Send scheduled messages whose time has come ---
+  // --- Phase 2c: Send scheduled/pending messages whose time has come ---
   if (!opts.dryRun) {
     const scheduledSent = await processScheduledOutreach(unipile, accountId);
     if (scheduledSent > 0) {
       sentCount += scheduledSent;
-      clog(chalk.green(`  + ${scheduledSent} scheduled messages sent`));
+      clog(chalk.green(`  + ${scheduledSent} scheduled/pending messages sent`));
     }
   }
 
@@ -636,14 +642,14 @@ export async function processScheduledOutreach(
     FROM outreach_queue oq
     JOIN leads l ON oq.lead_id = l.id
     JOIN outreach_campaigns oc ON oq.campaign_id = oc.id
-    WHERE oq.status = 'scheduled'
-      AND oq.scheduled_at <= NOW()
+    WHERE (oq.status = 'scheduled' AND oq.scheduled_at <= NOW())
+       OR oq.status = 'pending'
     ORDER BY oq.scheduled_at ASC
     LIMIT 30
   `;
 
   if (due.length === 0) return 0;
-  clog(chalk.bold(`\nProcessing ${due.length} scheduled messages...\n`));
+  clog(chalk.bold(`\nProcessing ${due.length} scheduled/pending messages...\n`));
 
   const claude = new ClaudeService();
   let sent = 0;
@@ -659,11 +665,17 @@ export async function processScheduledOutreach(
     }
 
     try {
-      const chatId = await unipile.startChat(item.linkedin_id, item.message_text);
+      let msgText = item.message_text;
+      if (msgText.length > MESSAGE_LIMIT) {
+        const trimmed = msgText.slice(0, MESSAGE_LIMIT);
+        const lastEnd = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("? "), trimmed.lastIndexOf("! "));
+        msgText = lastEnd > MESSAGE_LIMIT * 0.5 ? trimmed.slice(0, lastEnd + 1) : trimmed.slice(0, trimmed.lastIndexOf(" "));
+      }
+      const chatId = await unipile.startChat(item.linkedin_id, msgText);
       await sql`UPDATE outreach_queue SET status = 'sent', sent_at = NOW() WHERE id = ${item.id}`;
       await sql`UPDATE leads SET status = 'contacted' WHERE id = ${item.lead_id} AND status = 'prospect'`;
       sent++;
-      clog(chalk.green(`  ✓ ${item.name} [scheduled]`));
+      clog(chalk.green(`  ✓ ${item.name} [${item.status === 'pending' ? 'pending' : 'scheduled'}]`));
       await sleep(randomDelay(10, 25));
     } catch (err: any) {
       if (err.message?.includes('unreachable') || err.message?.includes('422')) {

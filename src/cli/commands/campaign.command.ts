@@ -1,6 +1,5 @@
 import { Command } from "commander";
 import { initDatabase, closeDatabase } from "../../storage/store.js";
-import { runCampaignDay } from "../../campaigns/engine.js";
 import { getCampaign, listCampaigns } from "../../campaigns/registry.js";
 import { getAccountOption } from "../cli.js";
 import { resolveAccountName, resolveAccountId } from "../../config.js";
@@ -37,6 +36,7 @@ export function registerCampaignCommand(parent: Command): void {
           return;
         }
 
+        const { runCampaignDay } = await import("../../campaigns/engine.js");
         const result = await runCampaignDay({
           campaign: cam,
           accountAlias: account,
