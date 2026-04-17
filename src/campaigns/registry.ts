@@ -1,10 +1,14 @@
 import type { CampaignConfig } from "./types.js";
 import { config as registryAccess } from "./registry-access-2w.js";
 import { config as panopticOsint } from "./panoptic-osint.js";
+import { config as investorNl } from "./investor-nl.js";
+import { config as investorUs } from "./investor-us.js";
 
 const campaigns: Record<string, CampaignConfig> = {
   "registry-access-2w": registryAccess,
   "panoptic-osint": panopticOsint,
+  "investor-nl": investorNl,
+  "investor-us": investorUs,
 };
 
 export function getCampaign(name: string): CampaignConfig {
