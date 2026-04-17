@@ -20,8 +20,8 @@ function clog(msg: string) {
   broadcast("campaign_log", { msg: msg.replace(/\x1b\[[0-9;]*m/g, "") }); // strip ANSI colors
 }
 
-// Ukraine location ID for LinkedIn search
-const UKRAINE_LOCATION_ID = "102264497";
+// Default location filter when campaign does not specify one
+const DEFAULT_LOCATION_IDS = ["102264497"]; // Ukraine
 
 function sanitize(s: string): string {
   return s.replace(/\0/g, "");
@@ -202,7 +202,7 @@ export async function runCampaignDay(opts: RunCampaignDayOptions): Promise<{
   const searchResults = await searchLeads({
     accountAlias: opts.accountAlias,
     keywords: dayQuery.keywords,
-    location: [UKRAINE_LOCATION_ID],
+    location: cam.locationIds ?? DEFAULT_LOCATION_IDS,
     title: dayQuery.title,
     limit: opts.maxNewLeads,
     save: true,

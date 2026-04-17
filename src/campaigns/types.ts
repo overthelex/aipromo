@@ -17,4 +17,6 @@ export interface CampaignConfig {
   channels: Channel[];
   /** Unipile account ID for Instagram DMs (optional) */
   instagramAccountId?: string;
+  /** LinkedIn geo IDs to filter search by. Defaults to Ukraine if omitted. */
+  locationIds?: string[];
 }

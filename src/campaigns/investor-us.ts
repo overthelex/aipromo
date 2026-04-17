@@ -102,4 +102,5 @@ export const config: CampaignConfig = {
   getMessageAngle,
   getAngleInstruction,
   channels: ["linkedin"],
+  locationIds: ["103644278"], // United States
 };
