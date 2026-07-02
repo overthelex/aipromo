@@ -9,6 +9,17 @@ import { syncPosts, syncCompanyPosts } from "../core/posts.js";
 import { searchLeads } from "../core/search.js";
 import { runCampaignDay } from "../campaigns/engine.js";
 import { getCampaign, listCampaigns } from "../campaigns/registry.js";
+import {
+  importClientsFromOpendata,
+  listClients,
+  clientStats,
+  getWarmupStatus,
+  validateNewClients,
+  syncSuppressionList,
+  sendClientEmail,
+  runEmailCampaign,
+} from "../core/clients.js";
+import type { ClientSegment } from "../types/client.types.js";
 import { broadcast } from "../server.js";
 import { chatRouter } from "./chat.js";
 import { getAllowedAccounts } from "./auth.js";
@@ -848,6 +859,115 @@ apiRouter.patch("/holidays/:id", async (req, res) => {
 apiRouter.delete("/holidays/:id", async (req, res) => {
   await sql`DELETE FROM public_holidays WHERE id = ${req.params.id}`;
   res.json({ ok: true });
+});
+
+// --- Email Clients ---
+apiRouter.get("/clients", async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 100, 5000));
+    const clients = await listClients({
+      segment: (req.query.segment as ClientSegment) || undefined,
+      status: (req.query.status as string) || undefined,
+      tag: (req.query.tag as string) || undefined,
+      limit,
+    });
+    res.json({ items: clients });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.get("/clients/stats", async (_req, res) => {
+  try {
+    const stats = await clientStats();
+    res.json({ items: stats });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.get("/clients/warmup", async (_req, res) => {
+  try {
+    const status = await getWarmupStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.post("/clients/import", async (req, res) => {
+  const { segment, tag, limit } = req.body;
+  if (segment !== "advocate" && segment !== "law_firm" && segment !== "all") {
+    return res.status(400).json({ error: "segment must be 'advocate', 'law_firm' or 'all'" });
+  }
+  try {
+    if (segment === "all") {
+      const segments: ClientSegment[] = ["advocate", "law_firm"];
+      const results = [];
+      for (const seg of segments) {
+        results.push(await importClientsFromOpendata({ segment: seg, tag, limit }));
+      }
+      broadcast("clients_import", { results });
+      return res.json({ results });
+    }
+    const result = await importClientsFromOpendata({ segment, tag, limit });
+    broadcast("clients_import", { results: [result] });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.post("/clients/validate", async (req, res) => {
+  const limit = parseInt(req.body?.limit) || 1000;
+  try {
+    const result = await validateNewClients(limit);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.post("/clients/sync-suppression", async (_req, res) => {
+  try {
+    const result = await syncSuppressionList();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.post("/clients/:id/send", async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid client id" });
+  const { subject, body } = req.body;
+  if (!subject || !body) return res.status(400).json({ error: "subject and body required" });
+  try {
+    await sendClientEmail(id, subject, body);
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.post("/clients/campaign", async (req, res) => {
+  const { subject, body, segment, tag, limit, personalize, force } = req.body;
+  if (!subject || !body) return res.status(400).json({ error: "subject and body required" });
+  try {
+    const result = await runEmailCampaign({
+      subject,
+      body,
+      segment: (segment as ClientSegment) || undefined,
+      tag: tag || undefined,
+      limit: limit || 50,
+      personalize: personalize ?? false,
+      ignoreBusinessHours: force ?? false,
+    });
+    broadcast("clients_campaign", { ...result });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- Config ---

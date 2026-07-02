@@ -86,6 +86,76 @@ app.get("/login", (_req, res) => {
   res.sendFile(join(__dirname, "web/public/login.html"));
 });
 
+// Unsubscribe (public, no auth) — one-click List-Unsubscribe target.
+// Token is self-verifying (HMAC of the email), so no login/DB lookup to validate.
+async function handleUnsubscribe(req: express.Request, res: express.Response) {
+  const token = String(req.query.token || req.body?.token || "");
+  const { verifyUnsubscribeToken } = await import("./utils/unsubscribe.js");
+  const { unsubscribeByEmail } = await import("./core/clients.js");
+  const email = verifyUnsubscribeToken(token);
+  if (!email) {
+    return res
+      .status(400)
+      .send("<h1>Недійсне посилання</h1><p>Посилання для відписки некоректне або застаріле.</p>");
+  }
+  try {
+    await unsubscribeByEmail(email);
+  } catch (e) {
+    logger.error({ err: String(e) }, "Unsubscribe failed");
+  }
+  res.send(
+    `<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>Відписка</title></head>` +
+      `<body style="font-family:sans-serif;max-width:520px;margin:80px auto;text-align:center">` +
+      `<h1>Готово</h1><p>Адресу <b>${email.replace(/</g, "&lt;")}</b> відписано. ` +
+      `Ви більше не отримуватимете від нас листів.</p></body></html>`
+  );
+}
+app.get("/unsubscribe", handleUnsubscribe);
+app.post("/unsubscribe", handleUnsubscribe); // RFC 8058 one-click POST
+
+// SES bounce/complaint notifications via SNS (public, no auth — signature-verified).
+// SNS posts application/text, so parse the raw body ourselves.
+app.post(
+  "/webhook/ses",
+  express.text({ type: () => true, limit: "1mb" }),
+  async (req, res) => {
+    try {
+      const { verifySnsMessage, confirmSubscription } = await import("./utils/sns.js");
+      const { applySesNotification } = await import("./core/clients.js");
+
+      const raw = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+      const msg = JSON.parse(raw);
+
+      // Pin the topic if configured.
+      if (appConfig.sesSnsTopicArn && msg.TopicArn !== appConfig.sesSnsTopicArn) {
+        logger.warn({ topic: msg.TopicArn }, "SNS message from unexpected topic");
+        return res.status(403).end();
+      }
+
+      if (!(await verifySnsMessage(msg))) {
+        logger.warn({ type: msg.Type }, "SNS signature invalid");
+        return res.status(403).end();
+      }
+
+      if (msg.Type === "SubscriptionConfirmation") {
+        await confirmSubscription(msg);
+        return res.status(200).end();
+      }
+
+      if (msg.Type === "Notification") {
+        const notification = JSON.parse(msg.Message);
+        await applySesNotification(notification);
+        return res.status(200).end();
+      }
+
+      return res.status(200).end();
+    } catch (e) {
+      logger.error({ err: String(e) }, "SES webhook error");
+      return res.status(400).end();
+    }
+  }
+);
+
 // Crawler detection
 const CRAWLER_RE = /googlebot|bingbot|yandexbot|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|whatsapp|telegrambot|applebot|duckduckbot|ia_archiver|semrushbot|ahrefsbot|mj12bot/i;
 

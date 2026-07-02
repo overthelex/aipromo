@@ -325,6 +325,52 @@ export async function initDatabase(): Promise<void> {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_public_holidays_lookup ON public_holidays(country_code, date)`;
+
+  // --- Email clients (open-data legal contacts for personal email support) ---
+  // Sourced from public registries (ЄРАУ advocates, law firms). Each row is a
+  // person/firm we communicate with individually by email.
+  await sql`
+    CREATE TABLE IF NOT EXISTS email_clients (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      org TEXT NOT NULL DEFAULT '',
+      edrpou TEXT NOT NULL DEFAULT '',
+      phone TEXT NOT NULL DEFAULT '',
+      website TEXT NOT NULL DEFAULT '',
+      region TEXT NOT NULL DEFAULT '',
+      segment TEXT NOT NULL DEFAULT 'advocate',
+      tags TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'new',
+      source TEXT NOT NULL DEFAULT '',
+      unsubscribe_token TEXT NOT NULL DEFAULT '',
+      last_contacted_at TIMESTAMPTZ,
+      unsubscribed_at TIMESTAMPTZ,
+      imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  // Dedup by normalized email (case-insensitive)
+  try {
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS email_clients_email_key ON email_clients(lower(email))`;
+  } catch (e: any) { if (e.code !== '23505') throw e; }
+  try { await sql`CREATE INDEX IF NOT EXISTS idx_email_clients_status ON email_clients(status)`; } catch (e: any) { if (e.code !== '23505') throw e; }
+  try { await sql`CREATE INDEX IF NOT EXISTS idx_email_clients_segment ON email_clients(segment)`; } catch (e: any) { if (e.code !== '23505') throw e; }
+
+  // --- Email message log (outbound personal emails + delivery status) ---
+  await sql`
+    CREATE TABLE IF NOT EXISTS email_messages (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER REFERENCES email_clients(id),
+      direction TEXT NOT NULL DEFAULT 'outbound',
+      subject TEXT NOT NULL DEFAULT '',
+      body TEXT NOT NULL DEFAULT '',
+      message_id TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'sent',
+      error TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  try { await sql`CREATE INDEX IF NOT EXISTS idx_email_messages_client ON email_messages(client_id)`; } catch (e: any) { if (e.code !== '23505') throw e; }
 }
 
 export async function closeDatabase(): Promise<void> {
