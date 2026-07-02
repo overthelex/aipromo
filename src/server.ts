@@ -293,7 +293,7 @@ app.get("/health", async (_req, res) => {
 });
 
 // SPA fallback
-const PAGES = ["dashboard", "leads", "conversations", "messages", "outreach", "campaigns", "posts", "search", "sync", "activity", "analytics", "pipeline", "deals", "follow-ups", "chat", "holidays"];
+const PAGES = ["dashboard", "leads", "conversations", "messages", "outreach", "campaigns", "posts", "search", "sync", "activity", "analytics", "pipeline", "deals", "follow-ups", "chat", "holidays", "contacts"];
 for (const p of PAGES) {
   app.get(`/${p}`, (_req, res) => {
     res.sendFile(join(__dirname, "web/public/index.html"));
