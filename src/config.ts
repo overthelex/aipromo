@@ -39,10 +39,47 @@ const configSchema = z.object({
   // Rate Limits
   maxMessagesPerDay: z.coerce.number().int().positive().default(50),
   maxInvitationsPerDay: z.coerce.number().int().positive().default(20),
+  // Steady-state daily email cap. Kept at 80/day to match the declared SES
+  // use-case (<100/day, individual correspondence — not bulk/marketing).
+  maxEmailsPerDay: z.coerce.number().int().positive().default(80),
   minDelaySeconds: z.coerce.number().positive().default(3),
   maxDelaySeconds: z.coerce.number().positive().default(8),
   businessHoursStart: z.coerce.number().int().min(0).max(23).default(9),
   businessHoursEnd: z.coerce.number().int().min(0).max(23).default(18),
+
+  // SMTP (email client communication via own mail server)
+  smtpHost: z.string().default(""),
+  smtpPort: z.coerce.number().int().positive().default(587),
+  // true = 465/implicit TLS, false = 587/STARTTLS. Parse "true"/"1"/"yes" only.
+  smtpSecure: z
+    .string()
+    .optional()
+    .transform((v) => /^(true|1|yes)$/i.test(v ?? "")),
+  smtpUser: z.string().default(""),
+  smtpPassword: z.string().default(""),
+  smtpFromName: z.string().default(""),
+  smtpFromEmail: z.string().default(""),
+  smtpReplyTo: z.string().default(""),
+  // Public base URL used to build one-click unsubscribe links (List-Unsubscribe)
+  publicBaseUrl: z.string().default(""),
+  // Secret used to sign unsubscribe tokens (HMAC)
+  unsubscribeSecret: z.string().default(""),
+
+  // --- SES relay reputation / warm-up ---
+  // Region of the SES account the mail server relays through.
+  sesRegion: z.string().default("eu-central-1"),
+  // Warm-up: ramp new sending up to maxEmailsPerDay over the first days.
+  emailWarmupEnabled: z
+    .string()
+    .optional()
+    .transform((v) => v == null || /^(true|1|yes)$/i.test(v)),
+  // ISO date (YYYY-MM-DD) sending started; day 0 = lowest ramp step.
+  emailWarmupStartDate: z.string().default(""),
+  // Reputation guard: abort campaigns if account rates exceed these (fractions).
+  emailMaxBounceRate: z.coerce.number().min(0).max(1).default(0.05),
+  emailMaxComplaintRate: z.coerce.number().min(0).max(1).default(0.001),
+  // SNS topic that SES bounce/complaint notifications arrive on (webhook pins it).
+  sesSnsTopicArn: z.string().default(""),
 
   // Persona
   senderName: z.string().default(""),
@@ -71,10 +108,27 @@ function loadConfig(): AppConfig {
     bedrockModel: process.env.BEDROCK_MODEL,
     maxMessagesPerDay: process.env.MAX_MESSAGES_PER_DAY,
     maxInvitationsPerDay: process.env.MAX_INVITATIONS_PER_DAY,
+    maxEmailsPerDay: process.env.MAX_EMAILS_PER_DAY,
     minDelaySeconds: process.env.MIN_DELAY_SECONDS,
     maxDelaySeconds: process.env.MAX_DELAY_SECONDS,
     businessHoursStart: process.env.BUSINESS_HOURS_START,
     businessHoursEnd: process.env.BUSINESS_HOURS_END,
+    smtpHost: process.env.SMTP_HOST,
+    smtpPort: process.env.SMTP_PORT,
+    smtpSecure: process.env.SMTP_SECURE,
+    smtpUser: process.env.SMTP_USER,
+    smtpPassword: process.env.SMTP_PASSWORD,
+    smtpFromName: process.env.SMTP_FROM_NAME,
+    smtpFromEmail: process.env.SMTP_FROM_EMAIL,
+    smtpReplyTo: process.env.SMTP_REPLY_TO,
+    publicBaseUrl: process.env.PUBLIC_BASE_URL,
+    unsubscribeSecret: process.env.UNSUBSCRIBE_SECRET,
+    sesRegion: process.env.SES_REGION,
+    emailWarmupEnabled: process.env.EMAIL_WARMUP_ENABLED,
+    emailWarmupStartDate: process.env.EMAIL_WARMUP_START_DATE,
+    emailMaxBounceRate: process.env.EMAIL_MAX_BOUNCE_RATE,
+    emailMaxComplaintRate: process.env.EMAIL_MAX_COMPLAINT_RATE,
+    sesSnsTopicArn: process.env.SES_SNS_TOPIC_ARN,
     senderName: process.env.SENDER_NAME,
     senderCompany: process.env.SENDER_COMPANY,
     senderRole: process.env.SENDER_ROLE,

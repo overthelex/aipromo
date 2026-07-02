@@ -353,6 +353,9 @@
     <a href="/outreach" data-p="outreach" title="Outreach Queue">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
     </a>
+    <a href="/contacts" data-p="contacts" title="Contacts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><circle cx="12" cy="10" r="2.2"/><path d="M8.8 15.2a3.2 3.2 0 016.4 0"/></svg>
+    </a>
     <a href="/campaigns" data-p="campaigns" title="Campaigns">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
     </a>
@@ -397,7 +400,7 @@
 
 <script>
 const A='/api';
-const PAGES=['dashboard','leads','conversations','messages','outreach','campaigns','posts','search','sync','activity','analytics','pipeline','deals','follow-ups','chat'];
+const PAGES=['dashboard','leads','conversations','messages','outreach','campaigns','posts','search','sync','activity','analytics','pipeline','deals','follow-ups','chat','contacts'];
 function pageFromPath(){const p=window.location.pathname.replace(/^\//,'');return PAGES.includes(p)?p:'dashboard';}
 let page=pageFromPath();
 
@@ -477,7 +480,41 @@ const i18n = {
     chat_send:'Send', chat_empty:'Start a conversation to manage campaigns with AI', chat_no_convs:'No conversations yet',
     chat_s1:'Show campaign status and stats', chat_s2:'Show analytics and reply rates',
     chat_s3:'Run campaign day 1 in dry run mode', chat_s4:'Search leads by company or role',
-    chat_s5:'Show the 14-day campaign plan', chat_s6:'Show the lead pipeline'
+    chat_s5:'Show the 14-day campaign plan', chat_s6:'Show the lead pipeline',
+    contacts:'Contacts',
+    cl_title:'Email Contacts',
+    cl_total:'Total Contacts', cl_by_status:'By Status', cl_by_segment:'By Segment',
+    cl_st_new:'New', cl_st_contacted:'Contacted', cl_st_replied:'Replied',
+    cl_st_bounced:'Bounced', cl_st_complained:'Complained', cl_st_invalid:'Invalid',
+    cl_st_unsubscribed:'Unsubscribed',
+    cl_seg_advocate:'Advocates', cl_seg_law_firm:'Law Firms', cl_seg_all:'All',
+    cl_warmup_title:'Warm-up & Deliverability', cl_refresh:'Refresh',
+    cl_warmup_disabled:'Warm-up disabled', cl_warmup_day:'Warm-up day',
+    cl_effective_cap:'Daily Cap', cl_sent_today:'Sent Today', cl_remaining_today:'Remaining Today',
+    cl_bounce_rate:'Bounce Rate', cl_complaint_rate:'Complaint Rate',
+    cl_reputation:'Reputation Gate', cl_rep_ok:'OK', cl_rep_blocked:'BLOCKED',
+    cl_ses_status:'SES Status', cl_send_rate:'Max Send Rate', cl_max_24h:'Max 24h Send',
+    cl_actions:'Actions', cl_import:'Import', cl_validate_new:'Validate New',
+    cl_sync_suppression:'Sync SES Suppression', cl_send_campaign:'Send Campaign',
+    cl_filter_segment:'Segment', cl_filter_status:'Status', cl_filter_tag:'Tag',
+    cl_filter_limit:'Limit', cl_load:'Load', cl_tag_ph:'Filter tag', cl_shown:'shown',
+    cl_col_name:'Name', cl_col_email:'Email', cl_col_org:'Org', cl_col_region:'Region',
+    cl_col_segment:'Segment', cl_col_status:'Status', cl_col_last:'Last Contacted', cl_col_actions:'',
+    cl_no_contacts:'No contacts found', cl_never:'Never',
+    cl_import_title:'Import Contacts', cl_import_btn:'Import',
+    cl_optional:'optional', cl_segment:'Segment',
+    cl_validate_title:'Validate New Contacts', cl_validate_btn:'Validate',
+    cl_validate_hint:'Runs email validation on new (unvalidated) contacts.',
+    cl_campaign_title:'Send Email Campaign', cl_subject:'Subject', cl_body:'Body',
+    cl_body_hint:'Supports placeholders: {{name}} {{first_name}} {{org}}',
+    cl_personalize:'AI-personalize each email', cl_force:'Ignore business hours (force)',
+    cl_campaign_btn:'Send Campaign', cl_campaign_confirm:'This sends REAL email to matching contacts. Continue?',
+    cl_send_title:'Send Email', cl_send_btn:'Send', cl_send:'Send',
+    cl_imported:'Imported', cl_validated:'Validation complete', cl_synced:'Suppression synced',
+    cl_sent_ok:'Email sent', cl_sending:'Sending...', cl_working:'Working...',
+    cl_res_sent:'sent', cl_res_skipped:'skipped', cl_res_failed:'failed',
+    cl_res_checked:'checked', cl_res_invalid:'invalid', cl_res_flagged:'flagged',
+    cl_stopped:'Stopped', cl_subject_body_req:'Subject and body are required'
   },
   ua: {
     dashboard:'Панель', leads:'Ліди', conversations:'Переписки', messages:'Повідомлення',
@@ -553,7 +590,41 @@ const i18n = {
     chat_send:'Надіслати', chat_empty:'Почніть розмову для управління кампаніями з AI', chat_no_convs:'Немає розмов',
     chat_s1:'Покажи статус кампаній', chat_s2:'Покажи аналітику та відсоток відповідей',
     chat_s3:'Запусти день 1 кампанії в тестовому режимі', chat_s4:'Знайди лідів за компанією або посадою',
-    chat_s5:'Покажи план кампанії на 14 днів', chat_s6:'Покажи воронку лідів'
+    chat_s5:'Покажи план кампанії на 14 днів', chat_s6:'Покажи воронку лідів',
+    contacts:'Контакти',
+    cl_title:'Email-контакти',
+    cl_total:'Всього контактів', cl_by_status:'За статусом', cl_by_segment:'За сегментом',
+    cl_st_new:'Нові', cl_st_contacted:'Написано', cl_st_replied:'Відповіли',
+    cl_st_bounced:'Відхилені', cl_st_complained:'Скарги', cl_st_invalid:'Недійсні',
+    cl_st_unsubscribed:'Відписалися',
+    cl_seg_advocate:'Адвокати', cl_seg_law_firm:'Юрфірми', cl_seg_all:'Всі',
+    cl_warmup_title:'Прогрів та доставність', cl_refresh:'Оновити',
+    cl_warmup_disabled:'Прогрів вимкнено', cl_warmup_day:'День прогріву',
+    cl_effective_cap:'Денний ліміт', cl_sent_today:'Надіслано сьогодні', cl_remaining_today:'Залишилось сьогодні',
+    cl_bounce_rate:'Відсоток відмов', cl_complaint_rate:'Відсоток скарг',
+    cl_reputation:'Репутаційний контроль', cl_rep_ok:'OK', cl_rep_blocked:'ЗАБЛОКОВАНО',
+    cl_ses_status:'Статус SES', cl_send_rate:'Макс. швидкість', cl_max_24h:'Ліміт за 24 год',
+    cl_actions:'Дії', cl_import:'Імпорт', cl_validate_new:'Перевірити нові',
+    cl_sync_suppression:'Синхр. блок-лист SES', cl_send_campaign:'Розсилка',
+    cl_filter_segment:'Сегмент', cl_filter_status:'Статус', cl_filter_tag:'Тег',
+    cl_filter_limit:'Ліміт', cl_load:'Завантажити', cl_tag_ph:'Фільтр тегів', cl_shown:'показано',
+    cl_col_name:'Ім\'я', cl_col_email:'Email', cl_col_org:'Організація', cl_col_region:'Регіон',
+    cl_col_segment:'Сегмент', cl_col_status:'Статус', cl_col_last:'Останній контакт', cl_col_actions:'',
+    cl_no_contacts:'Контактів не знайдено', cl_never:'Ніколи',
+    cl_import_title:'Імпорт контактів', cl_import_btn:'Імпортувати',
+    cl_optional:'необов\'язково', cl_segment:'Сегмент',
+    cl_validate_title:'Перевірка нових контактів', cl_validate_btn:'Перевірити',
+    cl_validate_hint:'Запускає перевірку email для нових (неперевірених) контактів.',
+    cl_campaign_title:'Email-розсилка', cl_subject:'Тема', cl_body:'Текст',
+    cl_body_hint:'Підтримує змінні: {{name}} {{first_name}} {{org}}',
+    cl_personalize:'AI-персоналізація кожного листа', cl_force:'Ігнорувати робочі години (force)',
+    cl_campaign_btn:'Надіслати розсилку', cl_campaign_confirm:'Це надішле СПРАВЖНІ листи відповідним контактам. Продовжити?',
+    cl_send_title:'Надіслати лист', cl_send_btn:'Надіслати', cl_send:'Написати',
+    cl_imported:'Імпортовано', cl_validated:'Перевірку завершено', cl_synced:'Блок-лист синхронізовано',
+    cl_sent_ok:'Лист надіслано', cl_sending:'Надсилаю...', cl_working:'Виконую...',
+    cl_res_sent:'надіслано', cl_res_skipped:'пропущено', cl_res_failed:'помилок',
+    cl_res_checked:'перевірено', cl_res_invalid:'недійсних', cl_res_flagged:'позначено',
+    cl_stopped:'Зупинено', cl_subject_body_req:'Тема та текст обов\'язкові'
   }
 };
 let lang = localStorage.getItem('lang') || 'ua';
@@ -631,6 +702,9 @@ function handleWSEvent(msg){
     if(page==='pipeline')pgPipeline(vp());
     if(page==='leads')loadLeads();
   }
+  if(ev==='clients_import'||ev==='clients_campaign'){
+    if(page==='contacts'){ loadClientsStats(); loadClientsWarmup(); loadClients(); }
+  }
 }
 connectWS();
 
@@ -688,7 +762,7 @@ async function render(){
   const el=vp();
   el.innerHTML='<div style="color:var(--text3);padding:40px;font-family:var(--mono)">Loading...</div>';
   try{
-    const fn={dashboard:pgDash,leads:pgLeads,conversations:pgConv,messages:pgMsgs,outreach:pgOutreach,campaigns:pgCamp,posts:pgPosts,search:pgSearch,sync:pgSync,activity:pgActivity,analytics:pgAnalytics,pipeline:pgPipeline,deals:pgDeals,'follow-ups':pgFollowUps,chat:pgChat,holidays:pgHolidays}[page];
+    const fn={dashboard:pgDash,leads:pgLeads,conversations:pgConv,messages:pgMsgs,outreach:pgOutreach,campaigns:pgCamp,posts:pgPosts,search:pgSearch,sync:pgSync,activity:pgActivity,analytics:pgAnalytics,pipeline:pgPipeline,deals:pgDeals,'follow-ups':pgFollowUps,chat:pgChat,contacts:pgClients,holidays:pgHolidays}[page];
     if(fn)await fn(el);
   }catch(e){el.innerHTML=`<div style="color:var(--red);padding:40px">${e.message}</div>`;}
 }
@@ -2535,6 +2609,260 @@ function formatChatToolResult(name, result){
 
   // Fallback: show JSON
   return '<pre style="margin:0;white-space:pre-wrap;font-size:10px">' + esc(JSON.stringify(result, null, 2)) + '</pre>';
+}
+
+/* ═══════════════ CONTACTS (EMAIL) ═══════════════ */
+const CL_STATUSES=['new','contacted','replied','bounced','complained','invalid','unsubscribed'];
+const CL_STATUS_KPI={new:'blue',contacted:'amber',replied:'teal',bounced:'red',complained:'red',invalid:'',unsubscribed:''};
+const CL_STATUS_TAG={new:'blue',contacted:'amber',replied:'teal',bounced:'red',complained:'red',invalid:'',unsubscribed:''};
+function clStatusTag(s){ return `<span class="tag ${CL_STATUS_TAG[s]||''}">${t('cl_st_'+s)||s}</span>`; }
+function clSegLabel(seg){ return seg==='advocate'?t('cl_seg_advocate'):seg==='law_firm'?t('cl_seg_law_firm'):(seg||'—'); }
+function clPct(frac,digits=2){ if(frac==null||isNaN(frac))return '—'; return (Number(frac)*100).toFixed(digits)+'%'; }
+function clSegOptions(includeAll=true,sel=''){
+  let o = includeAll ? `<option value="">${t('cl_seg_all')}</option>` : '';
+  o += `<option value="advocate" ${sel==='advocate'?'selected':''}>${t('cl_seg_advocate')}</option>`;
+  o += `<option value="law_firm" ${sel==='law_firm'?'selected':''}>${t('cl_seg_law_firm')}</option>`;
+  return o;
+}
+
+async function pgClients(el){
+  el.innerHTML=`
+    <div class="flex-between mb-16">
+      <div class="page-title" style="margin:0">${t('cl_title')} <span class="counter" id="cl-counter"></span></div>
+      <div class="btn-group" style="flex-wrap:wrap">
+        <button class="btn sm" onclick="clImportModal()">${t('cl_import')}</button>
+        <button class="btn sm" onclick="clValidateModal()">${t('cl_validate_new')}</button>
+        <button class="btn sm" onclick="clSyncSuppression(this)">${t('cl_sync_suppression')}</button>
+        <button class="btn sm primary" onclick="clCampaignModal()">${t('cl_send_campaign')}</button>
+      </div>
+    </div>
+    <div id="cl-stats"></div>
+    <div id="cl-warmup"></div>
+    <div class="section-label mt-16">${t('cl_title')}</div>
+    <div class="input-row mb-16">
+      <div class="field" style="max-width:160px"><label>${t('cl_filter_segment')}</label>
+        <select id="cl-f-seg">${clSegOptions(true)}</select>
+      </div>
+      <div class="field" style="max-width:160px"><label>${t('cl_filter_status')}</label>
+        <select id="cl-f-status"><option value="">${t('cl_seg_all')}</option>${CL_STATUSES.map(s=>`<option value="${s}">${t('cl_st_'+s)}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="max-width:160px"><label>${t('cl_filter_tag')}</label><input type="text" id="cl-f-tag" placeholder="${t('cl_tag_ph')}"></div>
+      <div class="field" style="max-width:100px"><label>${t('cl_filter_limit')}</label><input type="number" id="cl-f-lim" value="100"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn primary" onclick="loadClients()">${t('cl_load')}</button></div>
+    </div>
+    <div id="cl-tbl"></div>`;
+  await Promise.all([loadClientsStats(), loadClientsWarmup(), loadClients()]);
+}
+
+async function loadClientsStats(){
+  const box=$('cl-stats'); if(!box)return;
+  const d=await api('/clients/stats');
+  const items=(d&&d.items)||[];
+  let total=0; const byStatus={}, bySeg={};
+  for(const r of items){
+    const c=Number(r.count)||0; total+=c;
+    byStatus[r.status]=(byStatus[r.status]||0)+c;
+    bySeg[r.segment]=(bySeg[r.segment]||0)+c;
+  }
+  const counter=$('cl-counter'); if(counter) counter.textContent=total;
+  box.innerHTML=`
+    <div class="kpi-row">
+      <div class="kpi amber"><div class="num">${total}</div><div class="lbl">${t('cl_total')}</div></div>
+      <div class="kpi teal"><div class="num">${bySeg.advocate||0}</div><div class="lbl">${t('cl_seg_advocate')}</div></div>
+      <div class="kpi blue"><div class="num">${bySeg.law_firm||0}</div><div class="lbl">${t('cl_seg_law_firm')}</div></div>
+    </div>
+    <div class="section-label">${t('cl_by_status')}</div>
+    <div class="kpi-row">
+      ${CL_STATUSES.map(s=>`<div class="kpi ${CL_STATUS_KPI[s]||''}"><div class="num">${byStatus[s]||0}</div><div class="lbl">${t('cl_st_'+s)}</div></div>`).join('')}
+    </div>`;
+}
+
+async function loadClientsWarmup(){
+  const box=$('cl-warmup'); if(!box)return;
+  box.innerHTML=`<div class="card"><div class="card-body" style="color:var(--text3);font-family:var(--mono);font-size:11px">${t('cl_working')}</div></div>`;
+  const w=await api('/clients/warmup');
+  if(!w||w.error){ box.innerHTML=`<div class="card"><div class="card-body" style="color:var(--red)">${(w&&w.error)||'Error'}</div></div>`; return; }
+  const rep=w.reputation||{};
+  const bounceBad=Number(rep.bounceRate)>=0.05;
+  const complaintBad=Number(rep.complaintRate)>=0.001;
+  const repOk=w.reputationOk!==false;
+  const good='var(--teal)', bad='var(--red)';
+  const dayInfo = w.warmupEnabled ? `${t('cl_warmup_day')} ${w.day}` : t('cl_warmup_disabled');
+  box.innerHTML=`
+    <div class="card">
+      <div class="card-head">${t('cl_warmup_title')}
+        <span class="badge ${w.warmupEnabled?'tag amber':'tag'}" style="margin-left:4px">${dayInfo}</span>
+        <button class="btn sm ghost" style="margin-left:auto" onclick="loadClientsWarmup()">↻ ${t('cl_refresh')}</button>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
+          <div><div class="lbl" style="font-size:11px;color:var(--text3);margin-bottom:2px">${t('cl_effective_cap')}</div><div class="mono" style="font-size:20px;font-weight:700;color:var(--amber)">${w.effectiveCap??'—'}</div></div>
+          <div><div class="lbl" style="font-size:11px;color:var(--text3);margin-bottom:2px">${t('cl_sent_today')}</div><div class="mono" style="font-size:20px;font-weight:700">${w.sentToday??'—'}</div></div>
+          <div><div class="lbl" style="font-size:11px;color:var(--text3);margin-bottom:2px">${t('cl_remaining_today')}</div><div class="mono" style="font-size:20px;font-weight:700;color:var(--teal)">${w.remainingToday??'—'}</div></div>
+          <div><div class="lbl" style="font-size:11px;color:var(--text3);margin-bottom:2px">${t('cl_bounce_rate')}</div><div class="mono" style="font-size:20px;font-weight:700;color:${bounceBad?bad:good}">${clPct(rep.bounceRate)}</div></div>
+          <div><div class="lbl" style="font-size:11px;color:var(--text3);margin-bottom:2px">${t('cl_complaint_rate')}</div><div class="mono" style="font-size:20px;font-weight:700;color:${complaintBad?bad:good}">${clPct(rep.complaintRate,3)}</div></div>
+          <div><div class="lbl" style="font-size:11px;color:var(--text3);margin-bottom:2px">${t('cl_send_rate')}</div><div class="mono" style="font-size:20px;font-weight:700">${rep.maxSendRate??'—'}/s</div></div>
+          <div><div class="lbl" style="font-size:11px;color:var(--text3);margin-bottom:2px">${t('cl_max_24h')}</div><div class="mono" style="font-size:20px;font-weight:700">${rep.max24HourSend??'—'}</div></div>
+        </div>
+        <div class="flex mt-16" style="gap:10px;flex-wrap:wrap">
+          <span class="tag ${repOk?'teal':'red'}" style="font-size:11px">${t('cl_reputation')}: ${repOk?t('cl_rep_ok'):t('cl_rep_blocked')}</span>
+          <span class="tag ${rep.sendingEnabled!==false?'teal':'red'}" style="font-size:11px">${t('cl_ses_status')}: ${esc(rep.enforcementStatus||(rep.sendingEnabled!==false?'ENABLED':'DISABLED'))}</span>
+          ${!repOk&&w.reputationReason?`<span style="font-size:11px;color:var(--red)">${esc(w.reputationReason)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadClients(){
+  const box=$('cl-tbl'); if(!box)return;
+  const p=new URLSearchParams();
+  const seg=$('cl-f-seg')?.value, st=$('cl-f-status')?.value, tag=$('cl-f-tag')?.value, lim=$('cl-f-lim')?.value;
+  if(seg)p.set('segment',seg);
+  if(st)p.set('status',st);
+  if(tag)p.set('tag',tag);
+  p.set('limit',lim||'100');
+  box.innerHTML=`<div style="color:var(--text3);padding:20px;font-family:var(--mono);font-size:11px">${t('cl_working')}</div>`;
+  const d=await api('/clients?'+p);
+  const items=(d&&d.items)||[];
+  box.innerHTML=`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${items.length} ${t('cl_shown')}</div>
+    <div class="card"><div class="card-body flush" style="max-height:60vh;overflow:auto">
+      <table class="tbl"><thead><tr>
+        <th>${t('cl_col_name')}</th><th>${t('cl_col_email')}</th><th>${t('cl_col_org')}</th>
+        <th>${t('cl_col_region')}</th><th>${t('cl_col_segment')}</th><th>${t('cl_col_status')}</th>
+        <th>${t('cl_col_last')}</th><th></th>
+      </tr></thead><tbody>
+      ${items.length?items.map(c=>`<tr>
+        <td><strong>${esc(c.name)||'—'}</strong></td>
+        <td class="mono trunc" title="${esc(c.email)}">${esc(c.email)}</td>
+        <td class="nowrap trunc" title="${esc(c.org)}">${esc(c.org)||'—'}</td>
+        <td class="nowrap dim">${esc(c.region)||'—'}</td>
+        <td class="nowrap">${clSegLabel(c.segment)}</td>
+        <td class="nowrap">${clStatusTag(c.status)}</td>
+        <td class="mono dim nowrap">${c.lastContactedAt?fmtFull(c.lastContactedAt):t('cl_never')}</td>
+        <td class="nowrap"><button class="btn sm ghost" onclick="clSendModal(${c.id},'${esc(c.email).replace(/'/g,"\\'")}','${esc(c.name).replace(/'/g,"\\'")}')">${t('cl_send')}</button></td>
+      </tr>`).join(''):`<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:24px">${t('cl_no_contacts')}</td></tr>`}
+      </tbody></table>
+    </div></div>`;
+}
+
+/* ── Contacts: actions ── */
+async function clBtn(btn,fn){
+  if(!btn){ return fn(); }
+  const orig=btn.textContent; btn.disabled=true; btn.textContent=t('cl_working');
+  try{ await fn(); } finally { btn.disabled=false; btn.textContent=orig; }
+}
+
+function clImportModal(){
+  modal(t('cl_import_title'),`
+    <div class="field"><label>${t('cl_segment')}</label>
+      <select id="cl-imp-seg"><option value="all">${t('cl_seg_all')}</option>${clSegOptions(false)}</select>
+    </div>
+    <div class="field"><label>${t('cl_filter_tag')} (${t('cl_optional')})</label><input type="text" id="cl-imp-tag" placeholder="${t('cl_tag_ph')}"></div>
+    <div class="field"><label>${t('cl_filter_limit')} (${t('cl_optional')})</label><input type="number" id="cl-imp-lim" placeholder="—"></div>
+    <div class="btn-group mt-16"><button class="btn primary" onclick="clDoImport(this)">${t('cl_import_btn')}</button></div>`);
+}
+async function clDoImport(btn){
+  const segment=$('cl-imp-seg').value;
+  const tag=$('cl-imp-tag').value.trim();
+  const limRaw=$('cl-imp-lim').value;
+  const body={segment};
+  if(tag)body.tag=tag;
+  if(limRaw)body.limit=Number(limRaw);
+  await clBtn(btn, async()=>{
+    const r=await api('/clients/import',{method:'POST',body});
+    if(r&&r.error){ toast(r.error,false); return; }
+    let imported=0;
+    if(r&&Array.isArray(r.results)) imported=r.results.reduce((s,x)=>s+(x.imported||x.inserted||0),0);
+    else imported=(r&&(r.imported||r.inserted))||0;
+    document.querySelector('.modal-overlay')?.remove();
+    toast(`${t('cl_imported')}: ${imported}`);
+    if(page==='contacts'){ loadClientsStats(); loadClients(); }
+  });
+}
+
+function clValidateModal(){
+  modal(t('cl_validate_title'),`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${t('cl_validate_hint')}</div>
+    <div class="field"><label>${t('cl_filter_limit')}</label><input type="number" id="cl-val-lim" value="100"></div>
+    <div class="btn-group mt-16"><button class="btn primary" onclick="clDoValidate(this)">${t('cl_validate_btn')}</button></div>`);
+}
+async function clDoValidate(btn){
+  const limit=Number($('cl-val-lim').value)||100;
+  await clBtn(btn, async()=>{
+    const r=await api('/clients/validate',{method:'POST',body:{limit}});
+    if(r&&r.error){ toast(r.error,false); return; }
+    document.querySelector('.modal-overlay')?.remove();
+    toast(`${t('cl_validated')} — ${r.checked||0} ${t('cl_res_checked')}, ${r.invalid||0} ${t('cl_res_invalid')}`);
+    if(page==='contacts'){ loadClientsStats(); loadClients(); }
+  });
+}
+
+async function clSyncSuppression(btn){
+  await clBtn(btn, async()=>{
+    const r=await api('/clients/sync-suppression',{method:'POST',body:{}});
+    if(r&&r.error){ toast(r.error,false); return; }
+    toast(`${t('cl_synced')} — ${r.flagged||0} ${t('cl_res_flagged')}`);
+    if(page==='contacts'){ loadClientsStats(); loadClients(); }
+  });
+}
+
+function clSendModal(id,email,name){
+  modal(`${t('cl_send_title')} — ${esc(name)||esc(email)}`,`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px" class="mono">${esc(email)}</div>
+    <div class="field"><label>${t('cl_subject')}</label><input type="text" id="cl-send-subj"></div>
+    <div class="field"><label>${t('cl_body')}</label><textarea id="cl-send-body" style="min-height:140px"></textarea></div>
+    <div class="btn-group mt-16"><button class="btn primary" onclick="clDoSend(this,${id})">${t('cl_send_btn')}</button></div>`);
+}
+async function clDoSend(btn,id){
+  const subject=$('cl-send-subj').value.trim();
+  const bodyText=$('cl-send-body').value.trim();
+  if(!subject||!bodyText) return toast(t('cl_subject_body_req'),false);
+  await clBtn(btn, async()=>{
+    const r=await api('/clients/'+id+'/send',{method:'POST',body:{subject,body:bodyText}});
+    if(r&&r.error){ toast(r.error,false); return; }
+    document.querySelector('.modal-overlay')?.remove();
+    toast(t('cl_sent_ok'));
+    if(page==='contacts'){ loadClientsStats(); loadClients(); }
+  });
+}
+
+function clCampaignModal(){
+  modal(t('cl_campaign_title'),`
+    <div class="field"><label>${t('cl_subject')}</label><input type="text" id="cl-cmp-subj"></div>
+    <div class="field"><label>${t('cl_body')}</label><textarea id="cl-cmp-body" style="min-height:140px"></textarea>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">${t('cl_body_hint')}</div>
+    </div>
+    <div class="input-row">
+      <div class="field"><label>${t('cl_segment')}</label><select id="cl-cmp-seg">${clSegOptions(true)}</select></div>
+      <div class="field"><label>${t('cl_filter_tag')} (${t('cl_optional')})</label><input type="text" id="cl-cmp-tag"></div>
+      <div class="field" style="max-width:100px"><label>${t('cl_filter_limit')}</label><input type="number" id="cl-cmp-lim" value="50"></div>
+    </div>
+    <div class="flex mt-16" style="gap:16px;flex-wrap:wrap">
+      <label class="check-label"><input type="checkbox" id="cl-cmp-personalize"> ${t('cl_personalize')}</label>
+      <label class="check-label"><input type="checkbox" id="cl-cmp-force"> ${t('cl_force')}</label>
+    </div>
+    <div class="btn-group mt-16"><button class="btn primary" onclick="clDoCampaign(this)">${t('cl_campaign_btn')}</button></div>`);
+}
+async function clDoCampaign(btn){
+  const subject=$('cl-cmp-subj').value.trim();
+  const bodyText=$('cl-cmp-body').value.trim();
+  if(!subject||!bodyText) return toast(t('cl_subject_body_req'),false);
+  if(!confirm(t('cl_campaign_confirm'))) return;
+  const body={subject,body:bodyText,limit:Number($('cl-cmp-lim').value)||50};
+  const seg=$('cl-cmp-seg').value; if(seg)body.segment=seg;
+  const tag=$('cl-cmp-tag').value.trim(); if(tag)body.tag=tag;
+  if($('cl-cmp-personalize').checked)body.personalize=true;
+  if($('cl-cmp-force').checked)body.force=true;
+  await clBtn(btn, async()=>{
+    const r=await api('/clients/campaign',{method:'POST',body});
+    if(r&&r.error){ toast(r.error,false); return; }
+    document.querySelector('.modal-overlay')?.remove();
+    let msg=`${r.sent||0} ${t('cl_res_sent')}, ${r.skipped||0} ${t('cl_res_skipped')}, ${r.failed||0} ${t('cl_res_failed')}`;
+    if(r.stoppedReason) msg+=` — ${t('cl_stopped')}: ${r.stoppedReason}`;
+    toast(msg, !r.failed);
+    if(page==='contacts'){ loadClientsStats(); loadClientsWarmup(); loadClients(); }
+  });
 }
 
 /* ═══════════════ HOLIDAYS ═══════════════ */
