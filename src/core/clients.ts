@@ -295,6 +295,18 @@ export async function listClients(opts: ListClientsOptions): Promise<EmailClient
   return rows.map(mapClient);
 }
 
+// Distinct tags across all clients (tags column is comma-separated), with counts.
+export async function listClientTags(): Promise<Array<{ tag: string; count: number }>> {
+  const rows = await sql`
+    SELECT trim(tg) AS tag, count(*)::int AS count
+    FROM email_clients, unnest(string_to_array(tags, ',')) AS tg
+    WHERE trim(tg) <> ''
+    GROUP BY trim(tg)
+    ORDER BY count DESC, tag ASC
+  `;
+  return rows.map((r: any) => ({ tag: r.tag, count: r.count }));
+}
+
 export async function clientStats(): Promise<
   Array<{ segment: string; status: string; count: number }>
 > {

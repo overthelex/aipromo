@@ -141,6 +141,9 @@
     .tbl .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .tbl .dim { color: var(--text3); }
     .tbl .msg-preview { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); }
+    /* Resizable table columns */
+    .col-resizer { position: absolute; top: 0; right: 0; width: 7px; height: 100%; cursor: col-resize; user-select: none; z-index: 2; }
+    .col-resizer:hover, .col-resizer.dragging { background: var(--amber); }
 
     /* ── TAGS & BADGES ── */
     .tag {
@@ -2646,12 +2649,22 @@ async function pgClients(el){
       <div class="field" style="max-width:160px"><label>${t('cl_filter_status')}</label>
         <select id="cl-f-status"><option value="">${t('cl_seg_all')}</option>${CL_STATUSES.map(s=>`<option value="${s}">${t('cl_st_'+s)}</option>`).join('')}</select>
       </div>
-      <div class="field" style="max-width:160px"><label>${t('cl_filter_tag')}</label><input type="text" id="cl-f-tag" placeholder="${t('cl_tag_ph')}"></div>
+      <div class="field" style="max-width:160px"><label>${t('cl_filter_tag')}</label><select id="cl-f-tag"><option value="">${t('cl_seg_all')}</option></select></div>
       <div class="field" style="max-width:100px"><label>${t('cl_filter_limit')}</label><input type="number" id="cl-f-lim" value="100"></div>
       <div class="field"><label>&nbsp;</label><button class="btn primary" onclick="loadClients()">${t('cl_load')}</button></div>
     </div>
     <div id="cl-tbl"></div>`;
-  await Promise.all([loadClientsStats(), loadClientsWarmup(), loadClients()]);
+  await Promise.all([loadClientsStats(), loadClientsWarmup(), loadClientTags(), loadClients()]);
+}
+
+async function loadClientTags(){
+  const sel=$('cl-f-tag'); if(!sel)return;
+  const cur=sel.value;
+  const d=await api('/clients/tags');
+  const items=(d&&d.items)||[];
+  sel.innerHTML=`<option value="">${t('cl_seg_all')}</option>`+
+    items.map(x=>`<option value="${esc(x.tag)}">${esc(x.tag)} (${x.count})</option>`).join('');
+  if(cur) sel.value=cur;
 }
 
 async function loadClientsStats(){
@@ -2727,23 +2740,50 @@ async function loadClients(){
   box.innerHTML=`
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${items.length} ${t('cl_shown')}</div>
     <div class="card"><div class="card-body flush" style="max-height:60vh;overflow:auto">
-      <table class="tbl"><thead><tr>
-        <th>${t('cl_col_name')}</th><th>${t('cl_col_email')}</th><th>${t('cl_col_org')}</th>
-        <th>${t('cl_col_region')}</th><th>${t('cl_col_segment')}</th><th>${t('cl_col_status')}</th>
-        <th>${t('cl_col_last')}</th><th></th>
+      <table class="tbl cltbl" style="table-layout:fixed;width:100%">
+      <colgroup><col style="width:160px"><col style="width:230px"><col style="width:200px"><col style="width:120px"><col style="width:110px"><col style="width:110px"><col style="width:150px"><col style="width:90px"></colgroup>
+      <thead><tr>
+        <th>${t('cl_col_name')}<span class="col-resizer" data-c="0"></span></th><th>${t('cl_col_email')}<span class="col-resizer" data-c="1"></span></th><th>${t('cl_col_org')}<span class="col-resizer" data-c="2"></span></th>
+        <th>${t('cl_col_region')}<span class="col-resizer" data-c="3"></span></th><th>${t('cl_col_segment')}<span class="col-resizer" data-c="4"></span></th><th>${t('cl_col_status')}<span class="col-resizer" data-c="5"></span></th>
+        <th>${t('cl_col_last')}<span class="col-resizer" data-c="6"></span></th><th></th>
       </tr></thead><tbody>
       ${items.length?items.map(c=>`<tr>
-        <td><strong>${esc(c.name)||'—'}</strong></td>
+        <td class="trunc" title="${esc(c.name)}"><strong>${esc(c.name)||'—'}</strong></td>
         <td class="mono trunc" title="${esc(c.email)}">${esc(c.email)}</td>
-        <td class="nowrap trunc" title="${esc(c.org)}">${esc(c.org)||'—'}</td>
-        <td class="nowrap dim">${esc(c.region)||'—'}</td>
+        <td class="trunc" title="${esc(c.org)}">${esc(c.org)||'—'}</td>
+        <td class="trunc dim" title="${esc(c.region)}">${esc(c.region)||'—'}</td>
         <td class="nowrap">${clSegLabel(c.segment)}</td>
         <td class="nowrap">${clStatusTag(c.status)}</td>
-        <td class="mono dim nowrap">${c.lastContactedAt?fmtFull(c.lastContactedAt):t('cl_never')}</td>
+        <td class="mono dim trunc">${c.lastContactedAt?fmtFull(c.lastContactedAt):t('cl_never')}</td>
         <td class="nowrap"><button class="btn sm ghost" onclick="clSendModal(${c.id},'${esc(c.email).replace(/'/g,"\\'")}','${esc(c.name).replace(/'/g,"\\'")}')">${t('cl_send')}</button></td>
       </tr>`).join(''):`<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:24px">${t('cl_no_contacts')}</td></tr>`}
       </tbody></table>
     </div></div>`;
+  clInitResize();
+}
+
+// Draggable column widths for the contacts table (persisted in localStorage).
+function clInitResize(){
+  const table=document.querySelector('#cl-tbl table.cltbl'); if(!table)return;
+  const cols=table.querySelectorAll('colgroup col');
+  let saved={}; try{ saved=JSON.parse(localStorage.getItem('cl_colw')||'{}'); }catch(e){}
+  cols.forEach((col,i)=>{ if(saved[i]) col.style.width=saved[i]+'px'; });
+  table.querySelectorAll('.col-resizer').forEach(h=>{
+    h.addEventListener('mousedown',e=>{
+      e.preventDefault(); e.stopPropagation();
+      const i=+h.dataset.c, col=cols[i];
+      const startX=e.pageX, startW=col.getBoundingClientRect().width;
+      h.classList.add('dragging'); document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
+      function mm(ev){ col.style.width=Math.max(48,Math.round(startW+(ev.pageX-startX)))+'px'; }
+      function mu(){
+        document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu);
+        h.classList.remove('dragging'); document.body.style.cursor=''; document.body.style.userSelect='';
+        let s={}; try{ s=JSON.parse(localStorage.getItem('cl_colw')||'{}'); }catch(e){}
+        s[i]=Math.round(col.getBoundingClientRect().width); localStorage.setItem('cl_colw',JSON.stringify(s));
+      }
+      document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+    });
+  });
 }
 
 /* ── Contacts: actions ── */
