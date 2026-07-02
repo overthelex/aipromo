@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  EC2_HOST: 63.180.21.221
+  EC2_HOST: 3.73.121.74
   EC2_USER: ubuntu
   REMOTE_DIR: /home/ubuntu/aipromo
 
