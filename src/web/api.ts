@@ -13,6 +13,7 @@ import {
   importClientsFromOpendata,
   listClients,
   clientStats,
+  listClientTags,
   getWarmupStatus,
   validateNewClients,
   syncSuppressionList,
@@ -881,6 +882,15 @@ apiRouter.get("/clients/stats", async (_req, res) => {
   try {
     const stats = await clientStats();
     res.json({ items: stats });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.get("/clients/tags", async (_req, res) => {
+  try {
+    const tags = await listClientTags();
+    res.json({ items: tags });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
