@@ -154,7 +154,7 @@ function getOAuth2Client(): OAuth2Client | null {
   return new OAuth2Client(
     appConfig.googleClientId,
     appConfig.googleClientSecret,
-    appConfig.googleCallbackUrl || "https://selected.highfunk.uk/auth/google/callback"
+    appConfig.googleCallbackUrl || "https://crm.legal.org.ua/auth/google/callback"
   );
 }
 

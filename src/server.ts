@@ -185,10 +185,10 @@ app.get("/blog", (req, res) => {
 <title>selected.ai — Blog</title>
 <meta name="description" content="How we built an AI-powered LinkedIn outreach engine — from architecture to conversion.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://selected.highfunk.uk/blog">
+<meta property="og:url" content="https://crm.legal.org.ua/blog">
 <meta property="og:title" content="selected.ai — Blog">
 <meta property="og:description" content="How we built an AI-powered LinkedIn outreach engine — from architecture to conversion.">
-<meta property="og:image" content="https://selected.highfunk.uk/og-image.png">
+<meta property="og:image" content="https://crm.legal.org.ua/og-image.png">
 </head>
 <body>
 <h1>The selected.ai Blog</h1>
@@ -227,9 +227,9 @@ app.get("/blog/:slug", (req, res) => {
       "headline": article.title,
       "description": article.excerpt,
       "datePublished": article.date,
-      "author": { "@type": "Organization", "name": "selected.ai", "url": "https://selected.highfunk.uk" },
-      "publisher": { "@type": "Organization", "name": "selected.ai", "url": "https://selected.highfunk.uk" },
-      "mainEntityOfPage": `https://selected.highfunk.uk/blog/${article.id}`,
+      "author": { "@type": "Organization", "name": "selected.ai", "url": "https://crm.legal.org.ua" },
+      "publisher": { "@type": "Organization", "name": "selected.ai", "url": "https://crm.legal.org.ua" },
+      "mainEntityOfPage": `https://crm.legal.org.ua/blog/${article.id}`,
       "keywords": article.tags.join(", "),
       "articleSection": article.category,
       "inLanguage": "en",
@@ -243,20 +243,20 @@ app.get("/blog/:slug", (req, res) => {
 <title>${article.title} — selected.ai Blog</title>
 <meta name="description" content="${article.excerpt}">
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://selected.highfunk.uk/blog/${article.id}">
+<meta property="og:url" content="https://crm.legal.org.ua/blog/${article.id}">
 <meta property="og:title" content="${article.title} — selected.ai">
 <meta property="og:description" content="${article.excerpt}">
-<meta property="og:image" content="https://selected.highfunk.uk/og-image.png">
+<meta property="og:image" content="https://crm.legal.org.ua/og-image.png">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="uk_UA">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${article.title} — selected.ai">
 <meta name="twitter:description" content="${article.excerpt}">
-<meta name="twitter:image" content="https://selected.highfunk.uk/og-image.png">
-<link rel="canonical" href="https://selected.highfunk.uk/blog/${article.id}">
-<link rel="alternate" hreflang="en" href="https://selected.highfunk.uk/blog/${article.id}">
-<link rel="alternate" hreflang="uk" href="https://selected.highfunk.uk/blog/${article.id}">
-<link rel="alternate" hreflang="x-default" href="https://selected.highfunk.uk/blog/${article.id}">
+<meta name="twitter:image" content="https://crm.legal.org.ua/og-image.png">
+<link rel="canonical" href="https://crm.legal.org.ua/blog/${article.id}">
+<link rel="alternate" hreflang="en" href="https://crm.legal.org.ua/blog/${article.id}">
+<link rel="alternate" hreflang="uk" href="https://crm.legal.org.ua/blog/${article.id}">
+<link rel="alternate" hreflang="x-default" href="https://crm.legal.org.ua/blog/${article.id}">
 <script type="application/ld+json">${jsonLd}</script>
 </head>
 <body>
