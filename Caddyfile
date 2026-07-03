@@ -1,3 +1,4 @@
-http://crm.legal.org.ua {
+crm.legal.org.ua {
+	tls /etc/caddy/certs/crm.pem /etc/caddy/certs/crm.key
 	reverse_proxy app:3000
 }
