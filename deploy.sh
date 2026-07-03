@@ -19,4 +19,4 @@ rsync -avz --delete \
 echo "==> Building and starting containers..."
 ssh -i "$KEY" -o StrictHostKeyChecking=no "$HOST" "cd $REMOTE_DIR && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build"
 
-echo "==> Done! Site: https://selected.highfunk.uk"
+echo "==> Done! Site: https://crm.legal.org.ua"

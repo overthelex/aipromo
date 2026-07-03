@@ -25,4 +25,4 @@ Disallow: /pipeline
 Disallow: /deals
 Disallow: /follow-ups
 
-Sitemap: https://selected.highfunk.uk/sitemap.xml
+Sitemap: https://crm.legal.org.ua/sitemap.xml
