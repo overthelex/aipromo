@@ -20,6 +20,8 @@ const configSchema = z.object({
   googleClientId: z.string().default(""),
   googleClientSecret: z.string().default(""),
   googleCallbackUrl: z.string().default(""),
+  // Comma-separated allowlist of emails permitted to sign in via Google. Empty = allow any.
+  googleAllowedEmails: z.string().default(""),
 
   // Unipile
   unipileDsn: z.string().min(1),
@@ -96,6 +98,7 @@ function loadConfig(): AppConfig {
     googleClientId: process.env.GOOGLE_CLIENT_ID,
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
     googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL,
+    googleAllowedEmails: process.env.GOOGLE_ALLOWED_EMAILS,
     databaseUrl: process.env.DATABASE_URL,
     unipileDsn: process.env.UNIPILE_DSN,
     unipileAccessToken: process.env.UNIPILE_ACCESS_TOKEN,
