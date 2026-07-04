@@ -192,6 +192,16 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
     const email = payload.email || "";
     const displayName = payload.name || email;
 
+    // Enforce email allowlist (if configured)
+    const allowed = (appConfig.googleAllowedEmails || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    if (allowed.length > 0 && !allowed.includes(email.toLowerCase())) {
+      console.warn("Google OAuth denied (not in allowlist):", email);
+      return res.redirect("/login?error=not_authorized");
+    }
+
     // Find user by google_id
     let found = await sql`SELECT * FROM users WHERE google_id = ${googleId}`;
 
