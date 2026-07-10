@@ -870,6 +870,8 @@ apiRouter.get("/clients", async (req, res) => {
       segment: (req.query.segment as ClientSegment) || undefined,
       status: (req.query.status as string) || undefined,
       tag: (req.query.tag as string) || undefined,
+      sort: (req.query.sort as string) || undefined,
+      dir: (req.query.dir as string) === "asc" ? "asc" : req.query.dir === "desc" ? "desc" : undefined,
       limit,
     });
     res.json({ items: clients });
