@@ -280,16 +280,36 @@ export interface ListClientsOptions {
   segment?: ClientSegment;
   status?: string;
   tag?: string;
+  sort?: string;
+  dir?: "asc" | "desc";
   limit: number;
 }
 
+// Whitelist of sortable columns (maps UI keys → real column names).
+const SORT_COLUMNS: Record<string, string> = {
+  name: "name",
+  email: "email",
+  org: "org",
+  region: "region",
+  segment: "segment",
+  status: "status",
+  last: "last_contacted_at",
+};
+
 export async function listClients(opts: ListClientsOptions): Promise<EmailClient[]> {
+  // Build a safe ORDER BY from the whitelist; default = most recently imported.
+  const col = opts.sort ? SORT_COLUMNS[opts.sort] : undefined;
+  const dir = opts.dir === "asc" ? "ASC" : "DESC";
+  const orderBy = col
+    ? `ORDER BY ${col} ${dir} NULLS LAST, imported_at DESC`
+    : `ORDER BY imported_at DESC`;
+
   const rows = await sql`
     SELECT * FROM email_clients
     WHERE (${opts.segment ?? null}::text IS NULL OR segment = ${opts.segment ?? null})
       AND (${opts.status ?? null}::text IS NULL OR status = ${opts.status ?? null})
       AND (${opts.tag ?? null}::text IS NULL OR tags LIKE ${"%" + (opts.tag ?? "") + "%"})
-    ORDER BY imported_at DESC
+    ${sql.unsafe(orderBy)}
     LIMIT ${opts.limit}
   `;
   return rows.map(mapClient);
