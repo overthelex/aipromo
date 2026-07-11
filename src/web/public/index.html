@@ -502,7 +502,7 @@ const i18n = {
     cl_filter_segment:'Segment', cl_filter_status:'Status', cl_filter_tag:'Tag',
     cl_filter_limit:'Limit', cl_load:'Load', cl_tag_ph:'Filter tag', cl_shown:'shown',
     cl_col_name:'Name', cl_col_email:'Email', cl_col_org:'Org', cl_col_region:'Region',
-    cl_col_segment:'Segment', cl_col_status:'Status', cl_col_last:'Last Contacted', cl_col_actions:'', cl_sort_hint:'Click to sort',
+    cl_col_segment:'Segment', cl_col_status:'Status', cl_col_last:'Last Contacted', cl_col_tags:'Tags', cl_col_actions:'', cl_sort_hint:'Click to sort',
     cl_no_contacts:'No contacts found', cl_never:'Never',
     cl_import_title:'Import Contacts', cl_import_btn:'Import',
     cl_optional:'optional', cl_segment:'Segment',
@@ -612,7 +612,7 @@ const i18n = {
     cl_filter_segment:'Сегмент', cl_filter_status:'Статус', cl_filter_tag:'Тег',
     cl_filter_limit:'Ліміт', cl_load:'Завантажити', cl_tag_ph:'Фільтр тегів', cl_shown:'показано',
     cl_col_name:'Ім\'я', cl_col_email:'Email', cl_col_org:'Організація', cl_col_region:'Регіон',
-    cl_col_segment:'Сегмент', cl_col_status:'Статус', cl_col_last:'Останній контакт', cl_col_actions:'', cl_sort_hint:'Клікніть, щоб сортувати',
+    cl_col_segment:'Сегмент', cl_col_status:'Статус', cl_col_last:'Останній контакт', cl_col_tags:'Теги', cl_col_actions:'', cl_sort_hint:'Клікніть, щоб сортувати',
     cl_no_contacts:'Контактів не знайдено', cl_never:'Ніколи',
     cl_import_title:'Імпорт контактів', cl_import_btn:'Імпортувати',
     cl_optional:'необов\'язково', cl_segment:'Сегмент',
@@ -2730,10 +2730,21 @@ async function loadClientsWarmup(){
 const CL_COLS=[
   {key:'name',label:'cl_col_name'},{key:'email',label:'cl_col_email'},{key:'org',label:'cl_col_org'},
   {key:'region',label:'cl_col_region'},{key:'segment',label:'cl_col_segment'},{key:'status',label:'cl_col_status'},
-  {key:'last',label:'cl_col_last'},
+  {key:'last',label:'cl_col_last'},{key:'tags',label:'cl_col_tags'},
 ];
 let clItems=[];
 let clSort={key:'',dir:1};
+
+// Render comma-separated tags as small colored chips (firm:/verified:/hunter get accents).
+function clTagChips(tags){
+  const list=String(tags||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!list.length) return '<span class="dim">—</span>';
+  return list.map(x=>{
+    const cls = x.startsWith('verified:valid')?'teal' : x.startsWith('verified:')?'amber'
+              : x.startsWith('firm:')?'blue' : x==='hunter'?'teal' : '';
+    return `<span class="tag ${cls}" style="font-size:10px;margin:1px 3px 1px 0">${esc(x)}</span>`;
+  }).join('');
+}
 
 async function loadClients(){
   const box=$('cl-tbl'); if(!box)return;
@@ -2759,7 +2770,7 @@ function clRenderTable(){
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${items.length} ${t('cl_shown')}</div>
     <div class="card"><div class="card-body flush" style="max-height:60vh;overflow:auto">
       <table class="tbl cltbl" style="table-layout:fixed;width:100%">
-      <colgroup><col style="width:160px"><col style="width:230px"><col style="width:200px"><col style="width:120px"><col style="width:110px"><col style="width:110px"><col style="width:150px"><col style="width:90px"></colgroup>
+      <colgroup><col style="width:160px"><col style="width:230px"><col style="width:200px"><col style="width:120px"><col style="width:110px"><col style="width:110px"><col style="width:150px"><col style="width:220px"><col style="width:90px"></colgroup>
       <thead><tr>
         ${CL_COLS.map((col,i)=>`<th class="cl-sortable" style="cursor:pointer;user-select:none" onclick="clHeaderClick(event,'${col.key}')" title="${t('cl_sort_hint')}">${t(col.label)}${arrow(col.key)}<span class="col-resizer" data-c="${i}"></span></th>`).join('')}<th></th>
       </tr></thead><tbody>
@@ -2771,8 +2782,9 @@ function clRenderTable(){
         <td class="nowrap">${clSegLabel(c.segment)}</td>
         <td class="nowrap">${clStatusTag(c.status)}</td>
         <td class="mono dim trunc">${c.lastContactedAt?fmtFull(c.lastContactedAt):t('cl_never')}</td>
+        <td style="white-space:normal;line-height:1.7" title="${esc(c.tags)}">${clTagChips(c.tags)}</td>
         <td class="nowrap"><button class="btn sm ghost" onclick="clSendModal(${c.id},'${esc(c.email).replace(/'/g,"\\'")}','${esc(c.name).replace(/'/g,"\\'")}')">${t('cl_send')}</button></td>
-      </tr>`).join(''):`<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:24px">${t('cl_no_contacts')}</td></tr>`}
+      </tr>`).join(''):`<tr><td colspan="9" style="color:var(--text3);text-align:center;padding:24px">${t('cl_no_contacts')}</td></tr>`}
       </tbody></table>
     </div></div>`;
   clInitResize();
